@@ -1,11 +1,141 @@
 package fr.univ_lille.iut_info
 
+import fr.univ_lille.iut_info.alfr_parser.AlfrLexer
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser
+import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.Parser
+import org.antlr.v4.runtime.atn.ATNConfigSet
+import org.antlr.v4.runtime.dfa.DFA
+import org.antlr.v4.runtime.tree.ErrorNode
+import org.antlr.v4.runtime.tree.ParseTreeListener
+import org.antlr.v4.runtime.tree.TerminalNode
+import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 class Parser {
     companion object {
 
-        fun visitProgram(ctx: AlfrParser.ProgramContext): List<Unit> {
+        fun parse(input: String): List<Statement> {
+
+            val stream: CharStream = ANTLRInputStream(input)
+
+            val lexer = AlfrLexer(stream)
+            val error = AtomicBoolean(false)
+            lexer.removeErrorListeners()
+            lexer.addErrorListener(object : ANTLRErrorListener {
+                override fun reportAmbiguity(
+                    recognizer: org.antlr.v4.runtime.Parser?,
+                    dfa: DFA?,
+                    startIndex: Int,
+                    stopIndex: Int,
+                    exact: Boolean,
+                    ambigAlts: BitSet?,
+                    configs: ATNConfigSet?
+                ) {
+                    error.set(true)
+                }
+
+                override fun reportContextSensitivity(
+                    recognizer: org.antlr.v4.runtime.Parser?,
+                    dfa: DFA?,
+                    startIndex: Int,
+                    stopIndex: Int,
+                    prediction: Int,
+                    configs: ATNConfigSet?
+                ) {
+                    error.set(true)
+                }
+
+                override fun reportAttemptingFullContext(
+                    recognizer: org.antlr.v4.runtime.Parser?, dfa: DFA?, startIndex: Int, stopIndex: Int,
+                    conflictingAlts: BitSet?, configs: ATNConfigSet?
+                ) {
+                    error.set(true)
+                }
+
+                override fun syntaxError(
+                    recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int,
+                    charPositionInLine: Int, msg: String?, e: RecognitionException?
+                ) {
+                    error.set(true)
+                }
+            })
+            val tokens = CommonTokenStream(lexer)
+            val parser = AlfrParser(tokens)
+            parser.removeErrorListeners()
+            parser.addErrorListener(object : ANTLRErrorListener {
+                override fun reportAmbiguity(
+                    recognizer: org.antlr.v4.runtime.Parser?,
+                    dfa: DFA?,
+                    startIndex: Int,
+                    stopIndex: Int,
+                    exact: Boolean,
+                    ambigAlts: BitSet?,
+                    configs: ATNConfigSet?
+                ) {
+                    error.set(true)
+                }
+
+                override fun reportAttemptingFullContext(
+                    recognizer: org.antlr.v4.runtime.Parser?,
+                    dfa: DFA?,
+                    startIndex: Int,
+                    stopIndex: Int,
+                    conflictingAlts: BitSet?,
+                    configs: ATNConfigSet?
+                ) {
+                    error.set(true)
+                }
+
+                override fun reportContextSensitivity(
+                    recognizer: Parser?,
+                    dfa: DFA?,
+                    startIndex: Int,
+                    stopIndex: Int,
+                    prediction: Int,
+                    configs: ATNConfigSet?
+                ) {
+                    error.set(true)
+                }
+
+                override fun syntaxError(
+                    recognizer: Recognizer<*, *>?,
+                    offendingSymbol: Any?,
+                    line: Int,
+                    charPositionInLine: Int,
+                    msg: String?,
+                    e: RecognitionException?
+                ) {
+                    error.set(true)
+                }
+            })
+
+            parser.addParseListener(object : ParseTreeListener {
+                override fun visitTerminal(node: TerminalNode?) {
+                    error.set(true)
+                }
+
+                override fun visitErrorNode(node: ErrorNode?) {
+                    error.set(true)
+                }
+
+                override fun enterEveryRule(ctx: ParserRuleContext?) {
+                    error.set(true)
+                }
+
+                override fun exitEveryRule(ctx: ParserRuleContext?) {
+                    error.set(true)
+                }
+
+            })
+            if (error.get()) {
+                throw Error("Parsing error")
+            }
+
+            return visitProgram(parser.program())
+        }
+
+        fun visitProgram(ctx: AlfrParser.ProgramContext): List<Statement> {
             return ctx.statement().map { visitStatement(it) }
         }
 
@@ -94,7 +224,7 @@ class Parser {
         fun visitRoot_pattern(ctx: AlfrParser.Root_patternContext): Pattern {
             val childrenPattern = ctx.children_pattern()?.let { visitChildren_pattern(it) }
             val fieldsPattern = ctx.fields_pattern()?.let { visitFields_pattern(it) }
-            val alias = ctx.specify_alias()?.let {visitSpecify_alias(it)}
+            val alias = ctx.specify_alias()?.let { visitSpecify_alias(it) }
 
             return ObjectPattern(fieldsPattern ?: emptyMap(), childrenPattern, alias)
         }
