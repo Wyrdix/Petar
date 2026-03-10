@@ -41,3 +41,6 @@ bin/
 ### Mac OS ###
 .DS_Store
 /.idea/
+
+## Generated Source ##
+/src/main/java/fr/univ_lille/iut_info/alfr_parser/

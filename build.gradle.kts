@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.3.0"
+    antlr
 }
 
 group = "fr.univ_lille.iut_info"
@@ -10,6 +11,7 @@ repositories {
 }
 
 dependencies {
+    antlr("org.antlr:antlr4:4.5")
     testImplementation(kotlin("test"))
 }
 
@@ -19,4 +21,19 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.generateGrammarSource {
+    outputDirectory = file("${project.projectDir}/src/main/java/fr/univ_lille/iut_info/alfr_parser")
+
+    arguments = listOf("-Dlanguage=Java", "-package", "fr.univ_lille.iut_info.alfr_parser")
+}
+
+
+tasks.compileKotlin {
+    dependsOn("generateGrammarSource")
+}
+
+tasks.compileTestKotlin {
+    dependsOn("generateTestGrammarSource")
 }
