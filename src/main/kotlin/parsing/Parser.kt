@@ -1,138 +1,83 @@
-package fr.univ_lille.iut_info
+package fr.univ_lille.iut_info.parsing
 
+import fr.univ_lille.iut_info.AndCondition
+import fr.univ_lille.iut_info.ArrayType
+import fr.univ_lille.iut_info.ChildrenPattern
+import fr.univ_lille.iut_info.ChildrenTransform
+import fr.univ_lille.iut_info.Condition
+import fr.univ_lille.iut_info.DeleteTransform
+import fr.univ_lille.iut_info.EqualCondition
+import fr.univ_lille.iut_info.Expression
+import fr.univ_lille.iut_info.ExpressionTransform
+import fr.univ_lille.iut_info.GroupDeclarationStatement
+import fr.univ_lille.iut_info.IdentifierExpression
+import fr.univ_lille.iut_info.ListPattern
+import fr.univ_lille.iut_info.ListTransform
+import fr.univ_lille.iut_info.NodeDeclarationStatement
+import fr.univ_lille.iut_info.NotCondition
+import fr.univ_lille.iut_info.NumberPattern
+import fr.univ_lille.iut_info.NumberType
+import fr.univ_lille.iut_info.NumberValue
+import fr.univ_lille.iut_info.ObjectAlfrType
+import fr.univ_lille.iut_info.ObjectPattern
+import fr.univ_lille.iut_info.ObjectTransform
+import fr.univ_lille.iut_info.OrCondition
+import fr.univ_lille.iut_info.Pattern
+import fr.univ_lille.iut_info.ReferenceType
+import fr.univ_lille.iut_info.RewriteRuleStatement
+import fr.univ_lille.iut_info.Statement
+import fr.univ_lille.iut_info.StringPattern
+import fr.univ_lille.iut_info.StringType
+import fr.univ_lille.iut_info.StringValue
+import fr.univ_lille.iut_info.Transform
+import fr.univ_lille.iut_info.TrueCondition
+import fr.univ_lille.iut_info.Type
+import fr.univ_lille.iut_info.ValueExpression
 import fr.univ_lille.iut_info.alfr_parser.AlfrLexer
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser
-import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.ANTLRErrorListener
+import org.antlr.v4.runtime.ANTLRInputStream
+import org.antlr.v4.runtime.BailErrorStrategy
+import org.antlr.v4.runtime.CharStream
+import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.Parser
+import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.RecognitionException
+import org.antlr.v4.runtime.Recognizer
 import org.antlr.v4.runtime.atn.ATNConfigSet
 import org.antlr.v4.runtime.dfa.DFA
 import org.antlr.v4.runtime.tree.ErrorNode
 import org.antlr.v4.runtime.tree.ParseTreeListener
 import org.antlr.v4.runtime.tree.TerminalNode
-import java.util.*
+import java.util.BitSet
 import java.util.concurrent.atomic.AtomicBoolean
 
 class Parser {
     companion object {
 
-        fun parse(input: String): List<Statement> {
+        fun parse(input: String): Pair<MutableList<String>, List<Statement>> {
 
             val stream: CharStream = ANTLRInputStream(input)
 
             val lexer = AlfrLexer(stream)
-            val error = AtomicBoolean(false)
-            lexer.removeErrorListeners()
-            lexer.addErrorListener(object : ANTLRErrorListener {
-                override fun reportAmbiguity(
-                    recognizer: org.antlr.v4.runtime.Parser?,
-                    dfa: DFA?,
-                    startIndex: Int,
-                    stopIndex: Int,
-                    exact: Boolean,
-                    ambigAlts: BitSet?,
-                    configs: ATNConfigSet?
-                ) {
-                    error.set(true)
-                }
 
-                override fun reportContextSensitivity(
-                    recognizer: org.antlr.v4.runtime.Parser?,
-                    dfa: DFA?,
-                    startIndex: Int,
-                    stopIndex: Int,
-                    prediction: Int,
-                    configs: ATNConfigSet?
-                ) {
-                    error.set(true)
-                }
-
-                override fun reportAttemptingFullContext(
-                    recognizer: org.antlr.v4.runtime.Parser?, dfa: DFA?, startIndex: Int, stopIndex: Int,
-                    conflictingAlts: BitSet?, configs: ATNConfigSet?
-                ) {
-                    error.set(true)
-                }
-
-                override fun syntaxError(
-                    recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int,
-                    charPositionInLine: Int, msg: String?, e: RecognitionException?
-                ) {
-                    error.set(true)
-                }
-            })
             val tokens = CommonTokenStream(lexer)
+
             val parser = AlfrParser(tokens)
+            parser.errorHandler = BailErrorStrategy()
             parser.removeErrorListeners()
-            parser.addErrorListener(object : ANTLRErrorListener {
-                override fun reportAmbiguity(
-                    recognizer: org.antlr.v4.runtime.Parser?,
-                    dfa: DFA?,
-                    startIndex: Int,
-                    stopIndex: Int,
-                    exact: Boolean,
-                    ambigAlts: BitSet?,
-                    configs: ATNConfigSet?
-                ) {
-                    error.set(true)
-                }
 
-                override fun reportAttemptingFullContext(
-                    recognizer: org.antlr.v4.runtime.Parser?,
-                    dfa: DFA?,
-                    startIndex: Int,
-                    stopIndex: Int,
-                    conflictingAlts: BitSet?,
-                    configs: ATNConfigSet?
-                ) {
-                    error.set(true)
-                }
+            val listener = CustomErrorListener()
+            parser.addErrorListener(listener)
 
-                override fun reportContextSensitivity(
-                    recognizer: Parser?,
-                    dfa: DFA?,
-                    startIndex: Int,
-                    stopIndex: Int,
-                    prediction: Int,
-                    configs: ATNConfigSet?
-                ) {
-                    error.set(true)
-                }
-
-                override fun syntaxError(
-                    recognizer: Recognizer<*, *>?,
-                    offendingSymbol: Any?,
-                    line: Int,
-                    charPositionInLine: Int,
-                    msg: String?,
-                    e: RecognitionException?
-                ) {
-                    error.set(true)
-                }
-            })
-
-            parser.addParseListener(object : ParseTreeListener {
-                override fun visitTerminal(node: TerminalNode?) {
-                    error.set(true)
-                }
-
-                override fun visitErrorNode(node: ErrorNode?) {
-                    error.set(true)
-                }
-
-                override fun enterEveryRule(ctx: ParserRuleContext?) {
-                    error.set(true)
-                }
-
-                override fun exitEveryRule(ctx: ParserRuleContext?) {
-                    error.set(true)
-                }
-
-            })
-            if (error.get()) {
-                throw Error("Parsing error")
+            val statements = try {
+                visitProgram(parser.program())
+            } catch (e: Exception) {
+                listener.errors.add("Failed to parse: ${e.message}")
+                emptyList()
             }
 
-            return visitProgram(parser.program())
+            return Pair(listener.errors, statements)
         }
 
         fun visitProgram(ctx: AlfrParser.ProgramContext): List<Statement> {
@@ -198,8 +143,8 @@ class Parser {
             val identifier = ctx.IDENTIFIER()
             val typeNumber = ctx.TYPE_NUMBER()
             val typeString = ctx.TYPE_STRING()
-            if (typeString != null) return StringType.instance
-            if (typeNumber != null) return NumberType.instance
+            if (typeString != null) return StringType.Companion.instance
+            if (typeNumber != null) return NumberType.Companion.instance
             if (identifier != null) return ReferenceType(identifier.text)
             throw IllegalStateException("Unknown primitive type.")
         }

@@ -2,7 +2,7 @@ package fr.univ_lille.iut_info.cli
 
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.ParameterException
-import fr.univ_lille.iut_info.Parser
+import fr.univ_lille.iut_info.parsing.Parser
 
 fun main(args: Array<String>) {
     val command = Command()
@@ -20,15 +20,31 @@ fun main(args: Array<String>) {
         return
     }
 
+    val parsed = command.specifications.map { file ->
+        val input = file.readLines().joinToString(separator = "\n")
+        val (errors, statements) = Parser.parse(input)
+        Triple(file, errors, statements)
+    }.associateBy(
+        { (file, _, _) -> file.absolutePath },
+        { (_, strings, statements) -> Pair(strings, statements) })
+
+    if (parsed.values.find { (strings, _) -> strings.isNotEmpty() } != null) {
+        parsed.filter { entry -> entry.value.first.isNotEmpty() }.forEach { path, (errors, _) ->
+            println("Error in file : $path")
+            errors.forEach { println(it) }
+        }
+        return
+    }
+
     if (command.printSpecification) {
         if (command.specifications.isEmpty()) {
             println("No specifications were provided.")
         } else {
-            val statements =
-                command.specifications.map { file -> file.readLines().joinToString(separator = "\n") { it } }
-                    .flatMap { Parser.parse(it) }
-
-            statements.forEach { println(it) }
+            parsed.forEach { file, (_, statements) ->
+                println("Specification file : $file")
+                statements.forEach { println(it) }
+                println()
+            }
         }
     }
 }
