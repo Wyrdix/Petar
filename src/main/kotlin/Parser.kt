@@ -159,7 +159,7 @@ class Parser {
 
         fun visitNode_declaration_statement(ctx: AlfrParser.Node_declaration_statementContext): NodeDeclarationStatement {
             return NodeDeclarationStatement(
-                ctx.node_type().IDENTIFIER().text, visitNode_type(ctx.node_type()), emptyList()
+                ctx.node_type().IDENTIFIER().text, visitNode_type(ctx.node_type()), ctx.groups.map { it.text }
             )
         }
 

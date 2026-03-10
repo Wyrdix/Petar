@@ -6,13 +6,13 @@ statement: group_declaration_statement | node_declaration_statement | rewrite_ru
 
 group_declaration_statement: KEYWORD_SPECIFY_GROUP identifier=IDENTIFIER;
 
-node_declaration_statement: KEYWORD_SPECIFY_NODE schema=node_type;
+node_declaration_statement: KEYWORD_SPECIFY_NODE schema=node_type (COLON (groups+=IDENTIFIER ',')* groups+=IDENTIFIER)?;
 
 node_type:
     identifier=IDENTIFIER
     LPAREN((fields+=field COMMA)* fields+=field)? RPAREN;
 
-field: identifier=IDENTIFIER EQUAL type;
+field: identifier=IDENTIFIER COLON type;
 
 type:
     | primitive_type
@@ -99,6 +99,7 @@ expression_access: (paths+=IDENTIFIER COMMA)* paths+=IDENTIFIER;
 
 expression: STRING | NUMBER | expression_access;
 
+COLON: ':';
 COMMA: ',';
 EQUAL: '=';
 LBRACK: '[';
