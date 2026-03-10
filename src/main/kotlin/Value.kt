@@ -4,19 +4,19 @@ interface Value {
     fun type(): Type
 }
 
-class StringValue(value: String) : Value {
+data class StringValue(val value: String) : Value {
     override fun type(): Type {
         return StringType.instance
     }
 }
 
-class NumberValue(value: Float) : Value {
+data class NumberValue(val value: Float) : Value {
     override fun type(): Type {
         return NumberType.instance
     }
 }
 
-class ObjectValue(val type: ObjectAlfrType, val values: Map<String, Value>) : Value {
+data class ObjectValue(val type: ObjectAlfrType, val values: Map<String, Value>) : Value {
     override fun type(): Type {
         return type
     }
