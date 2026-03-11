@@ -49,6 +49,16 @@ fun Condition.variables(): List<String> {
 
 class NameAnalysis(val program: List<Statement>) {
     val names: MutableMap<String, Identified> = HashMap()
+    val types: Map<String, Type>
+        get() =
+            names.entries.filterIsInstance<Map.Entry<String, NodeDeclarationStatement>>()
+                .map { Pair(it.key, it.value.type) }
+                .union(
+                    setOf(
+                        Pair("String", Type.string),
+                        Pair("Number", Type.number)
+                    )
+                ).associateBy({ it.first }, { it.second })
 
     fun check(): List<String> {
         return listOf(
@@ -66,13 +76,8 @@ class NameAnalysis(val program: List<Statement>) {
     }
 
     fun resolveReference() {
-        val objectTypes: Map<String, ObjectType> = names.filterValues { it is NodeDeclarationStatement }
-            .mapValues { (_, value) -> (value as NodeDeclarationStatement).type }
-        val types: MutableMap<String, Type> = objectTypes.toMutableMap()
-        types["String"] = Type.string
-        types["Number"] = Type.number
-        objectTypes.values.flatMap { it.childrenMap.values }.filterIsInstance<ReferenceType>()
-            .forEach { it.cache = types[it.value] }
+        val types = types;
+        types.values.filterIsInstance<ReferenceType>().forEach { it.cache = types[it.value] }
     }
 
     fun checkIdentified(identified: Identified): List<String> {
