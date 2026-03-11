@@ -95,11 +95,12 @@ transform_field_primitive_value:
     | expression
     | root_transform;
 
-expression_access: (paths+=IDENTIFIER COMMA)* paths+=IDENTIFIER;
+expression_access: (paths+=IDENTIFIER DOT)* paths+=IDENTIFIER;
 
 expression: STRING | NUMBER | expression_access;
 
 COLON: ':';
+DOT: '.';
 COMMA: ',';
 EQUAL: '=';
 LBRACK: '[';
