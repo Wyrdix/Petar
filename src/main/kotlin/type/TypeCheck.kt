@@ -1,56 +1,44 @@
 package fr.univ_lille.iut_info.type
 
-import com.google.gson.JsonObject
-import fr.univ_lille.iut_info.parsing.MemoryNumber
-import fr.univ_lille.iut_info.parsing.MemoryString
+import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.name.NameAnalysis
 
-fun Type.check(fields: Any?): Boolean {
-
-    if (fields == null) return false
-
-    if (this is StringType) return MemoryString.asString(fields) != null
-    if (this is NumberType) return MemoryNumber.asNumber(fields) != null
-    if (this is ObjectType) {
-        val providedFieldsRaw = fields as? Map<*, *> ?: if (fields is JsonObject) fields.asMap()
-        else null
-        if (providedFieldsRaw == null) return false
-
-        val expectedFieldsType = this.childrenMap
-        if (providedFieldsRaw.keys.isEmpty()) return expectedFieldsType.isEmpty()
-        if (providedFieldsRaw.keys.contains(null)) throw TypeCheckWrongAnyType("Map keys contains null")
-        if (providedFieldsRaw.keys.find { it !is String } != null) throw TypeCheckWrongAnyType("Map keys contains a non-string key")
-
-        @Suppress("UNCHECKED_CAST") val providedFields: Map<String, Any> = providedFieldsRaw as Map<String, Any>
-
-        if (providedFields.keys != expectedFieldsType.keys) return false
-
-        return expectedFieldsType.filterNot { (key, value) -> value.check(providedFields[key]) }.isEmpty()
-    }
-    if (this is ArrayType) {
-        if (fields is Array<*>) return fields.filterNot { this.type.check(it) }.isEmpty()
-        if (fields is List<*>) return fields.filterNot { this.type.check(it) }.isEmpty()
-        return false
-    }
-    if (this is ReferenceType) {
-        return this.cache?.check(fields) ?: throw TypeCheckReferenceNotCached()
-    }
-    throw TypeCheckWrongAnyType("Type ${fields.javaClass.simpleName} is not supported by the type checker")
+fun Pattern.variables(): Map<String, ObjectPattern> {
+    if (this is StringPattern) return emptyMap()
+    if (this is NumberPattern) return emptyMap()
+    if (this is ChildrenPattern) return this.patterns.flatMap { it.variables().entries }
+        .associateBy({ it.key }, { it.value })
+    if (this is ObjectPattern) return listOf(
+        (if (this.alias != null) mapOf(
+            Pair(
+                this.alias, this
+            )
+        )
+        else emptyMap()).entries,
+        fields.flatMap { it.second.variables().entries },
+        if (this.children != null) children.variables().entries else emptySet()
+    ).flatten().associateBy({ it.key }, { it.value })
+    if (this is ListPattern) return this.patterns.flatMap { it.variables().entries }
+        .associateBy({ it.key }, { it.value })
+    throw IllegalStateException("Unknown pattern type")
 }
 
-fun Type.safeCheck(fields: Any?): Boolean {
-    return try {
-        check(fields)
-    } catch (e: Error) {
-        e.printStackTrace()
-        false
+
+class TypeCheck(val analysis: NameAnalysis) {
+
+    val program
+        get() = analysis.program
+
+    fun check(): List<String> {
+        val rules = program.filterIsInstance<RewriteRuleStatement>()
+        rules.map { it.pattern }.forEach(this::resolvePatternVariableType)
+
+        return emptyList()
     }
-}
 
-fun Type.assert(fields: Any?) {
-    assert(safeCheck(fields)) {}
-}
+    fun resolvePatternVariableType(pattern: Pattern) {
+        val variables = pattern.variables()
+        pattern.variables = variables.mapValues { (_, value) -> analysis.types[value.identifier]!! }
+    }
 
-class TypeCheckWrongAnyType(message: String?) :
-    Error(if (message != null) "An object was passed that is not supported by the type checker : $message." else "An object was passed that is not supported by the type checker.")
-class TypeCheckReferenceNotCached :
-    Error("Type check cannot occurs if reference types are not cached inside reference.")
+}

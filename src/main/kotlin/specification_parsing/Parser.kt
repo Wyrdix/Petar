@@ -139,11 +139,12 @@ class Parser {
 
 
         fun visitRoot_pattern(ctx: AlfrParser.Root_patternContext): Pattern {
+            val identifier=  ctx.IDENTIFIER().text
             val childrenPattern = ctx.children_pattern()?.let { visitChildren_pattern(it) }
             val fieldsPattern = ctx.fields_pattern()?.let { visitFields_pattern(it) }
             val alias = ctx.specify_alias()?.let { visitSpecify_alias(it) }
 
-            return ObjectPattern(fieldsPattern ?: emptyList(), childrenPattern, alias)
+            return ObjectPattern(identifier, fieldsPattern ?: emptyList(), childrenPattern, alias)
         }
 
 
