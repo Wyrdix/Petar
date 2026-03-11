@@ -3,6 +3,12 @@ package fr.univ_lille.iut_info.parsing
 import fr.univ_lille.iut_info.*
 import fr.univ_lille.iut_info.alfr_parser.AlfrLexer
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser
+import fr.univ_lille.iut_info.type.ArrayType
+import fr.univ_lille.iut_info.type.NumberType
+import fr.univ_lille.iut_info.type.ObjectType
+import fr.univ_lille.iut_info.type.ReferenceType
+import fr.univ_lille.iut_info.type.StringType
+import fr.univ_lille.iut_info.type.Type
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.Interval
 
@@ -82,10 +88,10 @@ class Parser {
         }
 
 
-        fun visitNode_type(ctx: AlfrParser.Node_typeContext): ObjectAlfrType {
+        fun visitNode_type(ctx: AlfrParser.Node_typeContext): ObjectType {
             val id = ctx.identifier.text
             val fields = ctx.fields.map { visitField(it) }
-            return ObjectAlfrType(id, fields)
+            return ObjectType(id, fields)
         }
 
 
