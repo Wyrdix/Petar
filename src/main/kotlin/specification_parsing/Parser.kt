@@ -115,8 +115,8 @@ class Parser {
             val identifier = ctx.IDENTIFIER()
             val typeNumber = ctx.TYPE_NUMBER()
             val typeString = ctx.TYPE_STRING()
-            if (typeString != null) return StringType.Companion.instance
-            if (typeNumber != null) return NumberType.Companion.instance
+            if (typeString != null) return StringType.instance
+            if (typeNumber != null) return NumberType.instance
             if (identifier != null) return ReferenceType(identifier.text)
             throw IllegalStateException("Unknown primitive type.")
         }

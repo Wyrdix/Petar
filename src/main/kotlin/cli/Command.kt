@@ -10,7 +10,10 @@ class Command {
     var help: Boolean = false
 
     @Parameter(names = ["-p"], description = "Print specification")
-    var printSpecification: Boolean = false;
+    var printSpecification: Boolean = false
+
+    @Parameter(names = ["-i"], description = "Provide input json files", converter = FileConverter::class)
+    var inputs: List<File> = ArrayList()
 
     @Parameter(names = ["--spec", "-s"], description = "Provide specification files", converter = FileConverter::class, required = true)
     var specifications: List<File> = ArrayList()

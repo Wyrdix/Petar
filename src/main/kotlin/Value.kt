@@ -1,5 +1,10 @@
 package fr.univ_lille.iut_info
 
+import fr.univ_lille.iut_info.type.NumberType
+import fr.univ_lille.iut_info.type.ObjectType
+import fr.univ_lille.iut_info.type.StringType
+import fr.univ_lille.iut_info.type.Type
+
 interface Value {
     fun type(): Type
 }
@@ -16,7 +21,7 @@ data class NumberValue(val value: Float) : Value {
     }
 }
 
-data class ObjectValue(val type: ObjectAlfrType, val values: Map<String, Value>) : Value {
+data class ObjectValue(val type: ObjectType, val values: Map<String, Value>) : Value {
     override fun type(): Type {
         return type
     }

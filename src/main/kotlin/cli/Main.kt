@@ -2,8 +2,12 @@ package fr.univ_lille.iut_info.cli
 
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.ParameterException
+import com.google.gson.JsonParser
+import fr.univ_lille.iut_info.NodeDeclarationStatement
 import fr.univ_lille.iut_info.name.NameAnalysis
 import fr.univ_lille.iut_info.parsing.Parser
+import fr.univ_lille.iut_info.parsing.createMemoryElement
+import fr.univ_lille.iut_info.type.safeCheck
 
 fun main(args: Array<String>) {
     val command = Command()
@@ -20,6 +24,18 @@ fun main(args: Array<String>) {
         commander.usage()
         return
     }
+
+
+    if (command.inputs.find { it.extension != "json" } != null) {
+        println("Error in input file list, only json files are accepted.")
+        return
+    }
+
+    if (command.inputs.find { !it.exists() } != null) {
+        println("The following input files do not exist :")
+        command.inputs.filterNot { it.exists() }.forEach { println("\t-${it.absolutePath}") }
+    }
+
 
     val parsed = command.specifications.map { file ->
         val input = file.readLines().joinToString(separator = "\n")
@@ -39,12 +55,15 @@ fun main(args: Array<String>) {
 
     val statements = parsed.flatMap { it.value.second }
 
-    val nameErrors = NameAnalysis(statements).check()
+    val nameAnalysis = NameAnalysis(statements)
+    val nameErrors = nameAnalysis.check()
 
-    if(nameErrors.isNotEmpty()) {
+    if (nameErrors.isNotEmpty()) {
         nameErrors.forEach { println(it) }
         return
     }
+
+    nameAnalysis.resolveReference()
 
     if (command.printSpecification) {
         if (command.specifications.isEmpty()) {
@@ -56,5 +75,46 @@ fun main(args: Array<String>) {
                 println()
             }
         }
+    }
+
+    if (command.inputs.isNotEmpty()) {
+
+        val availableRoots: List<NodeDeclarationStatement> =
+            nameAnalysis.names.values.filterIsInstance<NodeDeclarationStatement>()
+                .filter { it.identifier.lowercase() == "root" || it.groups.find { group -> group.lowercase() == "root" } != null }
+
+        if (availableRoots.isEmpty()) {
+            println("NameError: No Root node type could be found. Either defined a Node named 'Root', or a 'Root' group and add this group to the node you wish to represent the whole document (they can be multiple ones).")
+            return
+        }
+
+
+        command.inputs.forEach { file ->
+            println("Parsing input file : $file.")
+
+            val jsonObject = JsonParser.parseString(file.readLines().joinToString(separator = "")).asJsonObject
+            val suitableRoots = availableRoots.filter { it.type.safeCheck(jsonObject) }
+
+            if (suitableRoots.isEmpty()) {
+                println(
+                    "No suitable root were found (available roots are [${
+                        availableRoots.joinToString(separator = ",") { it.identifier }
+                    }])"
+                )
+                return
+            } else if (suitableRoots.size > 1) {
+                println(
+                    "Multiple suitable roots were found (suitable roots are [${
+                        suitableRoots.joinToString(separator = ",") { it.identifier }
+                    }])"
+                )
+                return
+            }
+
+            val element = createMemoryElement(suitableRoots[0].type, jsonObject)
+            println(element)
+        }
+
+
     }
 }

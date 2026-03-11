@@ -12,6 +12,7 @@ repositories {
 
 dependencies {
     antlr("org.antlr:antlr4:4.5")
+    implementation("com.google.code.gson:gson:2.13.2")
     implementation("com.beust:jcommander:1.82")
     testImplementation(kotlin("test"))
 }
