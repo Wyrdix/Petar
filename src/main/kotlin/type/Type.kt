@@ -1,4 +1,4 @@
-package fr.univ_lille.iut_info
+package fr.univ_lille.iut_info.type
 
 abstract class Type {
     companion object {
@@ -10,17 +10,7 @@ abstract class Type {
     }
 }
 
-data class ObjectAlfrType(
-    val identifier: String, val children: List<Pair<String, Type>>
-) : Type() {
-    val childrenMap: Map<String, Type>
-        get() = children.associateBy({ it.first }, { it.second })
-}
-
 class StringType private constructor() : Type() {
-    val identifier: String
-        get() = "String"
-
     override fun toString(): String {
         return "String"
     }
@@ -31,9 +21,6 @@ class StringType private constructor() : Type() {
 }
 
 class NumberType : Type() {
-    val identifier: String
-        get() = "Number"
-
     override fun toString(): String {
         return "Number"
     }
@@ -43,7 +30,16 @@ class NumberType : Type() {
     }
 }
 
-data class ReferenceType(val value: String) : Type()
+data class ObjectType(
+    val identifier: String, val children: List<Pair<String, Type>>
+) : Type() {
+    val childrenMap: Map<String, Type>
+        get() = children.associateBy({ it.first }, { it.second })
+}
+
+data class ReferenceType(val value: String) : Type() {
+    var cache: Type? = null
+}
 
 data class ArrayType(val type: Type) : Type() {
     init {

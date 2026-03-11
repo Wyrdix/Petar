@@ -1,6 +1,9 @@
 package fr.univ_lille.iut_info.name
 
 import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.type.ObjectType
+import fr.univ_lille.iut_info.type.ReferenceType
+import fr.univ_lille.iut_info.type.Type
 
 
 fun Pattern.variables(): List<String> {
@@ -21,8 +24,7 @@ fun Transform.variables(): List<String> {
     if (this is ExpressionTransform) return expression.variables()
     if (this is ObjectTransform) {
         return listOf(
-            fields.flatMap { it.second.variables() },
-            if (this.children != null) children.variables() else emptyList()
+            fields.flatMap { it.second.variables() }, if (this.children != null) children.variables() else emptyList()
         ).flatten()
     }
     if (this is ChildrenTransform) return this.transforms.flatMap { it.variables() }
@@ -51,27 +53,44 @@ class NameAnalysis(val program: List<Statement>) {
     fun check(): List<String> {
         return listOf(
             program.filterIsInstance<Identified>().flatMap(this::checkIdentified),
+            program.filterIsInstance<NodeDeclarationStatement>().flatMap(this::checkObjectGroup),
             program.filterIsInstance<NodeDeclarationStatement>().map { Pair(it.identifier, it.type) }
                 .flatMap { checkObjectType(it.first, it.second) },
             program.asSequence().filterIsInstance<RewriteRuleStatement>().map { (pattern, _, _) -> pattern }
                 .flatMap { pattern -> if (pattern is ChildrenPattern) pattern.patterns else listOf(pattern) }
-                .filterIsInstance<ObjectPattern>()
-                .flatMap(this::checkObjectPattern).toList(),
+                .filterIsInstance<ObjectPattern>().flatMap(this::checkObjectPattern).toList(),
             program.filterIsInstance<RewriteRuleStatement>().map { (_, _, transform) -> transform }
-                .filterIsInstance<ObjectTransform>()
-                .flatMap(this::checkTransform),
-            program.filterIsInstance<RewriteRuleStatement>().flatMap(this::checkRewriteRuleNameDefinitionAndUsage)
-        ).flatten().toSet().toList()
+                .filterIsInstance<ObjectTransform>().flatMap(this::checkTransform),
+            program.filterIsInstance<RewriteRuleStatement>()
+                .flatMap(this::checkRewriteRuleNameDefinitionAndUsage)).flatten().toSet().toList()
+    }
+
+    fun resolveReference() {
+        val objectTypes: Map<String, ObjectType> = names.filterValues { it is NodeDeclarationStatement }
+            .mapValues { (_, value) -> (value as NodeDeclarationStatement).type }
+        val types: MutableMap<String, Type> = objectTypes.toMutableMap()
+        types["String"] = Type.string
+        types["Number"] = Type.number
+        objectTypes.values.flatMap { it.childrenMap.values }.filterIsInstance<ReferenceType>()
+            .forEach { it.cache = types[it.value] }
     }
 
     fun checkIdentified(identified: Identified): List<String> {
         return if (names.containsKey(identified.identifier)) {
             val error = "NameError: ${identified.identifier} is defined multiple times."
             listOf(error)
-        } else emptyList()
+        } else {
+            names[identified.identifier] = identified
+            emptyList()
+        }
     }
 
-    fun checkObjectType(name: String, type: ObjectAlfrType): List<String> {
+    fun checkObjectGroup(node: NodeDeclarationStatement): List<String> {
+        return node.groups.filterNot { names.containsKey(it) }
+            .map { "NameError: Node ${node.identifier} is part of group ${it}, which is not declared." }
+    }
+
+    fun checkObjectType(name: String, type: ObjectType): List<String> {
         val duplicateKeys =
             type.children.associateBy({ it.first }, { (key, _) -> type.children.count({ it.first == key }) })
                 .filterValues { it > 1 }.keys
@@ -102,8 +121,7 @@ class NameAnalysis(val program: List<Statement>) {
         val usedByTransform = rule.transform.variables()
 
         val duplicateKeys =
-            existing.associateBy({ it }, { key -> existing.count({ it == key }) })
-                .filterValues { it > 1 }.keys
+            existing.associateBy({ it }, { key -> existing.count({ it == key }) }).filterValues { it > 1 }.keys
 
         return listOf(
             duplicateKeys.map { "NameError: The variable $it is defined multiple times in a pattern." },
