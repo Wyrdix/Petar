@@ -46,6 +46,7 @@ specify_alias: SHARP IDENTIFIER;
 
 pattern_field_value:
     | pattern_field_primitive_value
+    | LBRACK RBRACK
     | LBRACK
         (values+=pattern_field_primitive_value COMMA)*
         (values+=pattern_field_primitive_value)
@@ -86,6 +87,7 @@ field_transform: IDENTIFIER EQUAL transform_field_value;
 
 transform_field_value:
     | transform_field_primitive_value
+    | LBRACK RBRACK
     | LBRACK
         (values+=transform_field_primitive_value COMMA)*
         (values+=transform_field_primitive_value)

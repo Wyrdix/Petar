@@ -161,9 +161,9 @@ class Parser {
 
         fun visitPattern_field_value(ctx: AlfrParser.Pattern_field_valueContext): Pattern {
             val values = ctx.values
-            val patternFieldPrimitiveValue = ctx.pattern_field_primitive_value
+            val patternFieldPrimitiveValue = ctx.pattern_field_primitive_value(0)
 
-            if (values != null) {
+            if (values != null && ctx.LBRACK() != null) {
                 return ListPattern(values.map { visitPattern_field_primitive_value(it) })
             }
             return visitPattern_field_primitive_value(patternFieldPrimitiveValue)
@@ -250,9 +250,9 @@ class Parser {
 
         fun visitTransform_field_value(ctx: AlfrParser.Transform_field_valueContext): Transform {
             val values = ctx.values
-            val transformFieldPrimitiveValueContext = ctx.transform_field_primitive_value
+            val transformFieldPrimitiveValueContext = ctx.transform_field_primitive_value(0)
 
-            if (values != null) {
+            if (values != null && ctx.LBRACK()!=null) {
                 return ListTransform(values.map { visitTransform_field_primitive_value(it) })
             }
             return visitTransform_field_primitive_value(transformFieldPrimitiveValueContext)
