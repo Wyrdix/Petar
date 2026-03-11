@@ -35,22 +35,11 @@ import fr.univ_lille.iut_info.Type
 import fr.univ_lille.iut_info.ValueExpression
 import fr.univ_lille.iut_info.alfr_parser.AlfrLexer
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser
-import org.antlr.v4.runtime.ANTLRErrorListener
 import org.antlr.v4.runtime.ANTLRInputStream
 import org.antlr.v4.runtime.BailErrorStrategy
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CommonTokenStream
-import org.antlr.v4.runtime.Parser
-import org.antlr.v4.runtime.ParserRuleContext
-import org.antlr.v4.runtime.RecognitionException
-import org.antlr.v4.runtime.Recognizer
-import org.antlr.v4.runtime.atn.ATNConfigSet
-import org.antlr.v4.runtime.dfa.DFA
-import org.antlr.v4.runtime.tree.ErrorNode
-import org.antlr.v4.runtime.tree.ParseTreeListener
-import org.antlr.v4.runtime.tree.TerminalNode
-import java.util.BitSet
-import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.collections.emptyList
 
 class Parser {
     companion object {
@@ -118,7 +107,7 @@ class Parser {
 
         fun visitNode_type(ctx: AlfrParser.Node_typeContext): ObjectAlfrType {
             val id = ctx.identifier.text
-            val fields = ctx.fields.map { visitField(it) }.associateBy({ it.first }, { it.second })
+            val fields = ctx.fields.map { visitField(it) }
             return ObjectAlfrType(id, fields)
         }
 
@@ -171,12 +160,12 @@ class Parser {
             val fieldsPattern = ctx.fields_pattern()?.let { visitFields_pattern(it) }
             val alias = ctx.specify_alias()?.let { visitSpecify_alias(it) }
 
-            return ObjectPattern(fieldsPattern ?: emptyMap(), childrenPattern, alias)
+            return ObjectPattern(fieldsPattern ?: emptyList(), childrenPattern, alias)
         }
 
 
-        fun visitFields_pattern(ctx: AlfrParser.Fields_patternContext): Map<String, Pattern> {
-            return ctx.fields.map { visitField_pattern(it) }.associateBy({ it.first }, { it.second })
+        fun visitFields_pattern(ctx: AlfrParser.Fields_patternContext): List<Pair<String, Pattern>> {
+            return ctx.fields.map { visitField_pattern(it) }
         }
 
 
@@ -260,7 +249,7 @@ class Parser {
             val fieldsTransform = ctx.fields_transform()?.let { visitFields_transform(it) }
             val childrenTransform = ctx.transfrom_children()?.let { visitTransform_children(it) }
 
-            return ObjectTransform(fieldsTransform ?: emptyMap(), childrenTransform)
+            return ObjectTransform(fieldsTransform ?: emptyList(), childrenTransform)
         }
 
 
@@ -270,8 +259,8 @@ class Parser {
         }
 
 
-        fun visitFields_transform(ctx: AlfrParser.Fields_transformContext): Map<String, Transform> {
-            return ctx.fields.map { visitField_transform(it) }.associateBy({ it.first }, { it.second })
+        fun visitFields_transform(ctx: AlfrParser.Fields_transformContext): List<Pair<String, Transform>> {
+            return ctx.fields.map { visitField_transform(it) }
         }
 
 

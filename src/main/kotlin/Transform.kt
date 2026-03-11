@@ -18,8 +18,11 @@ class DeleteTransform() : Transform {
 
 data class ExpressionTransform(val expression: Expression) : Transform
 
-data class ObjectTransform(val fields: Map<String, Transform>, val children: ChildrenTransform? = null) :
-    Transform
+data class ObjectTransform(val fields: List<Pair<String, Transform>>, val children: ChildrenTransform? = null) :
+    Transform {
+    val fieldsMap: Map<String, Transform>
+        get() = fields.associateBy({ it.first }, { it.second })
+}
 
 data class ChildrenTransform(val transforms: List<Transform>) : Transform
 

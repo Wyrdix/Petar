@@ -2,6 +2,7 @@ package fr.univ_lille.iut_info.cli
 
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.ParameterException
+import fr.univ_lille.iut_info.name.NameAnalysis
 import fr.univ_lille.iut_info.parsing.Parser
 
 fun main(args: Array<String>) {
@@ -33,6 +34,15 @@ fun main(args: Array<String>) {
             println("Error in file : $path")
             errors.forEach { println(it) }
         }
+        return
+    }
+
+    val statements = parsed.flatMap { it.value.second }
+
+    val nameErrors = NameAnalysis(statements).check()
+
+    if(nameErrors.isNotEmpty()) {
+        nameErrors.forEach { println(it) }
         return
     }
 

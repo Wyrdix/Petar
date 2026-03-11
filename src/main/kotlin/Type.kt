@@ -11,8 +11,11 @@ abstract class Type {
 }
 
 data class ObjectAlfrType(
-    val identifier: String, val children: Map<String, Type>
-) : Type()
+    val identifier: String, val children: List<Pair<String, Type>>
+) : Type() {
+    val childrenMap: Map<String, Type>
+        get() = children.associateBy({ it.first }, { it.second })
+}
 
 class StringType private constructor() : Type() {
     val identifier: String
