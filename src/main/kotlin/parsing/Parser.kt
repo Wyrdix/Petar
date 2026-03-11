@@ -1,54 +1,32 @@
 package fr.univ_lille.iut_info.parsing
 
-import fr.univ_lille.iut_info.AndCondition
-import fr.univ_lille.iut_info.ArrayType
-import fr.univ_lille.iut_info.ChildrenPattern
-import fr.univ_lille.iut_info.ChildrenTransform
-import fr.univ_lille.iut_info.Condition
-import fr.univ_lille.iut_info.DeleteTransform
-import fr.univ_lille.iut_info.EqualCondition
-import fr.univ_lille.iut_info.Expression
-import fr.univ_lille.iut_info.ExpressionTransform
-import fr.univ_lille.iut_info.GroupDeclarationStatement
-import fr.univ_lille.iut_info.IdentifierExpression
-import fr.univ_lille.iut_info.ListPattern
-import fr.univ_lille.iut_info.ListTransform
-import fr.univ_lille.iut_info.NodeDeclarationStatement
-import fr.univ_lille.iut_info.NotCondition
-import fr.univ_lille.iut_info.NumberPattern
-import fr.univ_lille.iut_info.NumberType
-import fr.univ_lille.iut_info.NumberValue
-import fr.univ_lille.iut_info.ObjectAlfrType
-import fr.univ_lille.iut_info.ObjectPattern
-import fr.univ_lille.iut_info.ObjectTransform
-import fr.univ_lille.iut_info.OrCondition
-import fr.univ_lille.iut_info.Pattern
-import fr.univ_lille.iut_info.ReferenceType
-import fr.univ_lille.iut_info.RewriteRuleStatement
-import fr.univ_lille.iut_info.Statement
-import fr.univ_lille.iut_info.StringPattern
-import fr.univ_lille.iut_info.StringType
-import fr.univ_lille.iut_info.StringValue
-import fr.univ_lille.iut_info.Transform
-import fr.univ_lille.iut_info.TrueCondition
-import fr.univ_lille.iut_info.Type
-import fr.univ_lille.iut_info.ValueExpression
+import fr.univ_lille.iut_info.*
 import fr.univ_lille.iut_info.alfr_parser.AlfrLexer
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser
-import org.antlr.v4.runtime.ANTLRInputStream
-import org.antlr.v4.runtime.BailErrorStrategy
-import org.antlr.v4.runtime.CharStream
-import org.antlr.v4.runtime.CommonTokenStream
-import kotlin.collections.emptyList
+import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.misc.Interval
 
 class Parser {
     companion object {
+
+        class CollectingAlfrLexer(val errors: MutableList<String>, input: CharStream) : AlfrLexer(input) {
+            override fun notifyListeners(e: LexerNoViableAltException?) {
+                val text = _input.getText(Interval.of(_tokenStartCharIndex, _input.index()))
+                val msg = "Token recognition error at: '" + getErrorDisplay(text) + "'"
+                errors.add(msg)
+
+                val listener = errorListenerDispatch as ProxyErrorListener
+                listener.syntaxError(this, null, _tokenStartLine, _tokenStartCharPositionInLine, msg, e)
+            }
+        }
 
         fun parse(input: String): Pair<MutableList<String>, List<Statement>> {
 
             val stream: CharStream = ANTLRInputStream(input)
 
-            val lexer = AlfrLexer(stream)
+            val listener = CustomErrorListener()
+            val lexer = CollectingAlfrLexer(listener.errors, stream)
+            lexer.removeErrorListeners()
 
             val tokens = CommonTokenStream(lexer)
 
@@ -56,7 +34,6 @@ class Parser {
             parser.errorHandler = BailErrorStrategy()
             parser.removeErrorListeners()
 
-            val listener = CustomErrorListener()
             parser.addErrorListener(listener)
 
             val statements = try {

@@ -35,8 +35,6 @@ class CustomErrorListener : BaseErrorListener() {
         ambigAlts: BitSet?,
         configs: ATNConfigSet?
     ) {
-
-        println("HHHHH")
     }
 
     override fun reportAttemptingFullContext(
@@ -47,7 +45,6 @@ class CustomErrorListener : BaseErrorListener() {
         conflictingAlts: BitSet?,
         configs: ATNConfigSet?
     ) {
-        println("HHHH")
     }
 
     override fun reportContextSensitivity(
@@ -58,6 +55,5 @@ class CustomErrorListener : BaseErrorListener() {
         prediction: Int,
         configs: ATNConfigSet?
     ) {
-        println("A")
     }
 }
