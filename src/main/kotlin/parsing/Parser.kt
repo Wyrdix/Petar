@@ -155,7 +155,7 @@ class Parser {
 
 
         fun visitSpecify_alias(ctx: AlfrParser.Specify_aliasContext): String {
-            return ctx.text
+            return ctx.IDENTIFIER().text
         }
 
 
