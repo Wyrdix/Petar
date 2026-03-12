@@ -6,11 +6,12 @@ statement: group_declaration_statement | node_declaration_statement | rewrite_ru
 
 group_declaration_statement: KEYWORD_SPECIFY_GROUP identifier=IDENTIFIER;
 
-node_declaration_statement: KEYWORD_SPECIFY_NODE schema=node_type (COLON (groups+=IDENTIFIER ',')* groups+=IDENTIFIER)?;
+node_declaration_statement: KEYWORD_SPECIFY_NODE schema=node_type;
 
 node_type:
     identifier=IDENTIFIER
-    LPAREN((fields+=field COMMA)* fields+=field)? RPAREN;
+    LPAREN((fields+=field COMMA)* fields+=field)? RPAREN
+    (COLON (groups+=IDENTIFIER ',')* groups+=IDENTIFIER)?;
 
 field: identifier=IDENTIFIER COLON type;
 

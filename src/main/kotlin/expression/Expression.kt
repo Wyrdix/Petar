@@ -4,7 +4,7 @@ import fr.univ_lille.iut_info.type.Type
 import fr.univ_lille.iut_info.visitable.Visitable
 import fr.univ_lille.iut_info.visitable.Visitor
 
-interface Expression : Visitable<Expression>;
+interface Expression : Visitable<Expression>
 
 interface ExpressionAccess : Expression {
     val parent: ExpressionAccess?

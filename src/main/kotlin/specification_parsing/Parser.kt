@@ -1,6 +1,9 @@
 package fr.univ_lille.iut_info.parsing
 
-import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.GroupDeclarationStatement
+import fr.univ_lille.iut_info.NodeDeclarationStatement
+import fr.univ_lille.iut_info.RewriteRuleStatement
+import fr.univ_lille.iut_info.Statement
 import fr.univ_lille.iut_info.alfr_parser.AlfrLexer
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser.*
@@ -63,8 +66,8 @@ class Parser {
         }
 
         fun visitNode_declaration_statement(ctx: Node_declaration_statementContext): NodeDeclarationStatement {
-            return NodeDeclarationStatement(
-                ctx.node_type().IDENTIFIER().text, visitNode_type(ctx.node_type()), ctx.groups.map { it.text })
+            val type = visitNode_type(ctx.node_type())
+            return NodeDeclarationStatement(type.identifier, type)
         }
 
         fun visitRewrite_rule_statement(ctx: Rewrite_rule_statementContext): RewriteRuleStatement {
@@ -76,7 +79,7 @@ class Parser {
         fun visitNode_type(ctx: Node_typeContext): ObjectType {
             val id = ctx.identifier.text
             val fields = ctx.fields.map { visitField(it) }
-            return ObjectType(id, fields)
+            return ObjectType(id, fields, ctx.groups.map { it.text })
         }
 
         fun visitField(ctx: FieldContext): Pair<String, Type> {

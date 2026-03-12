@@ -7,6 +7,7 @@ import fr.univ_lille.iut_info.NodeDeclarationStatement
 import fr.univ_lille.iut_info.name.NameAnalysis
 import fr.univ_lille.iut_info.parsing.Parser
 import fr.univ_lille.iut_info.parsing.createMemoryElement
+import fr.univ_lille.iut_info.type.TypeCheck
 import fr.univ_lille.iut_info.type.safeCheck
 
 fun main(args: Array<String>) {
@@ -62,8 +63,15 @@ fun main(args: Array<String>) {
         nameErrors.forEach { println(it) }
         return
     }
-
     nameAnalysis.resolveReference()
+
+    val typeAnalysis = TypeCheck(nameAnalysis)
+    val typeErrors = typeAnalysis.check()
+
+    if (typeErrors.isNotEmpty()) {
+        typeErrors.forEach { println(it) }
+        return
+    }
 
     if (command.printSpecification) {
         if (command.specifications.isEmpty()) {
@@ -81,7 +89,7 @@ fun main(args: Array<String>) {
 
         val availableRoots: List<NodeDeclarationStatement> =
             nameAnalysis.names.values.filterIsInstance<NodeDeclarationStatement>()
-                .filter { it.identifier.lowercase() == "root" || it.groups.find { group -> group.lowercase() == "root" } != null }
+                .filter { it.identifier.lowercase() == "root" || it.type.interfaces.find { group -> group.lowercase() == "root" } != null }
 
         if (availableRoots.isEmpty()) {
             println("NameError: No Root node type could be found. Either defined a Node named 'Root', or a 'Root' group and add this group to the node you wish to represent the whole document (they can be multiple ones).")

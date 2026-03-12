@@ -1,12 +1,10 @@
 package fr.univ_lille.iut_info.name
 
-import fr.univ_lille.iut_info.Identified
-import fr.univ_lille.iut_info.NodeDeclarationStatement
-import fr.univ_lille.iut_info.RewriteRuleStatement
-import fr.univ_lille.iut_info.Statement
+import fr.univ_lille.iut_info.*
 import fr.univ_lille.iut_info.expression.ExpressionAccess
 import fr.univ_lille.iut_info.expression.ObjectExpression
 import fr.univ_lille.iut_info.pattern.ObjectPattern
+import fr.univ_lille.iut_info.type.ArrayType
 import fr.univ_lille.iut_info.type.ObjectType
 import fr.univ_lille.iut_info.type.ReferenceType
 import fr.univ_lille.iut_info.type.Type
@@ -16,14 +14,16 @@ class NameAnalysis(val program: List<Statement>) {
     val names: MutableMap<String, Identified> = HashMap()
     val types: Map<String, Type>
         get() =
-            names.entries.filterIsInstance<Map.Entry<String, NodeDeclarationStatement>>()
-                .map { Pair(it.key, it.value.type) }
+            names.entries.filter { it.value is NodeDeclarationStatement }
+                .map { (key, value) -> Pair(key, value as NodeDeclarationStatement) }
+                .map { Pair(it.first, it.second.type) }
                 .union(
                     setOf(
                         Pair("String", Type.string),
                         Pair("Number", Type.number)
                     )
-                ).associateBy({ it.first }, { it.second })
+                )
+                .associateBy({ it.first }, { it.second })
 
     fun check(): List<String> {
         return listOf(
@@ -40,8 +40,17 @@ class NameAnalysis(val program: List<Statement>) {
     }
 
     fun resolveReference() {
-        val types = types;
-        types.values.filterIsInstance<ReferenceType>().forEach { it.cache = types[it.value] }
+        val types = types
+        types.values.filterIsInstance<ObjectType>()
+            .flatMap { it.childrenMap.values }
+            .map { if (it is ArrayType) it.type else it }
+            .filterIsInstance<ReferenceType>()
+            .forEach {
+                it.cache = types[it.value]
+                if (names[it.value] is GroupDeclarationStatement) {
+                    it.group = true
+                }
+            }
     }
 
     fun checkIdentified(identified: Identified): List<String> {
@@ -55,7 +64,7 @@ class NameAnalysis(val program: List<Statement>) {
     }
 
     fun checkObjectGroup(node: NodeDeclarationStatement): List<String> {
-        return node.groups.filterNot { names.containsKey(it) }
+        return node.type.interfaces.filterNot { names.containsKey(it) }
             .map { "NameError: Node ${node.identifier} is part of group ${it}, which is not declared." }
     }
 
@@ -88,7 +97,7 @@ class NameAnalysis(val program: List<Statement>) {
 
         val existing: MutableList<String> = ArrayList()
 
-        rule.pattern.visit { node, rec ->
+        rule.pattern.visit { node, _ ->
             val name = node.name
             if (name != null) {
                 existing.add(name)
@@ -98,14 +107,14 @@ class NameAnalysis(val program: List<Statement>) {
 
         val used: MutableList<String> = ArrayList()
 
-        rule.condition.visit { node, rec ->
+        rule.condition.visit { node, _ ->
             if (node is ExpressionAccess.Member && node.parent == null) {
                 used.add(node.identifier)
             }
             return@visit null
         }
 
-        rule.transform.visit { node, rec ->
+        rule.transform.visit { node, _ ->
             if (node is ExpressionAccess.Member && node.parent == null) {
                 used.add(node.identifier)
             }
