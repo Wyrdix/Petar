@@ -26,37 +26,33 @@ primitive_type :
 
 rewrite_rule_statement: pattern KEYWORD_SPECIFY_REWRITE (condition=expression ARROW)? result=expression;
 
-pattern: root_pattern | children_pattern;
+// Patterns
 
-children_pattern: (roots+=root_pattern COMMA)* roots+=root_pattern+;
+pattern: (pattern_literal | pattern_object | pattern_array) ('#' name=IDENTIFIER)?;
 
-root_pattern: identifier=IDENTIFIER
-    LPAREN
-        (
-            (fields_pattern ',' children_pattern) |
-            fields_pattern? |
-            children_pattern?
-        )
-    RPAREN alias=specify_alias?;
-
-fields_pattern:  (fields+=field_pattern COMMA)* fields+=field_pattern;
-
-field_pattern: IDENTIFIER EQUAL pattern_field_value;
-
-specify_alias: SHARP IDENTIFIER;
-
-pattern_field_value:
-    | pattern_field_primitive_value
-    | LBRACK RBRACK
-    | LBRACK
-        (values+=pattern_field_primitive_value COMMA)*
-        (values+=pattern_field_primitive_value)
-      RBRACK;
-
-pattern_field_primitive_value :
+pattern_literal:
     | STRING
     | NUMBER
-    | root_pattern;
+    | TRUE
+    | FALSE;
+
+pattern_object_field:
+    id=IDENTIFIER EQUAL pattern;
+
+pattern_object:
+    IDENTIFIER
+        LPAREN
+            (
+                (fields+=pattern_object_field COMMA)*
+                (fields+=pattern_object_field)
+            )?
+        RPAREN;
+
+pattern_array: LBRACK RBRACK
+    | LBRACK
+            (values+=pattern COMMA)*
+            (values+=pattern)
+    RBRACK;
 
 // Expressions
 
@@ -64,12 +60,6 @@ expression_access:
     | id=IDENTIFIER
     | parent=expression_access LBRACK index=expression RBRACK
     | parent=expression_access DOT id=IDENTIFIER;
-
-expression_literal:
-    | STRING
-    | NUMBER
-    | TRUE
-    | FALSE;
 
 binary_expression:
     | left=enclosed_expression op=AND right=expression
@@ -99,6 +89,12 @@ expression:
 
 object_field:
     id=IDENTIFIER EQUAL expression;
+
+expression_literal:
+    | STRING
+    | NUMBER
+    | TRUE
+    | FALSE;
 
 expression_object:
     IDENTIFIER

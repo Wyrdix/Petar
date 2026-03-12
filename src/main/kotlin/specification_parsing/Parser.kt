@@ -5,6 +5,10 @@ import fr.univ_lille.iut_info.alfr_parser.AlfrLexer
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser.*
 import fr.univ_lille.iut_info.expression.*
+import fr.univ_lille.iut_info.pattern.ArrayPattern
+import fr.univ_lille.iut_info.pattern.LiteralPattern
+import fr.univ_lille.iut_info.pattern.ObjectPattern
+import fr.univ_lille.iut_info.pattern.Pattern
 import fr.univ_lille.iut_info.type.*
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.Interval
@@ -12,7 +16,7 @@ import org.antlr.v4.runtime.misc.Interval
 class Parser {
     companion object {
         class CollectingAlfrLexer(val errors: MutableList<String>, input: CharStream) : AlfrLexer(input) {
-            override fun notifyListeners(e: LexerNoViableAltException?) {
+            override fun notifyListeners(e: LexerNoViableAltException) {
                 val text = _input.getText(Interval.of(_tokenStartCharIndex, _input.index()))
                 val msg = "Token recognition error at: '" + getErrorDisplay(text) + "'"
                 errors.add(msg)
@@ -99,61 +103,46 @@ class Parser {
         }
 
         fun visitPattern(ctx: PatternContext): Pattern {
-            val listPattern = ctx.children_pattern()
-            val rootPattern = ctx.root_pattern()
-            if (listPattern != null) return visitChildren_pattern(listPattern)
-            if (rootPattern != null) return visitRoot_pattern(rootPattern)
-            throw IllegalStateException("Unknown pattern type.")
+            val name = ctx.name?.text
+            val patternArray = ctx.pattern_array()?.let { visitPattern_array(it, name) }
+            val patternObject = ctx.pattern_object()?.let { visitPattern_object(it, name) }
+            val patternLiteral = ctx.pattern_literal()?.let { visitPattern_literal(it, name) }
+            return patternArray ?: patternObject ?: patternLiteral
+            ?: throw IllegalStateException("Unknown pattern context")
         }
 
-        fun visitChildren_pattern(ctx: Children_patternContext): ChildrenPattern {
-            val roots = ctx.roots.map { visitRoot_pattern(it) }
-            return ChildrenPattern(roots)
-        }
-
-        fun visitRoot_pattern(ctx: Root_patternContext): Pattern {
-            val identifier = ctx.IDENTIFIER().text
-            val childrenPattern = ctx.children_pattern()?.let { visitChildren_pattern(it) }
-            val fieldsPattern = ctx.fields_pattern()?.let { visitFields_pattern(it) }
-            val alias = ctx.specify_alias()?.let { visitSpecify_alias(it) }
-            return ObjectPattern(identifier, fieldsPattern ?: emptyList(), childrenPattern, alias)
-        }
-
-        fun visitFields_pattern(ctx: Fields_patternContext): List<Pair<String, Pattern>> {
-            return ctx.fields.map { visitField_pattern(it) }
-        }
-
-        fun visitField_pattern(ctx: Field_patternContext): Pair<String, Pattern> {
-            val id = ctx.IDENTIFIER().text
-            val pattern = visitPattern_field_value(ctx.pattern_field_value())
-            return Pair(id, pattern)
-        }
-
-        fun visitSpecify_alias(ctx: Specify_aliasContext): String {
-            return ctx.IDENTIFIER().text
-        }
-
-        fun visitPattern_field_value(ctx: Pattern_field_valueContext): Pattern {
-            val values = ctx.values
-            val patternFieldPrimitiveValue = ctx.pattern_field_primitive_value(0)
-            if (values != null && ctx.LBRACK() != null) {
-                return ListPattern(values.map { visitPattern_field_primitive_value(it) })
-            }
-            return visitPattern_field_primitive_value(patternFieldPrimitiveValue)
-        }
-
-        fun visitPattern_field_primitive_value(ctx: Pattern_field_primitive_valueContext): Pattern {
+        fun visitPattern_literal(ctx: Pattern_literalContext, name: String?): LiteralPattern {
             val string = ctx.STRING()
             val number = ctx.NUMBER()
-            val rootPattern = ctx.root_pattern()
-            if (string != null) return StringPattern(string.text)
-            if (number != null) return NumberPattern(number.text.toFloat())
-            if (rootPattern != null) return visitRoot_pattern(rootPattern)
-            throw IllegalStateException("Unknown primitive pattern value")
+            val falseNode = ctx.FALSE()
+            val trueNode = ctx.TRUE()
+            if (string != null) return LiteralPattern.PString(string.text.substring(0, string.text.length - 1), name)
+            if (number != null) return LiteralPattern.PNumber(number.text.toFloat(), name)
+            if (falseNode != null) return LiteralPattern.PBoolean(false, name)
+            if (trueNode != null) return LiteralPattern.PBoolean(true, name)
+            throw IllegalStateException("Unknown pattern literal context")
         }
 
+        fun visitPattern_object_field(ctx: Pattern_object_fieldContext): Pair<String, Pattern> {
+            val text = ctx.id.text
+            val pattern = visitPattern(ctx.pattern())
+            return Pair(text, pattern)
+        }
+
+        fun visitPattern_object(ctx: Pattern_objectContext, name: String?): ObjectPattern {
+            val id = ctx.IDENTIFIER().text
+            val fields = ctx.fields.map { visitPattern_object_field(it) }
+            return ObjectPattern(id, fields, name)
+        }
+
+        fun visitPattern_array(ctx: Pattern_arrayContext, name: String?): ArrayPattern {
+            val values = ctx.values.map { visitPattern(it) }
+            return ArrayPattern(values, name)
+        }
+
+
         fun visitExpression(ctx: ExpressionContext?): Expression {
-            if (ctx == null) return LiteralExpression.LBoolean(true)
+            if (ctx == null) return LiteralExpression.EBoolean(true)
             val enclosedExpression = ctx.enclosed_expression()
             val binaryExpression = ctx.binary_expression()
             if (binaryExpression != null) return visitBinary_expression(binaryExpression)
@@ -175,10 +164,10 @@ class Parser {
             val number = ctx.NUMBER()
             val falseNode = ctx.FALSE()
             val trueNode = ctx.TRUE()
-            if (string != null) return LiteralExpression.LString(string.text.substring(0, string.text.length - 1))
-            if (number != null) return LiteralExpression.LNumber(number.text.toFloat())
-            if (falseNode != null) return LiteralExpression.LBoolean(false)
-            if (trueNode != null) return LiteralExpression.LBoolean(true)
+            if (string != null) return LiteralExpression.EString(string.text.substring(0, string.text.length - 1))
+            if (number != null) return LiteralExpression.ENumber(number.text.toFloat())
+            if (falseNode != null) return LiteralExpression.EBoolean(false)
+            if (trueNode != null) return LiteralExpression.EBoolean(true)
             throw IllegalStateException("Unknown expression literal context")
         }
 
