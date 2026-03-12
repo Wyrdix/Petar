@@ -1,54 +1,16 @@
 package fr.univ_lille.iut_info.name
 
-import fr.univ_lille.iut_info.*
-import fr.univ_lille.iut_info.expression.Expression
-import fr.univ_lille.iut_info.expression.IdentifierExpression
-import fr.univ_lille.iut_info.expression.ValueExpression
+import fr.univ_lille.iut_info.Identified
+import fr.univ_lille.iut_info.NodeDeclarationStatement
+import fr.univ_lille.iut_info.RewriteRuleStatement
+import fr.univ_lille.iut_info.Statement
+import fr.univ_lille.iut_info.expression.ExpressionAccess
+import fr.univ_lille.iut_info.expression.ObjectExpression
+import fr.univ_lille.iut_info.pattern.ObjectPattern
 import fr.univ_lille.iut_info.type.ObjectType
 import fr.univ_lille.iut_info.type.ReferenceType
 import fr.univ_lille.iut_info.type.Type
-
-
-fun Pattern.variables(): List<String> {
-    if (this is StringPattern) return emptyList()
-    if (this is NumberPattern) return emptyList()
-    if (this is ChildrenPattern) return this.patterns.flatMap { it.variables() }
-    if (this is ObjectPattern) return listOf(
-        if (this.alias != null) listOf(alias) else emptyList(),
-        fields.flatMap { it.second.variables() },
-        if (this.children != null) children.variables() else emptyList()
-    ).flatten()
-    if (this is ListPattern) return this.patterns.flatMap { it.variables() }
-    throw IllegalStateException("Unknown pattern type")
-}
-
-fun Transform.variables(): List<String> {
-    if (this is DeleteTransform) return emptyList()
-    if (this is ExpressionTransform) return expression.variables()
-    if (this is ObjectTransform) {
-        return listOf(
-            fields.flatMap { it.second.variables() }, if (this.children != null) children.variables() else emptyList()
-        ).flatten()
-    }
-    if (this is ChildrenTransform) return this.transforms.flatMap { it.variables() }
-    if (this is ListTransform) return this.transforms.flatMap { it.variables() }
-    throw IllegalStateException("Unknown transform type")
-}
-
-fun Expression.variables(): List<String> {
-    if (this is ValueExpression) return emptyList()
-    if (this is IdentifierExpression) return listOf(identifiers[0])
-    throw IllegalStateException("Unknown expression type")
-}
-
-fun Condition.variables(): List<String> {
-    if (this is TrueCondition) return emptyList()
-    if (this is AndCondition) return left.variables() + right.variables()
-    if (this is OrCondition) return left.variables() + right.variables()
-    if (this is EqualCondition) return left.variables() + right.variables()
-    if (this is NotCondition) return operand.variables()
-    throw IllegalStateException("Unknown condition type")
-}
+import fr.univ_lille.iut_info.visitable.visit
 
 class NameAnalysis(val program: List<Statement>) {
     val names: MutableMap<String, Identified> = HashMap()
@@ -70,10 +32,9 @@ class NameAnalysis(val program: List<Statement>) {
             program.filterIsInstance<NodeDeclarationStatement>().map { Pair(it.identifier, it.type) }
                 .flatMap { checkObjectType(it.first, it.second) },
             program.asSequence().filterIsInstance<RewriteRuleStatement>().map { (pattern, _, _) -> pattern }
-                .flatMap { pattern -> if (pattern is ChildrenPattern) pattern.patterns else listOf(pattern) }
                 .filterIsInstance<ObjectPattern>().flatMap(this::checkObjectPattern).toList(),
             program.filterIsInstance<RewriteRuleStatement>().map { (_, _, transform) -> transform }
-                .filterIsInstance<ObjectTransform>().flatMap(this::checkTransform),
+                .filterIsInstance<ObjectExpression>().flatMap(this::checkTransform),
             program.filterIsInstance<RewriteRuleStatement>()
                 .flatMap(this::checkRewriteRuleNameDefinitionAndUsage)).flatten().toSet().toList()
     }
@@ -114,7 +75,7 @@ class NameAnalysis(val program: List<Statement>) {
         return duplicateKeys.map { "NameError: A patterns contains a duplicate field $it." }
     }
 
-    fun checkTransform(type: ObjectTransform): List<String> {
+    fun checkTransform(type: ObjectExpression): List<String> {
         val duplicateKeys =
             type.fields.associateBy({ it.first }, { (key, _) -> type.fields.count({ it.first == key }) })
                 .filterValues { it > 1 }.keys
@@ -124,18 +85,40 @@ class NameAnalysis(val program: List<Statement>) {
     }
 
     fun checkRewriteRuleNameDefinitionAndUsage(rule: RewriteRuleStatement): List<String> {
-        val existing = rule.pattern.variables()
-        val usedByCondition = rule.condition.variables()
-        val usedByTransform = rule.transform.variables()
+
+        val existing: MutableList<String> = ArrayList()
+
+        rule.pattern.visit { node, rec ->
+            val name = node.name
+            if (name != null) {
+                existing.add(name)
+            }
+            return@visit null
+        }
+
+        val used: MutableList<String> = ArrayList()
+
+        rule.condition.visit { node, rec ->
+            if (node is ExpressionAccess.Member && node.parent == null) {
+                used.add(node.identifier)
+            }
+            return@visit null
+        }
+
+        rule.transform.visit { node, rec ->
+            if (node is ExpressionAccess.Member && node.parent == null) {
+                used.add(node.identifier)
+            }
+            return@visit null
+        }
 
         val duplicateKeys =
             existing.associateBy({ it }, { key -> existing.count({ it == key }) }).filterValues { it > 1 }.keys
 
         return listOf(
             duplicateKeys.map { "NameError: The variable $it is defined multiple times in a pattern." },
-            usedByCondition.filter { !(existing.contains(it)) }
-                .map { "NameError: Variable $it is used in a condition but is not defined." },
-            usedByTransform.filter { !(existing.contains(it)) }
-                .map { "NameError: Variable $it is used in a transformation but is not defined." }).flatten()
+            used.toSet().filter { !(existing.contains(it)) }
+                .map { "NameError: Variable $it is used but is not defined." },
+        ).flatten()
     }
 }
