@@ -1,6 +1,9 @@
 package fr.univ_lille.iut_info.name
 
 import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.expression.Expression
+import fr.univ_lille.iut_info.expression.IdentifierExpression
+import fr.univ_lille.iut_info.expression.ValueExpression
 import fr.univ_lille.iut_info.type.ObjectType
 import fr.univ_lille.iut_info.type.ReferenceType
 import fr.univ_lille.iut_info.type.Type

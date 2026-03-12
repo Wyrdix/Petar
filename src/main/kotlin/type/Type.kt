@@ -7,6 +7,9 @@ abstract class Type {
 
         val number: NumberType
             get() = NumberType.instance
+
+        val boolean: BooleanType
+            get() = BooleanType.instance
     }
 }
 
@@ -27,6 +30,16 @@ class NumberType : Type() {
 
     companion object {
         val instance = NumberType()
+    }
+}
+
+class BooleanType : Type() {
+    override fun toString(): String {
+        return "Boolean"
+    }
+
+    companion object {
+        val instance = BooleanType()
     }
 }
 

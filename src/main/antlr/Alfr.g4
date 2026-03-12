@@ -21,9 +21,10 @@ type:
 primitive_type :
     | TYPE_STRING
     | TYPE_NUMBER
+    | TYPE_BOOLEAN
     | IDENTIFIER;
 
-rewrite_rule_statement: pattern KEYWORD_SPECIFY_REWRITE specify_condition? transformation;
+rewrite_rule_statement: pattern KEYWORD_SPECIFY_REWRITE (condition=expression ARROW)? result=expression;
 
 pattern: root_pattern | children_pattern;
 
@@ -57,50 +58,65 @@ pattern_field_primitive_value :
     | NUMBER
     | root_pattern;
 
-specify_condition: condition ARROW;
+// Expressions
 
-condition:
-    expression EQUAL expression
-    | condition ARROW condition
-    | condition AND condition
-    | condition OR condition
-    | NOT condition
-    | LPAREN condition RPAREN;
+expression_access:
+    | id=IDENTIFIER
+    | parent=expression_access LBRACK index=expression RBRACK
+    | parent=expression_access DOT id=IDENTIFIER;
 
-transformation:
-    | KEYWORD_DELETE
-    | root_transform;
+expression_literal:
+    | STRING
+    | NUMBER
+    | TRUE
+    | FALSE;
 
-root_transform: IDENTIFIER
-    LPAREN
-        (
-            (fields_transform ',' transfrom_children) |
-            fields_transform? |
-            transfrom_children?
-        )
-    RPAREN;
-transfrom_children: (roots+=root_transform COMMA)* roots+=root_transform+;
+binary_expression:
+    | left=enclosed_expression op=AND right=expression
+    | left=enclosed_expression op=OR right=expression
+    | left=enclosed_expression op=MULT right=expression
+    | left=enclosed_expression op=DIVIDE right=expression
+    | left=enclosed_expression op=PLUS right=expression
+    | left=enclosed_expression op=MINUS right=expression
+    | left=enclosed_expression op=EQUAL right=expression;
 
-fields_transform:  (fields+=field_transform COMMA)* fields+=field_transform;
+unary_expression:
+    | MINUS operand=expression
+    | PLUS operand=expression
+    | NOT operand=expression;
 
-field_transform: IDENTIFIER EQUAL transform_field_value;
+enclosed_expression:
+    | LPAREN expression RPAREN
+    | expression_literal
+    | unary_expression
+    | expression_access
+    | expression_array
+    | expression_object;
 
-transform_field_value:
-    | transform_field_primitive_value
-    | LBRACK RBRACK
+expression:
+    | binary_expression
+    | enclosed_expression;
+
+object_field:
+    id=IDENTIFIER EQUAL expression;
+
+expression_object:
+    IDENTIFIER
+        LPAREN
+            (
+                (fields+=object_field COMMA)*
+                (fields+=object_field)
+            )?
+        RPAREN;
+
+expression_array: LBRACK RBRACK
     | LBRACK
-        (values+=transform_field_primitive_value COMMA)*
-        (values+=transform_field_primitive_value)
-      RBRACK;
+            (values+=expression COMMA)*
+            (values+=expression)
+    RBRACK;
 
-transform_field_primitive_value:
-    | expression
-    | root_transform;
-
-expression_access: (paths+=IDENTIFIER DOT)* paths+=IDENTIFIER;
-
-expression: STRING | NUMBER | expression_access;
-
+TRUE: 'True';
+FALSE: 'False';
 COLON: ':';
 DOT: '.';
 COMMA: ',';
@@ -112,6 +128,10 @@ RPAREN: ')';
 AND: '&&';
 OR: '||';
 NOT: '!';
+PLUS: '+';
+MINUS: '-';
+MULT: '*';
+DIVIDE: '/';
 
 KEYWORD_DELETE: 'delete';
 KEYWORD_SPECIFY_GROUP: '#Group';
@@ -124,6 +144,7 @@ IDENTIFIER: [a-zA-Z] [a-zA-Z0-9]*;
 
 TYPE_STRING: 'String';
 TYPE_NUMBER: 'Number';
+TYPE_BOOLEAN: 'Boolean';
 
 NUMBER: ([0-9]+'.'?|[0-9]*'.'[0-9]+);
 STRING: '"' StringCharacters? '"';
