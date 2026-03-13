@@ -1,6 +1,7 @@
 package fr.univ_lille.iut_info.parsing
 
 import com.google.gson.JsonArray
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import fr.univ_lille.iut_info.type.*
@@ -10,6 +11,7 @@ import fr.univ_lille.iut_info.visitable.Visitor
 abstract class MemoryElement : Visitable<MemoryElement> {
     abstract val rawValue: Any?
     abstract fun type(): Type
+    abstract fun toJson(): JsonElement
 }
 
 data class MemoryString(override val rawValue: Any?) : MemoryElement() {
@@ -31,6 +33,10 @@ data class MemoryString(override val rawValue: Any?) : MemoryElement() {
 
     override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
         return MemoryString(rawValue)
+    }
+
+    override fun toJson(): JsonElement {
+        return JsonPrimitive(value)
     }
 
     companion object {
@@ -63,6 +69,10 @@ data class MemoryNumber(override val rawValue: Any?) : MemoryElement() {
         return MemoryNumber(rawValue)
     }
 
+    override fun toJson(): JsonElement {
+        return JsonPrimitive(value)
+    }
+
     companion object {
         fun asNumber(rawValue: Any?): Float? {
             if (rawValue is JsonPrimitive && rawValue.isNumber) return rawValue.asFloat
@@ -93,6 +103,10 @@ data class MemoryBoolean(override val rawValue: Any?) : MemoryElement() {
         return MemoryBoolean(rawValue)
     }
 
+    override fun toJson(): JsonElement {
+        return JsonPrimitive(value)
+    }
+
     companion object {
         fun asBoolean(rawValue: Any?): Boolean? {
             if (rawValue is JsonPrimitive && rawValue.isBoolean) return rawValue.asBoolean
@@ -121,6 +135,12 @@ data class MemoryObject(val type: ObjectType, override val rawValue: Any?) : Mem
 
     override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
         return MemoryObject(type, value.mapValues { (_, value) -> visitor.visit(value) })
+    }
+
+    override fun toJson(): JsonElement {
+        val obj = JsonObject()
+        value.forEach { (key, value) -> obj.add(key, value.toJson()) }
+        return obj
     }
 
     companion object {
@@ -160,6 +180,12 @@ data class MemoryArray(val type: ArrayType, override val rawValue: Any?) : Memor
         return MemoryArray(type, value.map { visitor.visit(it) })
     }
 
+    override fun toJson(): JsonElement {
+        val array = JsonArray()
+        value.forEach { array.add(it.toJson()) }
+        return array
+    }
+
     companion object {
         fun asArray(type: ArrayType, value: Any?): List<MemoryElement>? {
             if (value == null) return null
@@ -173,7 +199,7 @@ data class MemoryArray(val type: ArrayType, override val rawValue: Any?) : Memor
 }
 
 fun createMemoryElement(type: Type, value: Any?): MemoryElement {
-    if(value is MemoryElement) return createMemoryElement(type, value.rawValue)
+    if (value is MemoryElement) return createMemoryElement(type, value.rawValue)
     if (type is StringType) return MemoryString(value)
     if (type is NumberType) return MemoryNumber(value)
     if (type is ObjectType) return MemoryObject(type, value)

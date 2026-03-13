@@ -12,9 +12,17 @@ class Command {
     @Parameter(names = ["-p"], description = "Print specification")
     var printSpecification: Boolean = false
 
-    @Parameter(names = ["-i"], description = "Provide input json files", converter = FileConverter::class)
-    var inputs: List<File> = ArrayList()
+    @Parameter(names = ["-i"], description = "Input file", converter = FileConverter::class)
+    var input: File? = null
 
-    @Parameter(names = ["--spec", "-s"], description = "Provide specification files", converter = FileConverter::class, required = true)
+    @Parameter(names = ["-o"], description = "Output file", converter = FileConverter::class)
+    var output: File? = null
+
+    @Parameter(
+        names = ["--spec", "-s"],
+        description = "Provide specification files",
+        converter = FileConverter::class,
+        required = true
+    )
     var specifications: List<File> = ArrayList()
 }

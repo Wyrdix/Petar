@@ -2,14 +2,19 @@ package fr.univ_lille.iut_info.cli
 
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.ParameterException
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
+import com.google.gson.stream.JsonWriter
 import fr.univ_lille.iut_info.NodeDeclarationStatement
 import fr.univ_lille.iut_info.evaluation.evaluate
 import fr.univ_lille.iut_info.name.NameAnalysis
+import fr.univ_lille.iut_info.parsing.MemoryElement
 import fr.univ_lille.iut_info.parsing.Parser
 import fr.univ_lille.iut_info.parsing.createMemoryElement
 import fr.univ_lille.iut_info.type.TypeCheck
 import fr.univ_lille.iut_info.type.safeCheck
+import java.io.FileWriter
 
 fun main(args: Array<String>) {
     val command = Command()
@@ -27,15 +32,15 @@ fun main(args: Array<String>) {
         return
     }
 
+    val input = command.input
 
-    if (command.inputs.find { it.extension != "json" } != null) {
-        println("Error in input file list, only json files are accepted.")
+    if (input != null && input.extension != "json") {
+        println("The input file is not a json file.")
         return
     }
 
-    if (command.inputs.find { !it.exists() } != null) {
-        println("The following input files do not exist :")
-        command.inputs.filterNot { it.exists() }.forEach { println("\t-${it.absolutePath}") }
+    if (input != null && !input.exists()) {
+        println("The input file do not exist.")
     }
 
 
@@ -86,7 +91,7 @@ fun main(args: Array<String>) {
         }
     }
 
-    if (command.inputs.isNotEmpty()) {
+    if (input != null) {
 
         val availableRoots: List<NodeDeclarationStatement> =
             nameAnalysis.names.values.filterIsInstance<NodeDeclarationStatement>()
@@ -97,40 +102,40 @@ fun main(args: Array<String>) {
             return
         }
 
+        println("Parsing input file : $input.")
 
-        val nullableElements = command.inputs.map { file ->
-            println("Parsing input file : $file.")
+        val jsonObject = JsonParser.parseString(input.readLines().joinToString(separator = "")).asJsonObject
+        val suitableRoots = availableRoots.filter { it.type.safeCheck(jsonObject) }
 
-            val jsonObject = JsonParser.parseString(file.readLines().joinToString(separator = "")).asJsonObject
-            val suitableRoots = availableRoots.filter { it.type.safeCheck(jsonObject) }
-
-            if (suitableRoots.isEmpty()) {
-                println(
-                    "No suitable root were found (available roots are [${
-                        availableRoots.joinToString(separator = ",") { it.identifier }
-                    }])"
-                )
-                return@map Pair(file, null)
-            } else if (suitableRoots.size > 1) {
-                println(
-                    "Multiple suitable roots were found (suitable roots are [${
-                        suitableRoots.joinToString(separator = ",") { it.identifier }
-                    }])"
-                )
-                return@map Pair(file, null)
-            }
-
+        var result: MemoryElement? = null
+        if (suitableRoots.isEmpty()) {
+            println(
+                "No suitable root were found (available roots are [${
+                    availableRoots.joinToString(separator = ",") { it.identifier }
+                }])"
+            )
+        } else if (suitableRoots.size > 1) {
+            println(
+                "Multiple suitable roots were found (suitable roots are [${
+                    suitableRoots.joinToString(separator = ",") { it.identifier }
+                }])"
+            )
+        } else {
             val element = createMemoryElement(suitableRoots[0].type, jsonObject)
-            return@map Pair(file, element)
+            result = element
         }
 
-        if(nullableElements.find { it.second == null } != null) return
+        if (result == null) return
 
-        val elements = nullableElements.map { (file, element) -> Pair(file, element!!) }
+        println("Transforming file $input :")
+        val evaluation = statements.evaluate(result)
 
-        elements.forEach { (file, element) ->
-            println("Transforming file $file :")
-            val evaluation = statements.evaluate(element)
+        val output = command.output
+        if(output != null){
+            val gson = GsonBuilder().setPrettyPrinting().create()
+            output.writeText(gson.toJson(evaluation.toJson()))
+            println("Result was written in $output.")
+        } else {
             println(evaluation)
         }
     }

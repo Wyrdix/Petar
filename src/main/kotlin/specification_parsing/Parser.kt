@@ -167,7 +167,7 @@ class Parser {
             val number = ctx.NUMBER()
             val falseNode = ctx.FALSE()
             val trueNode = ctx.TRUE()
-            if (string != null) return LiteralExpression.EString(string.text.substring(0, string.text.length - 1))
+            if (string != null) return LiteralExpression.EString(string.text.substring(1, string.text.length - 1))
             if (number != null) return LiteralExpression.ENumber(number.text.toFloat())
             if (falseNode != null) return LiteralExpression.EBoolean(false)
             if (trueNode != null) return LiteralExpression.EBoolean(true)
