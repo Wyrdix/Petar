@@ -2,11 +2,7 @@ package fr.univ_lille.iut_info.type
 
 import fr.univ_lille.iut_info.RewriteRuleStatement
 import fr.univ_lille.iut_info.name.NameAnalysis
-import fr.univ_lille.iut_info.pattern.ArrayPattern
-import fr.univ_lille.iut_info.pattern.LiteralPattern
 import fr.univ_lille.iut_info.pattern.ObjectPattern
-import fr.univ_lille.iut_info.pattern.Pattern
-import fr.univ_lille.iut_info.visitable.visit
 
 fun typeEquality(got: Type, expected: Type): Boolean {
     if (got is ReferenceType) {
@@ -40,53 +36,15 @@ class TypeCheck(val analysis: NameAnalysis) {
     fun check(): List<String> {
         val rules = program.filterIsInstance<RewriteRuleStatement>()
 
-        return rules.map { it.pattern }.flatMap(this::resolvePatternVariableType)
-    }
-
-    fun resolvePatternVariableType(pattern: Pattern): MutableList<String> {
-        val errors: MutableList<String> = ArrayList()
-
-        pattern.visit { node, _ ->
-            val expectedType = node.type
-            var gotType: Type? = null
-            when (node) {
-                is LiteralPattern.PBoolean -> gotType = Type.boolean
-                is LiteralPattern.PNumber -> gotType = Type.number
-                is LiteralPattern.PString -> gotType = Type.string
-                is ObjectPattern -> {
-                    gotType = analysis.types[node.identifier] as ObjectType
-
-                    val childrenMap = gotType.childrenMap
-                    val fieldsMap = node.fieldsMap
-
-                    fieldsMap.forEach { (key, pattern) ->
-                        pattern.type = childrenMap[key]
-                    }
-
-
-                }
-
-                is ArrayPattern -> {
-                    if (expectedType == null) return@visit null
-                    if (expectedType !is ArrayType) {
-                        TODO()
-                    }
-                    val elementType = expectedType.type
-                    node.values.forEach { pattern -> pattern.type = elementType }
-                }
-
-                else -> {}
-            }
-            if (expectedType != null && gotType != null && !typeEquality(gotType, expectedType)) {
-                errors.add("TypeError: Expected $expectedType got $gotType")
-            }
-            node.type = gotType
-
-            return@visit null
-
+        rules.forEach { if (it.pattern is ObjectPattern) it.pattern.typecheck(analysis.types[it.pattern.identifier]!!) }
+        rules.forEach { it.condition.typecheck(analysis.types, Type.boolean) }
+        rules.forEach {
+            val gotType = it.transform.getBottomUpType(analysis.types)
+            if (gotType != null)
+                it.transform.typecheck(analysis.types, gotType.resolve())
         }
 
-        return errors
+        return emptyList()
     }
 
 }

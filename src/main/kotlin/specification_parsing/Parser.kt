@@ -119,7 +119,7 @@ class Parser {
             val number = ctx.NUMBER()
             val falseNode = ctx.FALSE()
             val trueNode = ctx.TRUE()
-            if (string != null) return LiteralPattern.PString(string.text.substring(0, string.text.length - 1), name)
+            if (string != null) return LiteralPattern.PString(string.text.substring(1, string.text.length - 1), name)
             if (number != null) return LiteralPattern.PNumber(number.text.toFloat(), name)
             if (falseNode != null) return LiteralPattern.PBoolean(false, name)
             if (trueNode != null) return LiteralPattern.PBoolean(true, name)

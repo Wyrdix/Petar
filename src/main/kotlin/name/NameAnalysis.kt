@@ -13,17 +13,13 @@ import fr.univ_lille.iut_info.visitable.visit
 class NameAnalysis(val program: List<Statement>) {
     val names: MutableMap<String, Identified> = HashMap()
     val types: Map<String, Type>
-        get() =
-            names.entries.filter { it.value is NodeDeclarationStatement }
-                .map { (key, value) -> Pair(key, value as NodeDeclarationStatement) }
-                .map { Pair(it.first, it.second.type) }
-                .union(
-                    setOf(
-                        Pair("String", Type.string),
-                        Pair("Number", Type.number)
-                    )
+        get() = names.entries.filter { it.value is NodeDeclarationStatement }
+            .map { (key, value) -> Pair(key, value as NodeDeclarationStatement) }.map { Pair(it.first, it.second.type) }
+            .union(
+                setOf(
+                    Pair("String", Type.string), Pair("Number", Type.number)
                 )
-                .associateBy({ it.first }, { it.second })
+            ).associateBy({ it.first }, { it.second })
 
     fun check(): List<String> {
         return listOf(
@@ -41,11 +37,9 @@ class NameAnalysis(val program: List<Statement>) {
 
     fun resolveReference() {
         val types = types
-        types.values.filterIsInstance<ObjectType>()
-            .flatMap { it.childrenMap.values }
-            .map { if (it is ArrayType) it.type else it }
-            .filterIsInstance<ReferenceType>()
-            .forEach {
+
+        types.values.filterIsInstance<ObjectType>().flatMap { it.childrenMap.values }
+            .map { if (it is ArrayType) it.type else it }.filterIsInstance<ReferenceType>().forEach {
                 it.cache = types[it.value]
                 if (names[it.value] is GroupDeclarationStatement) {
                     it.group = true

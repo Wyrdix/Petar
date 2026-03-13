@@ -4,6 +4,7 @@ import com.beust.jcommander.JCommander
 import com.beust.jcommander.ParameterException
 import com.google.gson.JsonParser
 import fr.univ_lille.iut_info.NodeDeclarationStatement
+import fr.univ_lille.iut_info.evaluation.evaluate
 import fr.univ_lille.iut_info.name.NameAnalysis
 import fr.univ_lille.iut_info.parsing.Parser
 import fr.univ_lille.iut_info.parsing.createMemoryElement
@@ -97,7 +98,7 @@ fun main(args: Array<String>) {
         }
 
 
-        command.inputs.forEach { file ->
+        val nullableElements = command.inputs.map { file ->
             println("Parsing input file : $file.")
 
             val jsonObject = JsonParser.parseString(file.readLines().joinToString(separator = "")).asJsonObject
@@ -109,20 +110,28 @@ fun main(args: Array<String>) {
                         availableRoots.joinToString(separator = ",") { it.identifier }
                     }])"
                 )
-                return
+                return@map Pair(file, null)
             } else if (suitableRoots.size > 1) {
                 println(
                     "Multiple suitable roots were found (suitable roots are [${
                         suitableRoots.joinToString(separator = ",") { it.identifier }
                     }])"
                 )
-                return
+                return@map Pair(file, null)
             }
 
             val element = createMemoryElement(suitableRoots[0].type, jsonObject)
-            println(element)
+            return@map Pair(file, element)
         }
 
+        if(nullableElements.find { it.second == null } != null) return
 
+        val elements = nullableElements.map { (file, element) -> Pair(file, element!!) }
+
+        elements.forEach { (file, element) ->
+            println("Transforming file $file :")
+            val evaluation = statements.evaluate(element)
+            println(evaluation)
+        }
     }
 }

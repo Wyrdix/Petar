@@ -4,12 +4,15 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import fr.univ_lille.iut_info.type.*
+import fr.univ_lille.iut_info.visitable.Visitable
+import fr.univ_lille.iut_info.visitable.Visitor
 
-interface MemoryElement {
-    fun type(): Type
+abstract class MemoryElement : Visitable<MemoryElement> {
+    abstract val rawValue: Any?
+    abstract fun type(): Type
 }
 
-data class MemoryString(val rawValue: Any?) : MemoryElement {
+data class MemoryString(override val rawValue: Any?) : MemoryElement() {
     @Suppress("UNCHECKED_CAST")
     val value: String
         get() = asString(rawValue)!!
@@ -26,6 +29,10 @@ data class MemoryString(val rawValue: Any?) : MemoryElement {
         return "MemoryString(value=$value)"
     }
 
+    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+        return MemoryString(rawValue)
+    }
+
     companion object {
         fun asString(rawValue: Any?): String? {
             if (rawValue is JsonPrimitive && rawValue.isString) return rawValue.asString
@@ -35,7 +42,7 @@ data class MemoryString(val rawValue: Any?) : MemoryElement {
     }
 }
 
-data class MemoryNumber(val rawValue: Any?) : MemoryElement {
+data class MemoryNumber(override val rawValue: Any?) : MemoryElement() {
     @Suppress("UNCHECKED_CAST")
     val value: Float
         get() = asNumber(rawValue)!!
@@ -52,6 +59,10 @@ data class MemoryNumber(val rawValue: Any?) : MemoryElement {
         return "MemoryNumber(value=$value)"
     }
 
+    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+        return MemoryNumber(rawValue)
+    }
+
     companion object {
         fun asNumber(rawValue: Any?): Float? {
             if (rawValue is JsonPrimitive && rawValue.isNumber) return rawValue.asFloat
@@ -61,7 +72,37 @@ data class MemoryNumber(val rawValue: Any?) : MemoryElement {
     }
 }
 
-data class MemoryObject(val type: ObjectType, val rawValue: Any?) : MemoryElement {
+data class MemoryBoolean(override val rawValue: Any?) : MemoryElement() {
+    @Suppress("UNCHECKED_CAST")
+    val value: Boolean
+        get() = asBoolean(rawValue)!!
+
+    init {
+        type().assert(rawValue)
+    }
+
+    override fun type(): Type {
+        return Type.number
+    }
+
+    override fun toString(): String {
+        return "MemoryBoolean(value=$value)"
+    }
+
+    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+        return MemoryBoolean(rawValue)
+    }
+
+    companion object {
+        fun asBoolean(rawValue: Any?): Boolean? {
+            if (rawValue is JsonPrimitive && rawValue.isBoolean) return rawValue.asBoolean
+            if (rawValue is Boolean) return rawValue
+            return null
+        }
+    }
+}
+
+data class MemoryObject(val type: ObjectType, override val rawValue: Any?) : MemoryElement() {
     @Suppress("UNCHECKED_CAST")
     val value: Map<String, MemoryElement>
         get() = asObject(type, rawValue)!!
@@ -75,7 +116,11 @@ data class MemoryObject(val type: ObjectType, val rawValue: Any?) : MemoryElemen
     }
 
     override fun toString(): String {
-        return "MemoryObject(type=$type, value=$value)"
+        return "MemoryObject(type=$type, value=${value.toSortedMap()})"
+    }
+
+    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+        return MemoryObject(type, value.mapValues { (_, value) -> visitor.visit(value) })
     }
 
     companion object {
@@ -84,17 +129,17 @@ data class MemoryObject(val type: ObjectType, val rawValue: Any?) : MemoryElemen
             else null
             if (providedFieldsRaw == null) return null
 
-            return providedFieldsRaw.keys.map { key ->
-                Pair(
-                    key,
-                    createMemoryElement(type.childrenMap[key]!!, providedFieldsRaw[key])
-                )
-            }.associateBy({ it.first as String }, { it.second })
+            val returnValue = providedFieldsRaw.mapValues { (key, value) ->
+                createMemoryElement(type.childrenMap[key]!!, value)
+            }.mapKeys {
+                it.key as String
+            }
+            return returnValue
         }
     }
 }
 
-data class MemoryArray(val type: ArrayType, val rawValue: Any?) : MemoryElement {
+data class MemoryArray(val type: ArrayType, override val rawValue: Any?) : MemoryElement() {
     @Suppress("UNCHECKED_CAST")
     val value: List<MemoryElement>
         get() = asArray(type, rawValue)!!
@@ -111,13 +156,16 @@ data class MemoryArray(val type: ArrayType, val rawValue: Any?) : MemoryElement 
         return "MemoryArray(type=$type, value=$value)"
     }
 
+    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+        return MemoryArray(type, value.map { visitor.visit(it) })
+    }
+
     companion object {
         fun asArray(type: ArrayType, value: Any?): List<MemoryElement>? {
             if (value == null) return null
             if (value !is Array<*> && value !is List<*> && value !is JsonArray) return null
 
-            val list =
-                if (value is Array<*>) value.toList() else value as? List<*> ?: (value as JsonArray).asList()
+            val list = if (value is Array<*>) value.toList() else value as? List<*> ?: (value as JsonArray).asList()
 
             return list.map { createMemoryElement(type.type, it) }
         }
@@ -125,6 +173,7 @@ data class MemoryArray(val type: ArrayType, val rawValue: Any?) : MemoryElement 
 }
 
 fun createMemoryElement(type: Type, value: Any?): MemoryElement {
+    if(value is MemoryElement) return createMemoryElement(type, value.rawValue)
     if (type is StringType) return MemoryString(value)
     if (type is NumberType) return MemoryNumber(value)
     if (type is ObjectType) return MemoryObject(type, value)
