@@ -2,10 +2,8 @@ package fr.univ_lille.iut_info.cli
 
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.ParameterException
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
-import com.google.gson.stream.JsonWriter
 import fr.univ_lille.iut_info.NodeDeclarationStatement
 import fr.univ_lille.iut_info.evaluation.evaluate
 import fr.univ_lille.iut_info.name.NameAnalysis
@@ -14,7 +12,6 @@ import fr.univ_lille.iut_info.parsing.Parser
 import fr.univ_lille.iut_info.parsing.createMemoryElement
 import fr.univ_lille.iut_info.type.TypeCheck
 import fr.univ_lille.iut_info.type.safeCheck
-import java.io.FileWriter
 
 fun main(args: Array<String>) {
     val command = Command()
