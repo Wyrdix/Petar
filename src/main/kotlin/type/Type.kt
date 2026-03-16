@@ -1,5 +1,6 @@
 package fr.univ_lille.iut_info.type
 
+import fr.univ_lille.iut_info.expression.ObjectExpression
 import fr.univ_lille.iut_info.visitable.Visitable
 import fr.univ_lille.iut_info.visitable.Visitor
 
@@ -78,20 +79,19 @@ class BooleanType : Type() {
 }
 
 data class ObjectType(
-    val identifier: String, val children: List<Pair<String, Type>>, val interfaces: List<String>
+    val identifier: String, val children: List<Pair<String, Type>>, val parents: List<ObjectExpression>
 ) : Type() {
     val childrenMap: Map<String, Type>
         get() = children.associateBy({ it.first }, { it.second })
 
 
     override fun accept(visitor: Visitor<Type>): Type {
-        return ObjectType(identifier, children.map { Pair(it.first, visitor.visit(it.second)) }, interfaces)
+        return ObjectType(identifier, children.map { Pair(it.first, visitor.visit(it.second)) }, parents)
     }
 }
 
 data class ReferenceType(val value: String) : Type() {
     var cache: Type? = null
-    var group: Boolean = false
 
     override fun toString(): String {
         return cache?.toString() ?: "<empty reference to $value>"

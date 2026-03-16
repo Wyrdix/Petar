@@ -10,7 +10,6 @@ interface Identified {
 
 interface Statement
 
-data class GroupDeclarationStatement(override val identifier: String) : Statement, Identified
 data class NodeDeclarationStatement(override val identifier: String, val type: ObjectType) :
     Statement, Identified
 

@@ -402,9 +402,8 @@ data class ArrayExpression(val values: List<Expression>) : Expression() {
         val typedValues = nullableTypedValues.filterNotNull()
         val tree = typedValues.map {
             when (it) {
-                is ObjectType -> setOf(it) + it.interfaces.map {
-                    val reference = ReferenceType(it)
-                    reference.group = true
+                is ObjectType -> setOf(it) + it.parents.map {
+                    val reference = ReferenceType(it.identifier)
                     reference
                 }
 

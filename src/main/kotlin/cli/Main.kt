@@ -92,10 +92,10 @@ fun main(args: Array<String>) {
 
         val availableRoots: List<NodeDeclarationStatement> =
             nameAnalysis.names.values.filterIsInstance<NodeDeclarationStatement>()
-                .filter { it.identifier.lowercase() == "root" || it.type.interfaces.find { group -> group.lowercase() == "root" } != null }
+                .filter { it.identifier.lowercase() == "root" || it.type.parents.find { parent -> parent.identifier.lowercase() == "root" } != null }
 
         if (availableRoots.isEmpty()) {
-            println("NameError: No Root node type could be found. Either defined a Node named 'Root', or a 'Root' group and add this group to the node you wish to represent the whole document (they can be multiple ones).")
+            println("NameError: No Root node type could be found. Either defined a Node named 'Root' to represent the whole document, the root node can also be used as a parent to other nodes.")
             return
         }
 

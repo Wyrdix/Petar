@@ -1,6 +1,5 @@
 package fr.univ_lille.iut_info.parsing
 
-import fr.univ_lille.iut_info.GroupDeclarationStatement
 import fr.univ_lille.iut_info.NodeDeclarationStatement
 import fr.univ_lille.iut_info.RewriteRuleStatement
 import fr.univ_lille.iut_info.Statement
@@ -52,17 +51,11 @@ class Parser {
         }
 
         fun visitStatement(ctx: StatementContext): Statement {
-            val groupDeclarationStatement = ctx.group_declaration_statement()
             val nodeDeclarationStatement = ctx.node_declaration_statement()
             val rewriteRuleStatement = ctx.rewrite_rule_statement()
-            if (groupDeclarationStatement != null) return visitGroup_declaration_statement(groupDeclarationStatement)
             if (nodeDeclarationStatement != null) return visitNode_declaration_statement(nodeDeclarationStatement)
             if (rewriteRuleStatement != null) return visitRewrite_rule_statement(rewriteRuleStatement)
             throw IllegalStateException("Statement type is not found.")
-        }
-
-        fun visitGroup_declaration_statement(ctx: Group_declaration_statementContext): GroupDeclarationStatement {
-            return GroupDeclarationStatement(ctx.IDENTIFIER().text)
         }
 
         fun visitNode_declaration_statement(ctx: Node_declaration_statementContext): NodeDeclarationStatement {
@@ -79,7 +72,7 @@ class Parser {
         fun visitNode_type(ctx: Node_typeContext): ObjectType {
             val id = ctx.identifier.text
             val fields = ctx.fields.map { visitField(it) }
-            return ObjectType(id, fields, ctx.groups.map { it.text })
+            return ObjectType(id, fields, ctx.parents.map { visitExpression_object(it) })
         }
 
         fun visitField(ctx: FieldContext): Pair<String, Type> {

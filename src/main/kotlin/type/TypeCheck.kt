@@ -9,20 +9,20 @@ fun typeEquality(got: Type, expected: Type): Boolean {
         val cache = got.cache
         if (cache != null)
             return typeEquality(cache, expected)
-        if (!got.group) throw IllegalStateException("Reference type should have cache before type checking")
+        throw IllegalStateException("Reference type should have cache before type checking")
     }
     if (expected is ReferenceType) {
         val cache = expected.cache
         if (cache != null)
             return typeEquality(got, cache)
-        if (!expected.group) throw IllegalStateException("Reference type should have cache before type checking")
+        throw IllegalStateException("Reference type should have cache before type checking")
     }
     if (got is StringType) return expected is StringType
     if (got is NumberType) return expected is NumberType
     if (got is BooleanType) return expected is BooleanType
     if (got is ObjectType) {
         if (expected is ObjectType) return got.identifier == expected.identifier
-        if (expected is ReferenceType) return got.interfaces.contains(expected.value)
+        if (expected is ReferenceType) return got.parents.find { it.identifier == expected.value } != null
         return false
     }
     return false

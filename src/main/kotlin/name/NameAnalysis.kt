@@ -24,7 +24,7 @@ class NameAnalysis(val program: List<Statement>) {
     fun check(): List<String> {
         return listOf(
             program.filterIsInstance<Identified>().flatMap(this::checkIdentified),
-            program.filterIsInstance<NodeDeclarationStatement>().flatMap(this::checkObjectGroup),
+            program.filterIsInstance<NodeDeclarationStatement>().flatMap(this::checkObjectParent),
             program.filterIsInstance<NodeDeclarationStatement>().map { Pair(it.identifier, it.type) }
                 .flatMap { checkObjectType(it.first, it.second) },
             program.asSequence().filterIsInstance<RewriteRuleStatement>().map { (pattern, _, _) -> pattern }
@@ -41,9 +41,6 @@ class NameAnalysis(val program: List<Statement>) {
         types.values.filterIsInstance<ObjectType>().flatMap { it.childrenMap.values }
             .map { if (it is ArrayType) it.type else it }.filterIsInstance<ReferenceType>().forEach {
                 it.cache = types[it.value]
-                if (names[it.value] is GroupDeclarationStatement) {
-                    it.group = true
-                }
             }
     }
 
@@ -57,9 +54,27 @@ class NameAnalysis(val program: List<Statement>) {
         }
     }
 
-    fun checkObjectGroup(node: NodeDeclarationStatement): List<String> {
-        return node.type.interfaces.filterNot { names.containsKey(it) }
-            .map { "NameError: Node ${node.identifier} is part of group ${it}, which is not declared." }
+    fun checkObjectParent(node: NodeDeclarationStatement): List<String> {
+        val notExisting = node.type.parents.filterNot { names.containsKey(it.identifier) }
+            .map { "NameError: Node ${node.identifier} has a parent named ${it}, which is not declared." }
+
+        if (notExisting.isNotEmpty()) return notExisting
+
+        val exists = node.type.childrenMap.keys
+        val used: MutableList<String> = ArrayList()
+
+        node.type.parents.forEach {
+            it.visit { node, _ ->
+                if (node is ExpressionAccess.Member && node.parent == null) {
+                    used.add(node.identifier)
+                }
+                return@visit null
+            }
+        }
+
+        val usedNotExisting = used.filter { !exists.contains(it) }
+
+        return usedNotExisting.map { "NameError: Name $it is used in parent construction, but it's not an object field." }
     }
 
     fun checkObjectType(name: String, type: ObjectType): List<String> {

@@ -2,16 +2,14 @@ grammar Alfr;
 
 program: statement+ EOF;
 
-statement: group_declaration_statement | node_declaration_statement | rewrite_rule_statement;
-
-group_declaration_statement: KEYWORD_SPECIFY_GROUP identifier=IDENTIFIER;
+statement: node_declaration_statement | rewrite_rule_statement;
 
 node_declaration_statement: KEYWORD_SPECIFY_NODE schema=node_type;
 
 node_type:
     identifier=IDENTIFIER
     LPAREN((fields+=field COMMA)* fields+=field)? RPAREN
-    (COLON (groups+=IDENTIFIER ',')* groups+=IDENTIFIER)?;
+    (COLON (parents+=expression_object ',')* parents+=expression_object)?;
 
 field: identifier=IDENTIFIER COLON type;
 
