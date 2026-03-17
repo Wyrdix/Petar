@@ -2,11 +2,11 @@ grammar Alfr;
 
 program: statement+ EOF;
 
-statement: node_declaration_statement | rewrite_rule_statement;
+statement: type_declaration_statement | rewrite_rule_statement;
 
-node_declaration_statement: KEYWORD_SPECIFY_NODE schema=node_type;
+type_declaration_statement: KEYWORD_SPECIFY_NODE schema=object_type;
 
-node_type:
+object_type:
     identifier=IDENTIFIER
     LPAREN((fields+=field COMMA)* fields+=field)? RPAREN
     (COLON (parents+=expression_object ',')* parents+=expression_object)?;
@@ -129,7 +129,6 @@ MULT: '*';
 DIVIDE: '/';
 
 KEYWORD_DELETE: 'delete';
-KEYWORD_SPECIFY_GROUP: 'tag';
 KEYWORD_SPECIFY_NODE: 'type';
 KEYWORD_SPECIFY_REWRITE: '=>';
 ARROW: '->';

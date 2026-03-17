@@ -16,8 +16,8 @@ fun MemoryElement.evaluate(rule: RewriteRuleStatement): Pair<Boolean, MemoryElem
 
     var used = false
 
-    val transformed = visit { node ->
-        val context = pattern.evaluate(node) ?: return@visit null
+    val transformed = visit { element ->
+        val context = pattern.evaluate(element) ?: return@visit null
 
         val condition = (condition.evaluate(context) as MemoryBoolean).value
         if (!condition) return@visit null

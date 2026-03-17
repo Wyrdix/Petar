@@ -43,16 +43,16 @@ class SpecificationParser {
         }
 
         fun visitStatement(ctx: StatementContext): Statement {
-            val nodeDeclarationStatement = ctx.node_declaration_statement()
+            val nodeDeclarationStatement = ctx.type_declaration_statement()
             val rewriteRuleStatement = ctx.rewrite_rule_statement()
-            if (nodeDeclarationStatement != null) return visitNode_declaration_statement(nodeDeclarationStatement)
+            if (nodeDeclarationStatement != null) return visitType_declaration_statement(nodeDeclarationStatement)
             if (rewriteRuleStatement != null) return visitRewrite_rule_statement(rewriteRuleStatement)
             throw IllegalStateException("Statement type is not found.")
         }
 
-        fun visitNode_declaration_statement(ctx: Node_declaration_statementContext): NodeDeclarationStatement {
-            val type = visitNode_type(ctx.node_type())
-            return NodeDeclarationStatement(type.identifier, type)
+        fun visitType_declaration_statement(ctx: Type_declaration_statementContext): TypeDeclarationStatement {
+            val type = visitObject_type(ctx.object_type())
+            return TypeDeclarationStatement(type.identifier, type)
         }
 
         fun visitRewrite_rule_statement(ctx: Rewrite_rule_statementContext): RewriteRuleStatement {
@@ -61,7 +61,7 @@ class SpecificationParser {
             )
         }
 
-        fun visitNode_type(ctx: Node_typeContext): ObjectType {
+        fun visitObject_type(ctx: Object_typeContext): ObjectType {
             val id = ctx.identifier.text
             val fields = ctx.fields.map { visitField(it) }
             return ObjectType(id, fields, ctx.parents.map { visitExpression_object(it) })

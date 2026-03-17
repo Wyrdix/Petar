@@ -15,8 +15,8 @@ fun Pattern.identifiers(): List<String> {
 class NameStep(val program: Program) : ExecutionStep {
     val names: MutableMap<String, Identified> = HashMap()
     val types: Map<String, Type>
-        get() = names.entries.filter { it.value is NodeDeclarationStatement }
-            .map { (key, value) -> Pair(key, value as NodeDeclarationStatement) }.map { Pair(it.first, it.second.type) }
+        get() = names.entries.filter { it.value is TypeDeclarationStatement }
+            .map { (key, value) -> Pair(key, value as TypeDeclarationStatement) }.map { Pair(it.first, it.second.type) }
             .union(
                 setOf(
                     Pair("String", Type.string), Pair("Number", Type.number)
@@ -29,8 +29,8 @@ class NameStep(val program: Program) : ExecutionStep {
 
         val errors = listOf(
             program.statements.filterIsInstance<Identified>().flatMap(this::checkIdentified),
-            program.statements.filterIsInstance<NodeDeclarationStatement>().flatMap(this::checkObjectParent),
-            program.statements.filterIsInstance<NodeDeclarationStatement>().map { Pair(it.identifier, it.type) }
+            program.statements.filterIsInstance<TypeDeclarationStatement>().flatMap(this::checkObjectParent),
+            program.statements.filterIsInstance<TypeDeclarationStatement>().map { Pair(it.identifier, it.type) }
                 .flatMap { checkObjectType(it.first, it.second) },
             program.statements.asSequence().filterIsInstance<RewriteRuleStatement>().map { (pattern, _, _) -> pattern }
                 .filterIsInstance<ObjectPattern>().flatMap(this::checkObjectPattern).toList(),
@@ -42,12 +42,12 @@ class NameStep(val program: Program) : ExecutionStep {
         ).flatten().toSet().toMutableList()
 
         roots =
-            program.name.names.values.filterIsInstance<NodeDeclarationStatement>()
+            program.name.names.values.filterIsInstance<TypeDeclarationStatement>()
                 .filter {
                     it.identifier.lowercase() == "root"
                             || it.type.parents.find { parent -> parent.identifier.lowercase() == "root" } != null
                 }.map { it.type }
-        if (roots.isEmpty()) errors.addLast("NameError: No Root node type could be found. Either defined a Node named 'Root' to represent the whole document, the root node can also be used as a parent to other nodes.")
+        if (roots.isEmpty()) errors.addLast("NameError: No Root type could be found. Either defined a Node named 'Root' to represent the whole document, the root node can also be used as a parent to other nodes.")
 
         if (errors.isEmpty()) resolveReference()
 
@@ -73,14 +73,14 @@ class NameStep(val program: Program) : ExecutionStep {
         }
     }
 
-    fun checkObjectParent(node: NodeDeclarationStatement): List<String> {
-        val notExisting = node.type.parents.filterNot { names.containsKey(it.identifier) }
-            .map { "NameError: Node ${node.identifier} has a parent named ${it}, which is not declared." }
+    fun checkObjectParent(type: TypeDeclarationStatement): List<String> {
+        val notExisting = type.type.parents.filterNot { names.containsKey(it.identifier) }
+            .map { "NameError: Type ${type.identifier} has a parent named ${it}, which is not declared." }
 
         if (notExisting.isNotEmpty()) return notExisting
 
-        val exists = node.type.childrenMap.keys
-        val used: List<String> = node.type.parents.flatMap { it.identifiers() }
+        val exists = type.type.childrenMap.keys
+        val used: List<String> = type.type.parents.flatMap { it.identifiers() }
 
         val usedNotExisting = used.filter { !exists.contains(it) }
 

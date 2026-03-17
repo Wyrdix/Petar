@@ -13,7 +13,7 @@ interface Identified {
 
 interface Statement
 
-data class NodeDeclarationStatement(override val identifier: String, val type: ObjectType) :
+data class TypeDeclarationStatement(override val identifier: String, val type: ObjectType) :
     Statement, Identified
 
 data class RewriteRuleStatement(val pattern: Pattern, val condition: Expression, val transform: Expression) : Statement
