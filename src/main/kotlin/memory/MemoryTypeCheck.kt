@@ -1,8 +1,9 @@
 package fr.univ_lille.iut_info.type
 
 import com.google.gson.JsonObject
-import fr.univ_lille.iut_info.parsing.MemoryNumber
-import fr.univ_lille.iut_info.parsing.MemoryString
+import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.memory.MemoryNumber
+import fr.univ_lille.iut_info.memory.MemoryString
 
 fun Type.check(fields: Any?): Boolean {
 

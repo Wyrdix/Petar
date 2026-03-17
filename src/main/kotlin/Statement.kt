@@ -1,9 +1,5 @@
 package fr.univ_lille.iut_info
 
-import fr.univ_lille.iut_info.expression.Expression
-import fr.univ_lille.iut_info.pattern.Pattern
-import fr.univ_lille.iut_info.type.ObjectType
-
 interface Identified {
     val identifier: String
 }

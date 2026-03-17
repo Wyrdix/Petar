@@ -5,12 +5,12 @@ import com.beust.jcommander.ParameterException
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import fr.univ_lille.iut_info.NodeDeclarationStatement
-import fr.univ_lille.iut_info.evaluation.evaluate
-import fr.univ_lille.iut_info.name.NameAnalysis
-import fr.univ_lille.iut_info.parsing.MemoryElement
-import fr.univ_lille.iut_info.parsing.Parser
-import fr.univ_lille.iut_info.parsing.createMemoryElement
-import fr.univ_lille.iut_info.type.TypeCheck
+import fr.univ_lille.iut_info.memory.MemoryElement
+import fr.univ_lille.iut_info.memory.createMemoryElement
+import fr.univ_lille.iut_info.parsing.SpecificationParser
+import fr.univ_lille.iut_info.steps.EvaluateStep
+import fr.univ_lille.iut_info.steps.NameStep
+import fr.univ_lille.iut_info.steps.TypecheckStep
 import fr.univ_lille.iut_info.type.safeCheck
 
 fun main(args: Array<String>) {
@@ -43,7 +43,7 @@ fun main(args: Array<String>) {
 
     val parsed = command.specifications.map { file ->
         val input = file.readLines().joinToString(separator = "\n")
-        val (errors, statements) = Parser.parse(input)
+        val (errors, statements) = SpecificationParser.parse(input)
         Triple(file, errors, statements)
     }.associateBy(
         { (file, _, _) -> file.absolutePath },
@@ -59,7 +59,7 @@ fun main(args: Array<String>) {
 
     val statements = parsed.flatMap { it.value.second }
 
-    val nameAnalysis = NameAnalysis(statements)
+    val nameAnalysis = NameStep(statements)
     val nameErrors = nameAnalysis.check()
 
     if (nameErrors.isNotEmpty()) {
@@ -68,8 +68,8 @@ fun main(args: Array<String>) {
     }
     nameAnalysis.resolveReference()
 
-    val typeAnalysis = TypeCheck(nameAnalysis)
-    val typeErrors = typeAnalysis.check()
+    val typecheckStep = TypecheckStep(nameAnalysis)
+    val typeErrors = typecheckStep.check()
 
     if (typeErrors.isNotEmpty()) {
         typeErrors.forEach { println(it) }
@@ -124,8 +124,10 @@ fun main(args: Array<String>) {
 
         if (result == null) return
 
+        val evaluateStep = EvaluateStep(typecheckStep)
+
         println("Transforming file $input :")
-        val evaluation = statements.evaluate(result)
+        val evaluation = evaluateStep.evaluate(result)
 
         val output = command.output
         if(output != null){

@@ -1,9 +1,6 @@
-package fr.univ_lille.iut_info.pattern
+package fr.univ_lille.iut_info
 
-import fr.univ_lille.iut_info.parsing.*
-import fr.univ_lille.iut_info.type.*
-import fr.univ_lille.iut_info.visitable.Visitable
-import fr.univ_lille.iut_info.visitable.Visitor
+import fr.univ_lille.iut_info.memory.*
 
 abstract class Pattern : Visitable<Pattern> {
     abstract val name: String?

@@ -1,8 +1,7 @@
-package fr.univ_lille.iut_info.type
+package fr.univ_lille.iut_info
 
-import fr.univ_lille.iut_info.expression.ObjectExpression
-import fr.univ_lille.iut_info.visitable.Visitable
-import fr.univ_lille.iut_info.visitable.Visitor
+import fr.univ_lille.iut_info.steps.typeEquality
+import fr.univ_lille.iut_info.type.assert
 
 abstract class Type : Visitable<Type> {
 

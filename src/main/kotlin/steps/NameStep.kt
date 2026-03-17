@@ -1,16 +1,18 @@
-package fr.univ_lille.iut_info.name
+package fr.univ_lille.iut_info.steps
 
 import fr.univ_lille.iut_info.*
-import fr.univ_lille.iut_info.expression.ExpressionAccess
-import fr.univ_lille.iut_info.expression.ObjectExpression
-import fr.univ_lille.iut_info.pattern.ObjectPattern
-import fr.univ_lille.iut_info.type.ArrayType
-import fr.univ_lille.iut_info.type.ObjectType
-import fr.univ_lille.iut_info.type.ReferenceType
-import fr.univ_lille.iut_info.type.Type
-import fr.univ_lille.iut_info.visitable.visit
 
-class NameAnalysis(val program: List<Statement>) {
+fun Expression.identifiers(): List<String> {
+    return this.mapNotNull { node ->
+        if (node is ExpressionAccess.Member && node.parent == null) node.identifier else null
+    }
+}
+
+fun Pattern.identifiers(): List<String> {
+    return this.mapNotNull { it.name }
+}
+
+class NameStep(val program: List<Statement>) {
     val names: MutableMap<String, Identified> = HashMap()
     val types: Map<String, Type>
         get() = names.entries.filter { it.value is NodeDeclarationStatement }
@@ -61,16 +63,7 @@ class NameAnalysis(val program: List<Statement>) {
         if (notExisting.isNotEmpty()) return notExisting
 
         val exists = node.type.childrenMap.keys
-        val used: MutableList<String> = ArrayList()
-
-        node.type.parents.forEach {
-            it.visit { node, _ ->
-                if (node is ExpressionAccess.Member && node.parent == null) {
-                    used.add(node.identifier)
-                }
-                return@visit null
-            }
-        }
+        val used: List<String> = node.type.parents.flatMap { it.identifiers() }
 
         val usedNotExisting = used.filter { !exists.contains(it) }
 
@@ -104,31 +97,12 @@ class NameAnalysis(val program: List<Statement>) {
 
     fun checkRewriteRuleNameDefinitionAndUsage(rule: RewriteRuleStatement): List<String> {
 
-        val existing: MutableList<String> = ArrayList()
-
-        rule.pattern.visit { node, _ ->
-            val name = node.name
-            if (name != null) {
-                existing.add(name)
-            }
-            return@visit null
-        }
+        val existing: List<String> = rule.pattern.identifiers()
 
         val used: MutableList<String> = ArrayList()
 
-        rule.condition.visit { node, _ ->
-            if (node is ExpressionAccess.Member && node.parent == null) {
-                used.add(node.identifier)
-            }
-            return@visit null
-        }
-
-        rule.transform.visit { node, _ ->
-            if (node is ExpressionAccess.Member && node.parent == null) {
-                used.add(node.identifier)
-            }
-            return@visit null
-        }
+        used.addAll(rule.condition.identifiers())
+        used.addAll(rule.transform.identifiers())
 
         val duplicateKeys =
             existing.associateBy({ it }, { key -> existing.count({ it == key }) }).filterValues { it > 1 }.keys

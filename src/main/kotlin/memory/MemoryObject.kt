@@ -1,12 +1,11 @@
-package fr.univ_lille.iut_info.parsing
+package fr.univ_lille.iut_info.memory
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
-import fr.univ_lille.iut_info.type.*
-import fr.univ_lille.iut_info.visitable.Visitable
-import fr.univ_lille.iut_info.visitable.Visitor
+import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.type.assert
 
 abstract class MemoryElement : Visitable<MemoryElement> {
     abstract val rawValue: Any?

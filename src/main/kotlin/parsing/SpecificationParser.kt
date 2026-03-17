@@ -1,21 +1,13 @@
 package fr.univ_lille.iut_info.parsing
 
-import fr.univ_lille.iut_info.NodeDeclarationStatement
-import fr.univ_lille.iut_info.RewriteRuleStatement
-import fr.univ_lille.iut_info.Statement
+import fr.univ_lille.iut_info.*
 import fr.univ_lille.iut_info.alfr_parser.AlfrLexer
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser
 import fr.univ_lille.iut_info.alfr_parser.AlfrParser.*
-import fr.univ_lille.iut_info.expression.*
-import fr.univ_lille.iut_info.pattern.ArrayPattern
-import fr.univ_lille.iut_info.pattern.LiteralPattern
-import fr.univ_lille.iut_info.pattern.ObjectPattern
-import fr.univ_lille.iut_info.pattern.Pattern
-import fr.univ_lille.iut_info.type.*
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.Interval
 
-class Parser {
+class SpecificationParser {
     companion object {
         class CollectingAlfrLexer(val errors: MutableList<String>, input: CharStream) : AlfrLexer(input) {
             override fun notifyListeners(e: LexerNoViableAltException) {

@@ -1,10 +1,10 @@
-package fr.univ_lille.iut_info.evaluation
+package fr.univ_lille.iut_info.steps
 
 import fr.univ_lille.iut_info.RewriteRuleStatement
 import fr.univ_lille.iut_info.Statement
-import fr.univ_lille.iut_info.parsing.MemoryBoolean
-import fr.univ_lille.iut_info.parsing.MemoryElement
-import fr.univ_lille.iut_info.visitable.visit
+import fr.univ_lille.iut_info.memory.MemoryBoolean
+import fr.univ_lille.iut_info.memory.MemoryElement
+import fr.univ_lille.iut_info.visit
 
 fun MemoryElement.evaluate(rule: RewriteRuleStatement): Pair<Boolean, MemoryElement> {
     val pattern = rule.pattern
@@ -13,7 +13,7 @@ fun MemoryElement.evaluate(rule: RewriteRuleStatement): Pair<Boolean, MemoryElem
 
     var used = false
 
-    val transformed = visit { node, _ ->
+    val transformed = visit { node ->
         val context = pattern.evaluate(node) ?: return@visit null
 
         val condition = (condition.evaluate(context) as MemoryBoolean).value
@@ -40,4 +40,20 @@ fun List<Statement>.evaluate(element: MemoryElement): MemoryElement {
         }
     }
     return accumulation.second
+}
+
+class EvaluateStep(val typecheckStep: TypecheckStep) {
+
+    val program
+        get() = typecheckStep.program
+
+    fun check(): List<String> {
+        return emptyList()
+    }
+
+    fun evaluate(input: MemoryElement): MemoryElement {
+        val evaluation = program.evaluate(input)
+        return evaluation
+    }
+
 }

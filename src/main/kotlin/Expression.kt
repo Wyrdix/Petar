@@ -1,9 +1,7 @@
-package fr.univ_lille.iut_info.expression
+package fr.univ_lille.iut_info
 
-import fr.univ_lille.iut_info.parsing.*
-import fr.univ_lille.iut_info.type.*
-import fr.univ_lille.iut_info.visitable.Visitable
-import fr.univ_lille.iut_info.visitable.Visitor
+import fr.univ_lille.iut_info.memory.*
+import fr.univ_lille.iut_info.steps.typeEquality
 import kotlin.math.floor
 
 typealias Context = Map<String, MemoryElement>

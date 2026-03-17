@@ -1,8 +1,6 @@
-package fr.univ_lille.iut_info.type
+package fr.univ_lille.iut_info.steps
 
-import fr.univ_lille.iut_info.RewriteRuleStatement
-import fr.univ_lille.iut_info.name.NameAnalysis
-import fr.univ_lille.iut_info.pattern.ObjectPattern
+import fr.univ_lille.iut_info.*
 
 fun typeEquality(got: Type, expected: Type): Boolean {
     if (got is ReferenceType) {
@@ -22,13 +20,12 @@ fun typeEquality(got: Type, expected: Type): Boolean {
     if (got is BooleanType) return expected is BooleanType
     if (got is ObjectType) {
         if (expected is ObjectType) return got.identifier == expected.identifier
-        if (expected is ReferenceType) return got.parents.find { it.identifier == expected.value } != null
         return false
     }
     return false
 }
 
-class TypeCheck(val analysis: NameAnalysis) {
+class TypecheckStep(val analysis: NameStep) {
 
     val program
         get() = analysis.program
