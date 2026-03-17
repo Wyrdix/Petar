@@ -7,16 +7,19 @@ import fr.univ_lille.iut_info.steps.ExecutionStep
 import fr.univ_lille.iut_info.steps.NameStep
 import fr.univ_lille.iut_info.steps.TypecheckStep
 
-interface Identified {
-    val identifier: String
-}
 
 interface Statement
 
-data class TypeDeclarationStatement(override val identifier: String, val type: ObjectType) :
-    Statement, Identified
+data class TypeDeclarationStatement(
+    val identifier: String,
+    val type: ObjectType
+) : Statement
 
-data class RewriteRuleStatement(val pattern: Pattern, val condition: Expression, val transform: Expression) : Statement
+data class RewriteRuleStatement(
+    val pattern: Pattern,
+    val condition: Expression,
+    val transform: Expression
+) : Statement
 
 class Program(val statements: List<Statement>) {
 

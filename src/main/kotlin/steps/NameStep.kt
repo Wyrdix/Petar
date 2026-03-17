@@ -13,13 +13,12 @@ fun Pattern.identifiers(): List<String> {
 }
 
 class NameStep(val program: Program) : ExecutionStep {
-    val names: MutableMap<String, Identified> = HashMap()
+    val names: MutableMap<String, ObjectType> = HashMap()
     val types: Map<String, Type>
-        get() = names.entries.filter { it.value is TypeDeclarationStatement }
-            .map { (key, value) -> Pair(key, value as TypeDeclarationStatement) }.map { Pair(it.first, it.second.type) }
+        get() = names.entries.map { (key, value) -> Pair(key, value) }
             .union(
                 setOf(
-                    Pair("String", Type.string), Pair("Number", Type.number)
+                    Pair("String", Type.string), Pair("Number", Type.number), Pair("Boolean", Type.boolean)
                 )
             ).associateBy({ it.first }, { it.second })
 
@@ -28,7 +27,8 @@ class NameStep(val program: Program) : ExecutionStep {
     override fun run(): List<String> {
 
         val errors = listOf(
-            program.statements.filterIsInstance<Identified>().flatMap(this::checkIdentified),
+            program.statements.filterIsInstance<TypeDeclarationStatement>().map { it.type }
+                .flatMap(this::checkIdentified),
             program.statements.filterIsInstance<TypeDeclarationStatement>().flatMap(this::checkObjectParent),
             program.statements.filterIsInstance<TypeDeclarationStatement>().map { Pair(it.identifier, it.type) }
                 .flatMap { checkObjectType(it.first, it.second) },
@@ -42,11 +42,11 @@ class NameStep(val program: Program) : ExecutionStep {
         ).flatten().toSet().toMutableList()
 
         roots =
-            program.name.names.values.filterIsInstance<TypeDeclarationStatement>()
+            program.name.names.values
                 .filter {
                     it.identifier.lowercase() == "root"
-                            || it.type.parents.find { parent -> parent.identifier.lowercase() == "root" } != null
-                }.map { it.type }
+                            || it.parents.find { parent -> parent.identifier.lowercase() == "root" } != null
+                }
         if (roots.isEmpty()) errors.addLast("NameError: No Root type could be found. Either defined a Node named 'Root' to represent the whole document, the root node can also be used as a parent to other nodes.")
 
         if (errors.isEmpty()) resolveReference()
@@ -63,7 +63,7 @@ class NameStep(val program: Program) : ExecutionStep {
             }
     }
 
-    fun checkIdentified(identified: Identified): List<String> {
+    fun checkIdentified(identified: ObjectType): List<String> {
         return if (names.containsKey(identified.identifier)) {
             val error = "NameError: ${identified.identifier} is defined multiple times."
             listOf(error)
