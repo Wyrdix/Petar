@@ -2,6 +2,7 @@ package fr.univ_lille.iut_info.type
 
 import com.google.gson.JsonObject
 import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.memory.MemoryBoolean
 import fr.univ_lille.iut_info.memory.MemoryNumber
 import fr.univ_lille.iut_info.memory.MemoryString
 
@@ -9,8 +10,9 @@ fun Type.check(fields: Any?): Boolean {
 
     if (fields == null) return false
 
-    if (this is StringType) return MemoryString.asString(fields) != null
-    if (this is NumberType) return MemoryNumber.asNumber(fields) != null
+    if (this is PrimitiveType.StringType) return MemoryString.asString(fields) != null
+    if (this is PrimitiveType.NumberType) return MemoryNumber.asNumber(fields) != null
+    if (this is PrimitiveType.BooleanType) return MemoryBoolean.asBoolean(fields) != null
     if (this is ObjectType) {
         val providedFieldsRaw = fields as? Map<*, *> ?: if (fields is JsonObject) fields.asMap()
         else null

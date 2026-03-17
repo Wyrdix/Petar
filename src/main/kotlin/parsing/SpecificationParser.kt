@@ -84,8 +84,10 @@ class SpecificationParser {
             val identifier = ctx.IDENTIFIER()
             val typeNumber = ctx.TYPE_NUMBER()
             val typeString = ctx.TYPE_STRING()
-            if (typeString != null) return StringType.instance
-            if (typeNumber != null) return NumberType.instance
+            val typeBoolean = ctx.TYPE_BOOLEAN()
+            if (typeString != null) return Type.string
+            if (typeNumber != null) return Type.number
+            if (typeBoolean != null) return Type.boolean
             if (identifier != null) return ReferenceType(identifier.text)
             throw IllegalStateException("Unknown primitive type.")
         }

@@ -29,7 +29,7 @@ abstract class LiteralPattern : Pattern() {
         }
 
         override fun typecheck(expected: Type): Boolean {
-            val typechecking = expected is StringType
+            val typechecking = expected is PrimitiveType.StringType
 
             if(typechecking) checkedType = expected
             return typechecking
@@ -42,7 +42,7 @@ abstract class LiteralPattern : Pattern() {
         }
 
         override fun typecheck(expected: Type): Boolean {
-            val typechecking = expected is NumberType
+            val typechecking = expected is PrimitiveType.NumberType
 
             if(typechecking) checkedType = expected
             return typechecking
@@ -56,7 +56,7 @@ abstract class LiteralPattern : Pattern() {
 
 
         override fun typecheck(expected: Type): Boolean {
-            val typechecking = expected is BooleanType
+            val typechecking = expected is PrimitiveType.BooleanType
 
             if(typechecking) checkedType = expected
             return typechecking

@@ -50,5 +50,5 @@ fun <T : Visitable<T>, U> T.map(func: Function<T, U>): List<U> {
 }
 
 fun <T : Visitable<T>, U : Any> T.mapNotNull(func: Function<T, U?>): List<U> {
-    return this.mapFilter { node -> Pair(func.apply(node), true) }.filterNotNull()
+    return this.map(func).filterNotNull()
 }

@@ -24,56 +24,50 @@ abstract class Type : Visitable<Type> {
     }
 
     companion object {
-        val string: StringType
-            get() = StringType.instance
+        val string: PrimitiveType.StringType
+            get() = PrimitiveType.StringType.instance
 
-        val number: NumberType
-            get() = NumberType.instance
+        val number: PrimitiveType.NumberType
+            get() = PrimitiveType.NumberType.instance
 
-        val boolean: BooleanType
-            get() = BooleanType.instance
+        val boolean: PrimitiveType.BooleanType
+            get() = PrimitiveType.BooleanType.instance
     }
 }
 
-class StringType private constructor() : Type() {
-    override fun toString(): String {
-        return "String"
-    }
-
-    companion object {
-        val instance = StringType()
-    }
-
+abstract class PrimitiveType : Type() {
     override fun accept(visitor: Visitor<Type>): Type {
         return this
     }
-}
 
-class NumberType : Type() {
-    override fun toString(): String {
-        return "Number"
+    class StringType private constructor() : PrimitiveType() {
+        override fun toString(): String {
+            return "String"
+        }
+
+        companion object {
+            val instance = StringType()
+        }
     }
 
-    companion object {
-        val instance = NumberType()
+    class NumberType private constructor() : PrimitiveType() {
+        override fun toString(): String {
+            return "Number"
+        }
+
+        companion object {
+            val instance = NumberType()
+        }
     }
 
-    override fun accept(visitor: Visitor<Type>): Type {
-        return this
-    }
-}
+    class BooleanType private constructor() : PrimitiveType() {
+        override fun toString(): String {
+            return "Boolean"
+        }
 
-class BooleanType : Type() {
-    override fun toString(): String {
-        return "Boolean"
-    }
-
-    companion object {
-        val instance = BooleanType()
-    }
-
-    override fun accept(visitor: Visitor<Type>): Type {
-        return this
+        companion object {
+            val instance = BooleanType()
+        }
     }
 }
 

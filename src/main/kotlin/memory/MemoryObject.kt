@@ -199,8 +199,9 @@ data class MemoryArray(val type: ArrayType, override val rawValue: Any?) : Memor
 
 fun createMemoryElement(type: Type, value: Any?): MemoryElement {
     if (value is MemoryElement) return createMemoryElement(type, value.rawValue)
-    if (type is StringType) return MemoryString(value)
-    if (type is NumberType) return MemoryNumber(value)
+    if (type is PrimitiveType.StringType) return MemoryString(value)
+    if (type is PrimitiveType.NumberType) return MemoryNumber(value)
+    if (type is PrimitiveType.BooleanType) return MemoryBoolean(value)
     if (type is ObjectType) return MemoryObject(type, value)
     if (type is ArrayType) return MemoryArray(type, value)
     if (type is ReferenceType && type.cache != null) return createMemoryElement(type.cache!!, value)

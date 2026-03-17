@@ -115,7 +115,7 @@ abstract class LiteralExpression : Expression() {
         }
 
         override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-            if (expected !is StringType) return false
+            if (expected !is PrimitiveType.StringType) return false
             checkedType = expected
             return true
         }
@@ -131,7 +131,7 @@ abstract class LiteralExpression : Expression() {
         }
 
         override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-            if (expected !is NumberType) return false
+            if (expected !is PrimitiveType.NumberType) return false
             checkedType = expected
             return true
         }
@@ -147,7 +147,7 @@ abstract class LiteralExpression : Expression() {
         }
 
         override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-            if (expected !is BooleanType) return false
+            if (expected !is PrimitiveType.BooleanType) return false
             checkedType = expected
             return true
         }
