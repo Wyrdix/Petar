@@ -25,13 +25,13 @@ fun typeEquality(got: Type, expected: Type): Boolean {
     return false
 }
 
-class TypecheckStep(val analysis: NameStep) {
+class TypecheckStep(val analysis: NameStep) : ExecutionStep {
 
     val program
         get() = analysis.program
 
-    fun check(): List<String> {
-        val rules = program.filterIsInstance<RewriteRuleStatement>()
+    override fun run(): List<String> {
+        val rules = program.statements.filterIsInstance<RewriteRuleStatement>()
 
         rules.forEach { if (it.pattern is ObjectPattern) it.pattern.typecheck(analysis.types[it.pattern.identifier]!!) }
         rules.forEach { it.condition.typecheck(analysis.types, Type.boolean) }

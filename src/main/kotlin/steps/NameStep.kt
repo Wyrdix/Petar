@@ -12,7 +12,7 @@ fun Pattern.identifiers(): List<String> {
     return this.mapNotNull { it.name }
 }
 
-class NameStep(val program: List<Statement>) {
+class NameStep(val program: Program) : ExecutionStep {
     val names: MutableMap<String, Identified> = HashMap()
     val types: Map<String, Type>
         get() = names.entries.filter { it.value is NodeDeclarationStatement }
@@ -23,18 +23,35 @@ class NameStep(val program: List<Statement>) {
                 )
             ).associateBy({ it.first }, { it.second })
 
-    fun check(): List<String> {
-        return listOf(
-            program.filterIsInstance<Identified>().flatMap(this::checkIdentified),
-            program.filterIsInstance<NodeDeclarationStatement>().flatMap(this::checkObjectParent),
-            program.filterIsInstance<NodeDeclarationStatement>().map { Pair(it.identifier, it.type) }
+    var roots: List<ObjectType> = emptyList()
+
+    override fun run(): List<String> {
+
+        val errors = listOf(
+            program.statements.filterIsInstance<Identified>().flatMap(this::checkIdentified),
+            program.statements.filterIsInstance<NodeDeclarationStatement>().flatMap(this::checkObjectParent),
+            program.statements.filterIsInstance<NodeDeclarationStatement>().map { Pair(it.identifier, it.type) }
                 .flatMap { checkObjectType(it.first, it.second) },
-            program.asSequence().filterIsInstance<RewriteRuleStatement>().map { (pattern, _, _) -> pattern }
+            program.statements.asSequence().filterIsInstance<RewriteRuleStatement>().map { (pattern, _, _) -> pattern }
                 .filterIsInstance<ObjectPattern>().flatMap(this::checkObjectPattern).toList(),
-            program.filterIsInstance<RewriteRuleStatement>().map { (_, _, transform) -> transform }
+            program.statements.filterIsInstance<RewriteRuleStatement>().map { (_, _, transform) -> transform }
                 .filterIsInstance<ObjectExpression>().flatMap(this::checkTransform),
-            program.filterIsInstance<RewriteRuleStatement>()
-                .flatMap(this::checkRewriteRuleNameDefinitionAndUsage)).flatten().toSet().toList()
+            program.statements.filterIsInstance<RewriteRuleStatement>()
+                .flatMap(this::checkRewriteRuleNameDefinitionAndUsage)
+
+        ).flatten().toSet().toMutableList()
+
+        roots =
+            program.name.names.values.filterIsInstance<NodeDeclarationStatement>()
+                .filter {
+                    it.identifier.lowercase() == "root"
+                            || it.type.parents.find { parent -> parent.identifier.lowercase() == "root" } != null
+                }.map { it.type }
+        if (roots.isEmpty()) errors.addLast("NameError: No Root node type could be found. Either defined a Node named 'Root' to represent the whole document, the root node can also be used as a parent to other nodes.")
+
+        if (errors.isEmpty()) resolveReference()
+
+        return errors
     }
 
     fun resolveReference() {

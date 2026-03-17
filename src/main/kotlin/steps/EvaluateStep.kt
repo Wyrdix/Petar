@@ -1,9 +1,12 @@
 package fr.univ_lille.iut_info.steps
 
+import com.google.gson.JsonObject
 import fr.univ_lille.iut_info.RewriteRuleStatement
 import fr.univ_lille.iut_info.Statement
 import fr.univ_lille.iut_info.memory.MemoryBoolean
 import fr.univ_lille.iut_info.memory.MemoryElement
+import fr.univ_lille.iut_info.memory.createMemoryElement
+import fr.univ_lille.iut_info.type.safeCheck
 import fr.univ_lille.iut_info.visit
 
 fun MemoryElement.evaluate(rule: RewriteRuleStatement): Pair<Boolean, MemoryElement> {
@@ -42,18 +45,34 @@ fun List<Statement>.evaluate(element: MemoryElement): MemoryElement {
     return accumulation.second
 }
 
-class EvaluateStep(val typecheckStep: TypecheckStep) {
+class EvaluateStep(val typecheckStep: TypecheckStep, val input: JsonObject) : ExecutionStep {
 
     val program
         get() = typecheckStep.program
 
-    fun check(): List<String> {
-        return emptyList()
-    }
+    var evaluation: MemoryElement? = null
 
-    fun evaluate(input: MemoryElement): MemoryElement {
-        val evaluation = program.evaluate(input)
-        return evaluation
+    override fun run(): List<String> {
+
+        val suitableRoots = program.name.roots.filter { it.safeCheck(input) }
+
+        if (suitableRoots.isEmpty()) {
+            return listOf(
+                "EvaluationError: No suitable root were found (available roots are [${
+                    program.name.roots.joinToString(separator = ",") { it.identifier }
+                }])"
+            )
+        } else if (suitableRoots.size > 1) {
+            return listOf(
+                "EvaluationError: Multiple suitable roots were found (suitable roots are [${
+                    suitableRoots.joinToString(separator = ",") { it.identifier }
+                }])"
+            )
+        }
+
+        val input = createMemoryElement(program.name.roots[0], input)
+        evaluation = program.statements.evaluate(input)
+        return emptyList()
     }
 
 }
