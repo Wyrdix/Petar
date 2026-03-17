@@ -9,7 +9,7 @@ type_declaration_statement: KEYWORD_SPECIFY_NODE schema=object_type;
 object_type:
     identifier=IDENTIFIER
     LPAREN((fields+=field COMMA)* fields+=field)? RPAREN
-    (COLON (parents+=expression_object ',')* parents+=expression_object)?;
+    (COLON (views+=expression_object ',')* views+=expression_object)?;
 
 field: identifier=IDENTIFIER COLON type;
 

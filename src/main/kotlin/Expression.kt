@@ -400,7 +400,7 @@ data class ArrayExpression(val values: List<Expression>) : Expression() {
         val typedValues = nullableTypedValues.filterNotNull()
         val tree = typedValues.map {
             when (it) {
-                is ObjectType -> setOf(it) + it.parents.map {
+                is ObjectType -> setOf(it) + it.views.map {
                     val reference = ReferenceType(it.identifier)
                     reference
                 }
@@ -437,7 +437,7 @@ data class ObjectExpression(val identifier: String, val fields: List<Pair<String
         return ObjectExpression(identifier, fields.map { Pair(it.first, visitor.visit(it.second)) })
     }
 
-    override fun evaluate(context: Context): MemoryElement? {
+    override fun evaluate(context: Context): MemoryObject? {
         val nullableEvaluatedFields = mapFields.mapValues { (_, value) -> value.evaluate(context) }
         if (nullableEvaluatedFields.containsValue(null)) return null
         val type = checkedType ?: return null

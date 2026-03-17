@@ -11,6 +11,11 @@ abstract class MemoryElement : Visitable<MemoryElement> {
     abstract fun type(): Type
     abstract fun toJson(): JsonElement
 
+    open fun viewAs(type: Type): List<MemoryElement> {
+        if (type == type()) return listOf(this)
+        return emptyList()
+    }
+
     companion object {
         fun memory(value: String): MemoryString {
             return MemoryString(value)
@@ -143,6 +148,33 @@ data class MemoryObject(val type: ObjectType, override val rawValue: Any?) : Mem
 
     init {
         type().assert(rawValue)
+    }
+
+    override fun viewAs(type: Type): List<MemoryObject> {
+        if (type !is ObjectType) return emptyList()
+
+        val id = type.identifier
+
+        if (!this@MemoryObject.type.nameChecked) throw IllegalStateException("Cannot use 'evaluateAs' before name checking.")
+
+        val list: MutableList<MemoryObject> = ArrayList()
+
+        if (id == this@MemoryObject.type.identifier) list.add(this)
+
+        val evaluationContext =
+            mapOf(*this.value.entries.map { (key, value) -> Pair(key, value) }.toTypedArray())
+
+        val directView =
+            this@MemoryObject.type.views.filter { it.identifier == id }.map { it.evaluate(evaluationContext) }
+                .filterNotNull()
+
+        list.addAll(
+            directView
+        )
+
+        list.addAll(directView.filter { it.type.indirectViews.contains(id) }.flatMap { it.viewAs(type) })
+
+        return list
     }
 
     override fun type(): Type {

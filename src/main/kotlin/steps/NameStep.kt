@@ -45,7 +45,7 @@ class NameStep(val program: Program) : ExecutionStep {
             program.name.names.values
                 .filter {
                     it.identifier.lowercase() == "root"
-                            || it.parents.find { parent -> parent.identifier.lowercase() == "root" } != null
+                            || it.views.find { parent -> parent.identifier.lowercase() == "root" } != null
                 }
         if (roots.isEmpty()) errors.addLast("NameError: No Root type could be found. Either defined a Node named 'Root' to represent the whole document, the root node can also be used as a parent to other nodes.")
 
@@ -74,13 +74,13 @@ class NameStep(val program: Program) : ExecutionStep {
     }
 
     fun checkObjectParent(type: TypeDeclarationStatement): List<String> {
-        val notExisting = type.type.parents.filterNot { names.containsKey(it.identifier) }
+        val notExisting = type.type.views.filterNot { names.containsKey(it.identifier) }
             .map { "NameError: Type ${type.identifier} has a parent named ${it}, which is not declared." }
 
         if (notExisting.isNotEmpty()) return notExisting
 
         val exists = type.type.childrenMap.keys
-        val used: List<String> = type.type.parents.flatMap { it.identifiers() }
+        val used: List<String> = type.type.views.flatMap { it.identifiers() }
 
         val usedNotExisting = used.filter { !exists.contains(it) }
 

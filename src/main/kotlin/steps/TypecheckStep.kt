@@ -19,7 +19,8 @@ fun typeEquality(got: Type, expected: Type): Boolean {
     if (got is PrimitiveType.NumberType) return expected is PrimitiveType.NumberType
     if (got is PrimitiveType.BooleanType) return expected is PrimitiveType.BooleanType
     if (got is ObjectType) {
-        if (expected is ObjectType) return got.identifier == expected.identifier
+        if (expected is ObjectType)
+            return got.allViews.contains(expected.identifier)
         return false
     }
     return false

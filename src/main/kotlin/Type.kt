@@ -43,9 +43,9 @@ abstract class Type : Visitable<Type> {
         fun objectT(
             identifier: String,
             children: Map<String, Type>,
-            parents: List<ObjectExpression> = emptyList()
+            views: List<ObjectExpression> = emptyList()
         ): ObjectType {
-            return ObjectType(identifier, children.map { Pair(it.key, it.value) }, parents)
+            return ObjectType(identifier, children.map { Pair(it.key, it.value) }, views)
         }
 
         fun reference(
@@ -106,14 +106,20 @@ abstract class PrimitiveType : Type() {
 }
 
 data class ObjectType(
-    val identifier: String, val children: List<Pair<String, Type>>, val parents: List<ObjectExpression>
+    val identifier: String, val children: List<Pair<String, Type>>, val views: List<ObjectExpression>
 ) : Type() {
+
+    var nameChecked: Boolean = false
+    var directViews: Set<String> = views.map { it.identifier }.toSet()
+    var indirectViews: Set<String> = emptySet()
+    val allViews: Set<String>
+        get() = setOf(identifier) + directViews + indirectViews
+
     val childrenMap: Map<String, Type>
         get() = children.associateBy({ it.first }, { it.second })
 
-
     override fun accept(visitor: Visitor<Type>): Type {
-        return ObjectType(identifier, children.map { Pair(it.first, visitor.visit(it.second)) }, parents)
+        return ObjectType(identifier, children.map { Pair(it.first, visitor.visit(it.second)) }, views)
     }
 }
 

@@ -64,7 +64,7 @@ class SpecificationParser {
         fun visitObject_type(ctx: Object_typeContext): ObjectType {
             val id = ctx.identifier.text
             val fields = ctx.fields.map { visitField(it) }
-            return ObjectType(id, fields, ctx.parents.map { visitExpression_object(it) })
+            return ObjectType(id, fields, ctx.views.map { visitExpression_object(it) })
         }
 
         fun visitField(ctx: FieldContext): Pair<String, Type> {
