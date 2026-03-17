@@ -1,22 +1,20 @@
-package fr.univ_lille.iut_info.type
+package fr.univ_lille.iut_info.memory
 
-import com.google.gson.JsonObject
 import fr.univ_lille.iut_info.*
-import fr.univ_lille.iut_info.memory.MemoryBoolean
-import fr.univ_lille.iut_info.memory.MemoryNumber
-import fr.univ_lille.iut_info.memory.MemoryString
+import fr.univ_lille.iut_info.memory.MemoryObject.Companion.asMap
 
 fun Type.check(fields: Any?): Boolean {
-
     if (fields == null) return false
+
+    if (this is AnyType) return true
+    if (fields is MemoryElement) return this.check(fields.rawValue)
 
     if (this is PrimitiveType.StringType) return MemoryString.asString(fields) != null
     if (this is PrimitiveType.NumberType) return MemoryNumber.asNumber(fields) != null
     if (this is PrimitiveType.BooleanType) return MemoryBoolean.asBoolean(fields) != null
     if (this is ObjectType) {
-        val providedFieldsRaw = fields as? Map<*, *> ?: if (fields is JsonObject) fields.asMap()
-        else null
-        if (providedFieldsRaw == null) return false
+
+        val providedFieldsRaw = asMap(fields) ?: return false
 
         val expectedFieldsType = this.childrenMap
         if (providedFieldsRaw.keys.isEmpty()) return expectedFieldsType.isEmpty()
@@ -55,5 +53,6 @@ fun Type.assert(fields: Any?) {
 
 class TypeCheckWrongAnyType(message: String?) :
     Error(if (message != null) "An object was passed that is not supported by the type checker : $message." else "An object was passed that is not supported by the type checker.")
+
 class TypeCheckReferenceNotCached :
     Error("Type check cannot occurs if reference types are not cached inside reference.")

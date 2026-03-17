@@ -6,7 +6,7 @@ import fr.univ_lille.iut_info.Statement
 import fr.univ_lille.iut_info.memory.MemoryBoolean
 import fr.univ_lille.iut_info.memory.MemoryElement
 import fr.univ_lille.iut_info.memory.createMemoryElement
-import fr.univ_lille.iut_info.type.safeCheck
+import fr.univ_lille.iut_info.memory.safeCheck
 import fr.univ_lille.iut_info.visit
 
 fun MemoryElement.evaluate(rule: RewriteRuleStatement): Pair<Boolean, MemoryElement> {

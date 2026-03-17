@@ -5,12 +5,33 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import fr.univ_lille.iut_info.*
-import fr.univ_lille.iut_info.type.assert
 
 abstract class MemoryElement : Visitable<MemoryElement> {
     abstract val rawValue: Any?
     abstract fun type(): Type
     abstract fun toJson(): JsonElement
+
+    companion object {
+        fun memory(value: String): MemoryString {
+            return MemoryString(value)
+        }
+
+        fun memory(value: Number): MemoryNumber {
+            return MemoryNumber(value)
+        }
+
+        fun memory(value: Boolean): MemoryBoolean {
+            return MemoryBoolean(value)
+        }
+
+        fun memory(type: Type, vararg values: Any): MemoryArray {
+            return MemoryArray(ArrayType(Type.any), values)
+        }
+
+        fun memory(type: ObjectType, values: Map<String, Any>): MemoryObject {
+            return MemoryObject(type, values.map { Pair(it.key, it.value) })
+        }
+    }
 }
 
 data class MemoryString(override val rawValue: Any?) : MemoryElement() {
@@ -91,7 +112,7 @@ data class MemoryBoolean(override val rawValue: Any?) : MemoryElement() {
     }
 
     override fun type(): Type {
-        return Type.number
+        return Type.boolean
     }
 
     override fun toString(): String {
@@ -144,9 +165,7 @@ data class MemoryObject(val type: ObjectType, override val rawValue: Any?) : Mem
 
     companion object {
         fun asObject(type: ObjectType, rawValue: Any?): Map<String, MemoryElement>? {
-            val providedFieldsRaw = rawValue as? Map<*, *> ?: if (rawValue is JsonObject) rawValue.asMap()
-            else null
-            if (providedFieldsRaw == null) return null
+            val providedFieldsRaw = asMap(rawValue) ?: return null
 
             val returnValue = providedFieldsRaw.mapValues { (key, value) ->
                 createMemoryElement(type.childrenMap[key]!!, value)
@@ -154,6 +173,30 @@ data class MemoryObject(val type: ObjectType, override val rawValue: Any?) : Mem
                 it.key as String
             }
             return returnValue
+        }
+
+        fun asMap(rawValue: Any?): Map<String?, *>? {
+            when (rawValue) {
+                is Map<*, *> ->
+                    @Suppress("UNCHECKED_CAST")
+                    return if (rawValue.isEmpty() || rawValue.keys.first() is String) rawValue as Map<String?, *>? else null
+
+                is JsonObject -> return rawValue.asMap() as Map<String?, *>?
+                is List<*> -> {
+                    val withoutNulls = rawValue.filterNotNull()
+                    return if (withoutNulls.isEmpty()) emptyMap<String?, Any>() as Map<String?, *>?
+                    else {
+                        val el = withoutNulls.first()
+
+                        if (el is Pair<*, *> && el.first is String) rawValue.associateBy(
+                            { (it as Pair<*, *>).first as String? },
+                            { (it as Pair<*, *>).second }) as Map<String?, *>?
+                        else null as Map<String?, *>?
+                    }
+                }
+
+                else -> return null
+            }
         }
     }
 }

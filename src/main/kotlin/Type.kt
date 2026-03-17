@@ -1,7 +1,7 @@
 package fr.univ_lille.iut_info
 
 import fr.univ_lille.iut_info.steps.typeEquality
-import fr.univ_lille.iut_info.type.assert
+import kotlin.assert as assertThrow
 
 abstract class Type : Visitable<Type> {
 
@@ -24,6 +24,9 @@ abstract class Type : Visitable<Type> {
     }
 
     companion object {
+        val any: AnyType
+            get() = AnyType.instance
+
         val string: PrimitiveType.StringType
             get() = PrimitiveType.StringType.instance
 
@@ -32,6 +35,37 @@ abstract class Type : Visitable<Type> {
 
         val boolean: PrimitiveType.BooleanType
             get() = PrimitiveType.BooleanType.instance
+
+        fun array(type: Type): ArrayType {
+            return ArrayType(type)
+        }
+
+        fun objectT(
+            identifier: String,
+            children: Map<String, Type>,
+            parents: List<ObjectExpression> = emptyList()
+        ): ObjectType {
+            return ObjectType(identifier, children.map { Pair(it.key, it.value) }, parents)
+        }
+
+        fun reference(
+            identifier: String,
+            cache: Type? = null
+        ): ReferenceType {
+            val reference = ReferenceType(identifier)
+            reference.cache = cache
+            return reference
+        }
+    }
+}
+
+class AnyType private constructor() : Type() {
+    override fun accept(visitor: Visitor<Type>): Type {
+        return this
+    }
+
+    companion object {
+        val instance = AnyType()
     }
 }
 
@@ -97,7 +131,7 @@ data class ReferenceType(val value: String) : Type() {
 
 data class ArrayType(val type: Type) : Type() {
     init {
-        assert(type !is ArrayType)
+        assertThrow(type !is ArrayType, {})
     }
 
     override fun toString(): String {
