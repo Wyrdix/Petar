@@ -12,12 +12,11 @@ interface Statement
 
 data class TypeDeclarationStatement(
     val identifier: String,
-    val type: ObjectType
+    val type: PropertyType
 ) : Statement
 
 data class RewriteRuleStatement(
     val pattern: Pattern,
-    val condition: Expression,
     val transform: Expression
 ) : Statement
 

@@ -43,93 +43,130 @@ class SpecificationParser {
         }
 
         fun visitStatement(ctx: StatementContext): Statement {
-            val nodeDeclarationStatement = ctx.type_declaration_statement()
+            val nodeDeclarationStatement = ctx.property_declaration_statement()
             val rewriteRuleStatement = ctx.rewrite_rule_statement()
-            if (nodeDeclarationStatement != null) return visitType_declaration_statement(nodeDeclarationStatement)
+            if (nodeDeclarationStatement != null) return visitProperty_declaration_statement(nodeDeclarationStatement)
             if (rewriteRuleStatement != null) return visitRewrite_rule_statement(rewriteRuleStatement)
             throw IllegalStateException("Statement type is not found.")
         }
 
-        fun visitType_declaration_statement(ctx: Type_declaration_statementContext): TypeDeclarationStatement {
-            val type = visitObject_type(ctx.object_type())
+        fun visitProperty_declaration_statement(ctx: Property_declaration_statementContext): TypeDeclarationStatement {
+            val type = visitProperty_type(ctx.property_type())
             return TypeDeclarationStatement(type.identifier, type)
         }
 
         fun visitRewrite_rule_statement(ctx: Rewrite_rule_statementContext): RewriteRuleStatement {
             return RewriteRuleStatement(
-                visitPattern(ctx.pattern()), visitExpression(ctx.condition), visitExpression(ctx.result)
+                visitPattern(ctx.pattern()), visitExpression(ctx.result)
             )
         }
 
-        fun visitObject_type(ctx: Object_typeContext): ObjectType {
+        fun visitProperty_type(ctx: Property_typeContext): PropertyType {
             val id = ctx.identifier.text
-            val fields = ctx.fields.map { visitField(it) }
-            return ObjectType(id, fields, ctx.views.map { visitExpression_object(it) })
+            val fields = ctx.fields.map { visitProperty_type_field(it) }
+            val parent = ctx.property_type_parent()?.let { parent ->
+                Pair(
+                    parent.parent_identifier.text,
+                    parent.restrictions.map(this::visitProperty_type_field)
+                )
+            }
+            return PropertyType(id, fields, parent = parent)
         }
 
-        fun visitField(ctx: FieldContext): Pair<String, Type> {
+        fun visitProperty_type_field(ctx: Property_type_fieldContext): Pair<String, Type> {
             val id = ctx.identifier.text
             val type = visitType(ctx.type())
-            return Pair(id, type)
+            return Pair(
+                id, when (ctx.QUESTION_MARK()) {
+                    null -> type
+                    else -> Type.nullable(type)
+                }
+            )
         }
 
         fun visitType(ctx: TypeContext): Type {
-            val primitive_type = visitPrimitive_type(ctx.primitive_type())
-            val isArray = ctx.LBRACK() != null
-            if (isArray) return ArrayType(primitive_type)
-            return primitive_type
+            return visitEnclosed_type_1(ctx.enclosed_type_1())
         }
 
-        fun visitPrimitive_type(ctx: Primitive_typeContext): Type {
-            val identifier = ctx.IDENTIFIER()
-            val typeNumber = ctx.TYPE_NUMBER()
-            val typeString = ctx.TYPE_STRING()
-            val typeBoolean = ctx.TYPE_BOOLEAN()
-            if (typeString != null) return Type.string
-            if (typeNumber != null) return Type.number
-            if (typeBoolean != null) return Type.boolean
-            if (identifier != null) return ReferenceType(identifier.text)
-            throw IllegalStateException("Unknown primitive type.")
+        fun visitEnclosed_type_1(ctx: Enclosed_type_1Context): Type {
+            val enclosedType2 = ctx.enclosed_type_2()
+            val arrayType = ctx.array_type()
+            val unorderedType = ctx.unordered_type()
+
+            return when (arrayType) {
+                null -> when (unorderedType) {
+                    null -> visitEnclosed_type_2(enclosedType2)
+                    else -> UnorderedArrayType(visitEnclosed_type_2(unorderedType.enclosed_type_2()))
+                }
+
+                else -> ArrayType(visitEnclosed_type_2(arrayType.enclosed_type_2()))
+            }
+        }
+
+        fun visitEnclosed_type_2(ctx: Enclosed_type_2Context): Type {
+            return when (val identifier = ctx.type_identifier()?.text) {
+                null -> visitType(ctx.type())
+                else ->
+                    when (identifier) {
+                        "Any" -> AnyType()
+                        else -> ReferenceType(identifier)
+                    }
+
+            }
         }
 
         fun visitPattern(ctx: PatternContext): Pattern {
             val name = ctx.name?.text
-            val patternArray = ctx.pattern_array()?.let { visitPattern_array(it, name) }
-            val patternObject = ctx.pattern_object()?.let { visitPattern_object(it, name) }
-            val patternLiteral = ctx.pattern_literal()?.let { visitPattern_literal(it, name) }
-            return patternArray ?: patternObject ?: patternLiteral
+            val modifier = when (ctx.at_least_one) {
+                null -> when (ctx.any_number) {
+                    null -> PatternModifier.ONE
+                    else -> PatternModifier.ANY
+                }
+
+                else -> PatternModifier.AT_LEAST_ONE
+            }
+            val patternArray = ctx.pattern_array()?.let { visitPattern_array(it, name, modifier) }
+            val patternUnorderedArray =
+                ctx.pattern_unordered_array()?.let { visitPattern_unordered_array(it, name, modifier) }
+            val patternObject = ctx.pattern_property()?.let { visitPattern_object(it, name, modifier) }
+            val patternExpression = ctx.pattern_expression()?.let { visitPattern_expression(it, name, modifier) }
+            return patternArray ?: patternUnorderedArray ?: patternObject ?: patternExpression
             ?: throw IllegalStateException("Unknown pattern context")
         }
 
-        fun visitPattern_literal(ctx: Pattern_literalContext, name: String?): LiteralPattern {
-            val string = ctx.STRING()
-            val number = ctx.NUMBER()
-            val falseNode = ctx.FALSE()
-            val trueNode = ctx.TRUE()
-            if (string != null) return LiteralPattern.PString(string.text.substring(1, string.text.length - 1), name)
-            if (number != null) return LiteralPattern.PNumber(number.text.toFloat(), name)
-            if (falseNode != null) return LiteralPattern.PBoolean(false, name)
-            if (trueNode != null) return LiteralPattern.PBoolean(true, name)
-            throw IllegalStateException("Unknown pattern literal context")
+        fun visitPattern_expression(
+            ctx: Pattern_expressionContext,
+            name: String?,
+            modifier: PatternModifier
+        ): ExpressionPattern {
+            return ExpressionPattern(visitExpression(ctx.expression()), name);
         }
 
-        fun visitPattern_object_field(ctx: Pattern_object_fieldContext): Pair<String, Pattern> {
+        fun visitPattern_object_field(ctx: Pattern_property_fieldContext): Pair<String, Pattern> {
             val text = ctx.id.text
             val pattern = visitPattern(ctx.pattern())
             return Pair(text, pattern)
         }
 
-        fun visitPattern_object(ctx: Pattern_objectContext, name: String?): ObjectPattern {
-            val id = ctx.IDENTIFIER().text
+        fun visitPattern_object(ctx: Pattern_propertyContext, name: String?, modifier: PatternModifier): ObjectPattern {
+            val id = ctx.type_identifier().text
             val fields = ctx.fields.map { visitPattern_object_field(it) }
             return ObjectPattern(id, fields, name)
         }
 
-        fun visitPattern_array(ctx: Pattern_arrayContext, name: String?): ArrayPattern {
+        fun visitPattern_array(ctx: Pattern_arrayContext, name: String?, modifier: PatternModifier): ArrayPattern {
             val values = ctx.values.map { visitPattern(it) }
             return ArrayPattern(values, name)
         }
 
+        fun visitPattern_unordered_array(
+            ctx: Pattern_unordered_arrayContext,
+            name: String?,
+            modifier: PatternModifier
+        ): UnorderedArrayPattern {
+            val values = ctx.values.map { visitPattern(it) }
+            return UnorderedArrayPattern(values, name)
+        }
 
         fun visitExpression(ctx: ExpressionContext?): Expression {
             if (ctx == null) return LiteralExpression.EBoolean(true)
@@ -154,14 +191,16 @@ class SpecificationParser {
             val number = ctx.NUMBER()
             val falseNode = ctx.FALSE()
             val trueNode = ctx.TRUE()
+            val undefinedNode = ctx.UNDEFINED()
             if (string != null) return LiteralExpression.EString(string.text.substring(1, string.text.length - 1))
             if (number != null) return LiteralExpression.ENumber(number.text.toFloat())
             if (falseNode != null) return LiteralExpression.EBoolean(false)
             if (trueNode != null) return LiteralExpression.EBoolean(true)
+            if (undefinedNode != null) return LiteralExpression.EUndefined()
             throw IllegalStateException("Unknown expression literal context")
         }
 
-        fun visitBinary_expression(ctx: Binary_expressionContext): BinaryExpression {
+        fun visitBinary_expression(ctx: Binary_expressionContext): Expression {
             val left = visitEnclosed_expression(ctx.left)
             val right = visitExpression(ctx.right)
             if (ctx.AND() != null) return BinaryExpression.And(left, right)
@@ -185,29 +224,37 @@ class SpecificationParser {
         fun visitEnclosed_expression(ctx: Enclosed_expressionContext): Expression {
             val expressionAccess = ctx.expression_access()?.let { visitExpression_access(it) }
             val expressionArray = ctx.expression_array()?.let { visitExpression_array(it) }
-            val expressionObject = ctx.expression_object()?.let { visitExpression_object(it) }
+            val expressionUnorderedArray = ctx.expression_unordered_array()?.let { visitExpression_unordered_array(it) }
+            val expressionObject = ctx.expression_property()?.let { visitExpression_object(it) }
             val expressionLiteral = ctx.expression_literal()?.let { visitExpression_literal(it) }
             val unaryExpression = ctx.unary_expression()?.let { visitUnary_expression(it) }
             val expression = ctx.expression()?.let { visitExpression(it) }
-            return expressionAccess ?: expressionArray ?: expressionObject ?: expressionLiteral ?: unaryExpression
+            return expressionAccess ?: expressionArray ?: expressionUnorderedArray ?: expressionObject
+            ?: expressionLiteral ?: unaryExpression
             ?: expression ?: throw IllegalStateException("Unknown enclosed expression context")
         }
 
-        fun visitObject_field(ctx: Object_fieldContext): Pair<String, Expression> {
+        fun visitObject_field(ctx: Expression_property_fieldContext): Pair<String, Expression> {
             val text = ctx.id.text
             val expression = visitExpression(ctx.expression())
             return Pair(text, expression)
         }
 
-        fun visitExpression_object(ctx: Expression_objectContext): ObjectExpression {
-            val id = ctx.IDENTIFIER().text
+        fun visitExpression_object(ctx: Expression_propertyContext): ObjectExpression {
+            val id = ctx.type_identifier().text
+            val parent = ctx.parent?.let { visitExpression(it) }
             val fields = ctx.fields.map { visitObject_field(it) }
-            return ObjectExpression(id, fields)
+            return ObjectExpression(id, fields, parent)
         }
 
         fun visitExpression_array(ctx: Expression_arrayContext): ArrayExpression {
             val values = ctx.values.map { visitExpression(it) }
             return ArrayExpression(values)
+        }
+
+        fun visitExpression_unordered_array(ctx: Expression_unordered_arrayContext): UnorderedArrayExpression {
+            val values = ctx.values.map { visitExpression(it) }
+            return UnorderedArrayExpression(values)
         }
 
     }

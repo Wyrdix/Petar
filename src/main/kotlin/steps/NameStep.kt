@@ -13,7 +13,7 @@ fun Pattern.identifiers(): List<String> {
 }
 
 class NameStep(val program: Program) : ExecutionStep {
-    val names: MutableMap<String, ObjectType> = HashMap()
+    val names: MutableMap<String, PropertyType> = HashMap()
     val types: Map<String, Type>
         get() = names.entries.map { (key, value) -> Pair(key, value) }
             .union(
@@ -22,7 +22,7 @@ class NameStep(val program: Program) : ExecutionStep {
                 )
             ).associateBy({ it.first }, { it.second })
 
-    var roots: List<ObjectType> = emptyList()
+    var roots: List<PropertyType> = emptyList()
 
     override fun run(): List<String> {
 
@@ -57,13 +57,13 @@ class NameStep(val program: Program) : ExecutionStep {
     fun resolveReference() {
         val types = types
 
-        types.values.filterIsInstance<ObjectType>().flatMap { it.childrenMap.values }
+        types.values.filterIsInstance<PropertyType>().flatMap { it.childrenMap.values }
             .map { if (it is ArrayType) it.type else it }.filterIsInstance<ReferenceType>().forEach {
                 it.cache = types[it.value]
             }
     }
 
-    fun checkIdentified(identified: ObjectType): List<String> {
+    fun checkIdentified(identified: PropertyType): List<String> {
         return if (names.containsKey(identified.identifier)) {
             val error = "NameError: ${identified.identifier} is defined multiple times."
             listOf(error)
@@ -87,7 +87,7 @@ class NameStep(val program: Program) : ExecutionStep {
         return usedNotExisting.map { "NameError: Name $it is used in parent construction, but it's not an object field." }
     }
 
-    fun checkObjectType(name: String, type: ObjectType): List<String> {
+    fun checkObjectType(name: String, type: PropertyType): List<String> {
         val duplicateKeys =
             type.children.associateBy({ it.first }, { (key, _) -> type.children.count({ it.first == key }) })
                 .filterValues { it > 1 }.keys

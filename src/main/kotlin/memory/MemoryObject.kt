@@ -2,6 +2,7 @@ package fr.univ_lille.iut_info.memory
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
+import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import fr.univ_lille.iut_info.*
@@ -33,7 +34,7 @@ abstract class MemoryElement : Visitable<MemoryElement> {
             return MemoryArray(ArrayType(Type.any), values)
         }
 
-        fun memory(type: ObjectType, values: Map<String, Any>): MemoryObject {
+        fun memory(type: PropertyType, values: Map<String, Any>): MemoryObject {
             return MemoryObject(type, values.map { Pair(it.key, it.value) })
         }
     }
@@ -141,7 +142,35 @@ data class MemoryBoolean(override val rawValue: Any?) : MemoryElement() {
     }
 }
 
-data class MemoryObject(val type: ObjectType, override val rawValue: Any?) : MemoryElement() {
+data class MemoryUndefined(override val rawValue: Any?) : MemoryElement() {
+    init {
+        type().assert(rawValue)
+    }
+
+    override fun type(): Type {
+        return Type.undefined
+    }
+
+    override fun toString(): String {
+        return "MemoryUndefined()"
+    }
+
+    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+        return MemoryUndefined(rawValue)
+    }
+
+    override fun toJson(): JsonElement {
+        return JsonNull.INSTANCE
+    }
+
+    companion object {
+        fun asUndefined(rawValue: Any?): Nothing? {
+            return null
+        }
+    }
+}
+
+data class MemoryObject(val type: PropertyType, override val rawValue: Any?) : MemoryElement() {
     @Suppress("UNCHECKED_CAST")
     val value: Map<String, MemoryElement>
         get() = asObject(type, rawValue)!!
@@ -151,7 +180,7 @@ data class MemoryObject(val type: ObjectType, override val rawValue: Any?) : Mem
     }
 
     override fun viewAs(type: Type): List<MemoryObject> {
-        if (type !is ObjectType) return emptyList()
+        if (type !is PropertyType) return emptyList()
 
         val id = type.identifier
 
@@ -160,19 +189,6 @@ data class MemoryObject(val type: ObjectType, override val rawValue: Any?) : Mem
         val list: MutableList<MemoryObject> = ArrayList()
 
         if (id == this@MemoryObject.type.identifier) list.add(this)
-
-        val evaluationContext =
-            mapOf(*this.value.entries.map { (key, value) -> Pair(key, value) }.toTypedArray())
-
-        val directView =
-            this@MemoryObject.type.views.filter { it.identifier == id }.map { it.evaluate(evaluationContext) }
-                .filterNotNull()
-
-        list.addAll(
-            directView
-        )
-
-        list.addAll(directView.filter { it.type.indirectViews.contains(id) }.flatMap { it.viewAs(type) })
 
         return list
     }
@@ -196,7 +212,7 @@ data class MemoryObject(val type: ObjectType, override val rawValue: Any?) : Mem
     }
 
     companion object {
-        fun asObject(type: ObjectType, rawValue: Any?): Map<String, MemoryElement>? {
+        fun asObject(type: PropertyType, rawValue: Any?): Map<String, MemoryElement>? {
             val providedFieldsRaw = asMap(rawValue) ?: return null
 
             val returnValue = providedFieldsRaw.mapValues { (key, value) ->
@@ -272,13 +288,55 @@ data class MemoryArray(val type: ArrayType, override val rawValue: Any?) : Memor
     }
 }
 
+data class MemoryUnorderedArray(val type: UnorderedArrayType, override val rawValue: Any?) : MemoryElement() {
+    @Suppress("UNCHECKED_CAST")
+    val value: List<MemoryElement>
+        get() = asUnorderedArray(type, rawValue)!!
+
+    init {
+        type().assert(rawValue)
+    }
+
+    override fun type(): Type {
+        return type
+    }
+
+    override fun toString(): String {
+        return "MemoryUnorderedArray(type=$type, value=$value)"
+    }
+
+    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+        return MemoryUnorderedArray(type, value.map { visitor.visit(it) })
+    }
+
+    override fun toJson(): JsonElement {
+        val array = JsonArray()
+        value.forEach { array.add(it.toJson()) }
+        return array
+    }
+
+    companion object {
+        fun asUnorderedArray(type: UnorderedArrayType, value: Any?): List<MemoryElement>? {
+            if (value == null) return null
+            if (value !is Array<*> && value !is List<*> && value !is JsonArray) return null
+
+            val list = if (value is Array<*>) value.toList() else value as? List<*> ?: (value as JsonArray).asList()
+
+            return list.map { createMemoryElement(type.type, it) }
+        }
+    }
+}
+
+
 fun createMemoryElement(type: Type, value: Any?): MemoryElement {
+    if(type is PrimitiveType.UndefinedType) return MemoryUndefined(value)
     if (value is MemoryElement) return createMemoryElement(type, value.rawValue)
     if (type is PrimitiveType.StringType) return MemoryString(value)
     if (type is PrimitiveType.NumberType) return MemoryNumber(value)
     if (type is PrimitiveType.BooleanType) return MemoryBoolean(value)
-    if (type is ObjectType) return MemoryObject(type, value)
+    if (type is PropertyType) return MemoryObject(type, value)
     if (type is ArrayType) return MemoryArray(type, value)
+    if (type is UnorderedArrayType) return MemoryUnorderedArray(type, value)
     if (type is ReferenceType && type.cache != null) return createMemoryElement(type.cache!!, value)
     throw IllegalStateException("This type is not supported to create memory element.")
 }

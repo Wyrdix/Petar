@@ -12,7 +12,7 @@ fun Type.check(fields: Any?): Boolean {
     if (this is PrimitiveType.StringType) return MemoryString.asString(fields) != null
     if (this is PrimitiveType.NumberType) return MemoryNumber.asNumber(fields) != null
     if (this is PrimitiveType.BooleanType) return MemoryBoolean.asBoolean(fields) != null
-    if (this is ObjectType) {
+    if (this is PropertyType) {
 
         val providedFieldsRaw = asMap(fields) ?: return false
 

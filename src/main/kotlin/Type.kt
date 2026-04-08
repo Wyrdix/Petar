@@ -36,16 +36,28 @@ abstract class Type : Visitable<Type> {
         val boolean: PrimitiveType.BooleanType
             get() = PrimitiveType.BooleanType.instance
 
+        val undefined: PrimitiveType.UndefinedType
+            get() = PrimitiveType.UndefinedType.instance
+
+        fun nullable(type: Type): NullableType {
+            if(type is NullableType) return type
+            return NullableType(type)
+        }
+
         fun array(type: Type): ArrayType {
             return ArrayType(type)
+        }
+
+        fun unordered(type: Type): UnorderedArrayType {
+            return UnorderedArrayType(type)
         }
 
         fun objectT(
             identifier: String,
             children: Map<String, Type>,
-            views: List<ObjectExpression> = emptyList()
-        ): ObjectType {
-            return ObjectType(identifier, children.map { Pair(it.key, it.value) }, views)
+            parent: Pair<String, List<Pair<String, Type>>>? = null
+        ): PropertyType {
+            return PropertyType(identifier, children.map { Pair(it.key, it.value) }, parent)
         }
 
         fun reference(
@@ -59,7 +71,7 @@ abstract class Type : Visitable<Type> {
     }
 }
 
-class AnyType private constructor() : Type() {
+class AnyType : Type() {
     override fun accept(visitor: Visitor<Type>): Type {
         return this
     }
@@ -67,6 +79,17 @@ class AnyType private constructor() : Type() {
     companion object {
         val instance = AnyType()
     }
+}
+
+class NullableType(val type: Type): Type() {
+    override fun toString(): String {
+        return "Nullable<${type}>"
+    }
+
+    override fun accept(visitor: Visitor<Type>): Type {
+        return NullableType(visitor.visit(type))
+    }
+
 }
 
 abstract class PrimitiveType : Type() {
@@ -103,23 +126,32 @@ abstract class PrimitiveType : Type() {
             val instance = BooleanType()
         }
     }
+
+    class UndefinedType private constructor(): PrimitiveType() {
+        override fun toString(): String {
+            return "undefined"
+        }
+
+        companion object {
+            val instance = UndefinedType()
+        }
+    }
 }
 
-data class ObjectType(
-    val identifier: String, val children: List<Pair<String, Type>>, val views: List<ObjectExpression>
+data class PropertyType(
+    val identifier: String, val children: List<Pair<String, Type>>, val parent: Pair<String, List<Pair<String, Type>>>? = null
 ) : Type() {
 
     var nameChecked: Boolean = false
-    var directViews: Set<String> = views.map { it.identifier }.toSet()
     var indirectViews: Set<String> = emptySet()
     val allViews: Set<String>
-        get() = setOf(identifier) + directViews + indirectViews
+        get() = setOf(identifier) + indirectViews
 
     val childrenMap: Map<String, Type>
         get() = children.associateBy({ it.first }, { it.second })
 
     override fun accept(visitor: Visitor<Type>): Type {
-        return ObjectType(identifier, children.map { Pair(it.first, visitor.visit(it.second)) }, views)
+        return PropertyType(identifier, children.map { Pair(it.first, visitor.visit(it.second)) }, parent)
     }
 }
 
@@ -146,5 +178,19 @@ data class ArrayType(val type: Type) : Type() {
 
     override fun accept(visitor: Visitor<Type>): Type {
         return ArrayType(visitor.visit(type))
+    }
+}
+
+data class UnorderedArrayType(val type: Type): Type() {
+    init {
+        assertThrow(type !is UnorderedArrayType, {})
+    }
+
+    override fun toString(): String {
+        return "$type[||]"
+    }
+
+    override fun accept(visitor: Visitor<Type>): Type {
+        return UnorderedArrayType(visitor.visit(type))
     }
 }
