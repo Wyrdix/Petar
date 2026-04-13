@@ -137,7 +137,7 @@ class SpecificationParser {
         fun visitPattern_expression(
             ctx: Pattern_expressionContext, fields: PatternFields
         ): ExpressionPattern {
-            return ExpressionPattern(visitExpression(ctx.expression()), fields);
+            return ExpressionPattern(visitExpression(ctx.expression()), fields)
         }
 
         fun visitPattern_object_field(ctx: Pattern_property_fieldContext): Pair<String, Pattern> {

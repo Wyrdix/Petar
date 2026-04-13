@@ -12,12 +12,12 @@ class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITyping
 
     override fun typeSynthesis(exp: Expression, type: Type): Type {
         expressionSynthesized[exp] = type
-        return type;
+        return type
     }
 
     override fun typePatternSynthesis(pattern: Pattern, type: Type?): Type? {
         if (type != null) patternSynthesized[pattern] = type
-        return type;
+        return type
     }
 
     override fun typeChecked(exp: Expression, condition: Boolean, type: Type): Boolean {

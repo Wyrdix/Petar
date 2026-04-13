@@ -1,6 +1,6 @@
 package fr.univ_lille.iut_info
 
-import java.util.UUID
+import java.util.*
 
 abstract class Expression : Visitable<Expression> {
     val id = UUID.randomUUID().node()
@@ -15,9 +15,7 @@ abstract class Expression : Visitable<Expression> {
 
         other as Expression
 
-        if (id != other.id) return false
-
-        return true
+        return id == other.id
     }
 }
 
@@ -49,18 +47,13 @@ abstract class LiteralExpression : Expression() {
         return this
     }
 
-    data class EString(val value: String) : LiteralExpression() {
-    }
+    data class EString(val value: String) : LiteralExpression()
 
-    data class ENumber(val value: Float) : LiteralExpression() {
+    data class ENumber(val value: Float) : LiteralExpression()
 
-    }
+    data class EBoolean(val value: Boolean) : LiteralExpression()
 
-    data class EBoolean(val value: Boolean) : LiteralExpression() {
-    }
-
-    class EUndefined : LiteralExpression() {
-    }
+    class EUndefined : LiteralExpression()
 }
 
 abstract class BinaryExpression : Expression() {

@@ -49,7 +49,7 @@ fun Type.isAssignableFrom(context: ITypingContext, other: Type): Boolean {
     }
 
 
-    return resolvedOther.javaClass.isAssignableFrom(javaClass) && javaClass.isAssignableFrom(resolvedOther.javaClass);
+    return resolvedOther.javaClass.isAssignableFrom(javaClass) && javaClass.isAssignableFrom(resolvedOther.javaClass)
 }
 
 fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean = false): Boolean {
@@ -102,7 +102,7 @@ fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false)
             }) type else Type.bottom
     }
 
-    return null;
+    return null
 }
 
 fun Expression.typeCheck(context: ITypingContext, type: Type): Boolean {

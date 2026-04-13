@@ -4,10 +4,10 @@ import fr.univ_lille.iut_info.*
 
 class NameStep(val program: Program) : ExecutionStep, INameContext {
 
-    override val root: NameNode = NameNode(null);
-    override val typeNameMap: MutableMap<String, Type> = HashMap();
-    override val patternNodeMap: MutableMap<Pattern, NameNode> = HashMap();
-    override val expressionNodeMap: MutableMap<Expression, NameNode> = HashMap();
+    override val root: NameNode = NameNode(null)
+    override val typeNameMap: MutableMap<String, Type> = HashMap()
+    override val patternNodeMap: MutableMap<Pattern, NameNode> = HashMap()
+    override val expressionNodeMap: MutableMap<Expression, NameNode> = HashMap()
 
     override val expressionParentMap: MutableMap<Expression, Expression?> = HashMap()
     override val expressionChildrenMap: MutableMap<Expression, List<Expression>> = HashMap()

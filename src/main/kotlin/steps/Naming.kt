@@ -55,7 +55,7 @@ interface INameContext {
     val typeNameMap: MutableMap<String, Type>
     val patternNodeMap: MutableMap<Pattern, NameNode>
     val expressionNodeMap: MutableMap<Expression, NameNode>
-    val root: NameNode;
+    val root: NameNode
     val expressionParentMap: MutableMap<Expression, Expression?>
     val expressionChildrenMap: MutableMap<Expression, List<Expression>>
     val patternParentMap: MutableMap<Pattern, Pattern?>
@@ -130,7 +130,7 @@ fun initial(context: INameContext, parent: Pattern, root: NameNode = context.roo
 
 fun fillNodes(context: INameContext, root: Expression): Expression {
     return root.visit {
-        if (it is PatternMatchExpression) fillNodes(context, it.right);
+        if (it is PatternMatchExpression) fillNodes(context, it.right)
         if (it is ExpressionAccess.Member && it.parent == null) {
             context.getNameNode(it).addUsage(it.identifier, it)
         }
@@ -143,7 +143,7 @@ fun fillNodes(context: INameContext, root: Pattern): Pattern {
         val name = pattern.name
         val modifier = pattern.modifier
         val condition = pattern.condition
-        var type: Type? = null;
+        var type: Type? = null
 
         when (pattern) {
             is ExpressionPattern -> {
