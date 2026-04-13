@@ -1,31 +1,30 @@
 package fr.univ_lille.iut_info
 
-import fr.univ_lille.iut_info.steps.typeEquality
+import java.util.*
 import kotlin.assert as assertThrow
 
 abstract class Type : Visitable<Type> {
+    val id = UUID.randomUUID().toString()
 
     override fun hashCode(): Int {
         return javaClass.hashCode()
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other !is Type) return false
-        return typeEquality(this, other) && typeEquality(other, this)
-    }
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
 
-    fun resolve(): Type {
-        if (this is ReferenceType) {
-            val cache = this.cache
-            if (cache != null) return cache
-            return this
-        }
-        return this
+        other as Type
+
+        return id == other.id
     }
 
     companion object {
         val any: AnyType
             get() = AnyType.instance
+
+        val bottom: BottomType
+            get() = BottomType.instance
 
         val string: PrimitiveType.StringType
             get() = PrimitiveType.StringType.instance
@@ -40,35 +39,33 @@ abstract class Type : Visitable<Type> {
             get() = PrimitiveType.UndefinedType.instance
 
         fun nullable(type: Type): NullableType {
-            if(type is NullableType) return type
+            if (type is NullableType) return type
             return NullableType(type)
         }
 
-        fun array(type: Type): ArrayType {
+        fun array(type: Type = any): ArrayType {
             return ArrayType(type)
         }
 
-        fun unordered(type: Type): UnorderedArrayType {
+        fun unordered(type: Type = any): UnorderedArrayType {
             return UnorderedArrayType(type)
         }
 
         fun objectT(
-            identifier: String,
-            children: Map<String, Type>,
-            parent: Pair<String, List<Pair<String, Type>>>? = null
+            identifier: String, children: Map<String, Type>, parent: Pair<String, List<Pair<String, Type>>>? = null
         ): PropertyType {
             return PropertyType(identifier, children.map { Pair(it.key, it.value) }, parent)
         }
 
         fun reference(
-            identifier: String,
-            cache: Type? = null
+            identifier: String, cache: Type? = null
         ): ReferenceType {
             val reference = ReferenceType(identifier)
             reference.cache = cache
             return reference
         }
     }
+
 }
 
 class AnyType : Type() {
@@ -81,7 +78,18 @@ class AnyType : Type() {
     }
 }
 
-class NullableType(val type: Type): Type() {
+class BottomType : Type() {
+    override fun accept(visitor: Visitor<Type>): Type {
+        return this
+    }
+
+    companion object {
+        val instance = BottomType()
+    }
+}
+
+
+class NullableType(val type: Type) : Type() {
     override fun toString(): String {
         return "Nullable<${type}>"
     }
@@ -127,7 +135,7 @@ abstract class PrimitiveType : Type() {
         }
     }
 
-    class UndefinedType private constructor(): PrimitiveType() {
+    class UndefinedType private constructor() : PrimitiveType() {
         override fun toString(): String {
             return "undefined"
         }
@@ -139,7 +147,9 @@ abstract class PrimitiveType : Type() {
 }
 
 data class PropertyType(
-    val identifier: String, val children: List<Pair<String, Type>>, val parent: Pair<String, List<Pair<String, Type>>>? = null
+    val identifier: String,
+    val children: List<Pair<String, Type>>,
+    val parent: Pair<String, List<Pair<String, Type>>>? = null
 ) : Type() {
 
     var nameChecked: Boolean = false
@@ -181,7 +191,7 @@ data class ArrayType(val type: Type) : Type() {
     }
 }
 
-data class UnorderedArrayType(val type: Type): Type() {
+data class UnorderedArrayType(val type: Type) : Type() {
     init {
         assertThrow(type !is UnorderedArrayType, {})
     }

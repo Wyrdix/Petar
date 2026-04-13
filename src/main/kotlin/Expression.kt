@@ -1,17 +1,30 @@
 package fr.univ_lille.iut_info
 
 import fr.univ_lille.iut_info.memory.*
-import fr.univ_lille.iut_info.steps.typeEquality
+import java.util.UUID
 import kotlin.math.floor
 
 typealias Context = Map<String, MemoryElement>
-typealias TypecheckContext = Map<String, Type>
 
 abstract class Expression : Visitable<Expression> {
-    var checkedType: Type? = null
+    val id = UUID.randomUUID().node()
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
     abstract fun evaluate(context: Context): MemoryElement?
-    abstract fun typecheck(context: TypecheckContext, expected: Type): Boolean
-    abstract fun getBottomUpType(context: TypecheckContext): Type?
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Expression
+
+        if (id != other.id) return false
+
+        return true
+    }
 }
 
 abstract class ExpressionAccess : Expression() {
@@ -42,24 +55,6 @@ abstract class ExpressionAccess : Expression() {
             return array[index]
         }
 
-        override fun getBottomUpType(context: TypecheckContext): Type? {
-            val parent = parent.getBottomUpType(context)
-
-            if (parent !is ArrayType) return null
-            return parent.type
-        }
-
-        override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-
-            val parentElement = parent.typecheck(context, ArrayType(expected))
-            if (!parentElement) return false
-
-            val indexElement = expression.typecheck(context, Type.number)
-            if (!indexElement) return false
-
-            checkedType = expected
-            return true
-        }
     }
 
     data class Member(
@@ -76,30 +71,6 @@ abstract class ExpressionAccess : Expression() {
             return parent.value[identifier]
         }
 
-        override fun getBottomUpType(context: TypecheckContext): Type? {
-
-            if (parent == null) return context[identifier]
-
-            val parent = parent.getBottomUpType(context)
-
-            if (parent !is PropertyType) return null
-            return parent.childrenMap[identifier]
-        }
-
-        override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-            if (parent == null) {
-                val got = context[identifier] ?: return false
-                return typeEquality(got, expected)
-            }
-
-            val parent = parent.getBottomUpType(context) ?: return false
-            if (parent !is PropertyType) return false
-            val got = parent.childrenMap[identifier] ?: return false
-            if (!typeEquality(got, expected)) return false
-
-            checkedType = expected
-            return false
-        }
     }
 }
 
@@ -113,16 +84,6 @@ abstract class LiteralExpression : Expression() {
         override fun evaluate(context: Context): MemoryElement {
             return MemoryString(value)
         }
-
-        override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-            if (expected !is PrimitiveType.StringType) return false
-            checkedType = expected
-            return true
-        }
-
-        override fun getBottomUpType(context: TypecheckContext): Type {
-            return Type.string
-        }
     }
 
     data class ENumber(val value: Float) : LiteralExpression() {
@@ -130,46 +91,17 @@ abstract class LiteralExpression : Expression() {
             return MemoryNumber(value)
         }
 
-        override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-            if (expected !is PrimitiveType.NumberType) return false
-            checkedType = expected
-            return true
-        }
-
-        override fun getBottomUpType(context: TypecheckContext): Type {
-            return Type.number
-        }
     }
 
     data class EBoolean(val value: Boolean) : LiteralExpression() {
         override fun evaluate(context: Context): MemoryElement {
             return MemoryBoolean(value)
         }
-
-        override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-            if (expected !is PrimitiveType.BooleanType) return false
-            checkedType = expected
-            return true
-        }
-
-        override fun getBottomUpType(context: TypecheckContext): Type {
-            return Type.boolean
-        }
     }
 
     class EUndefined : LiteralExpression() {
         override fun evaluate(context: Context): MemoryElement? {
             return null
-        }
-
-        override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-            if (expected !is PrimitiveType.UndefinedType) return false
-            checkedType = expected
-            return true
-        }
-
-        override fun getBottomUpType(context: TypecheckContext): Type? {
-            return Type.undefined
         }
     }
 }
@@ -179,18 +111,6 @@ abstract class BinaryExpression : Expression() {
     abstract val right: Expression
     abstract val operandType: Type?
     abstract val resultType: Type
-
-    override fun getBottomUpType(context: TypecheckContext): Type? {
-        return resultType
-    }
-
-    override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-        val operandType = this@BinaryExpression.operandType ?: return false
-        if (!left.typecheck(context, operandType) || !right.typecheck(context, operandType)) return false
-        if (!typeEquality(resultType, expected)) return false
-        checkedType = expected
-        return true
-    }
 
 
     data class And(override val left: Expression, override val right: Expression) : BinaryExpression() {
@@ -308,99 +228,26 @@ abstract class BinaryExpression : Expression() {
             return MemoryNumber((left as MemoryNumber).value - (right as MemoryNumber).value)
         }
     }
-
-    data class Equal(override val left: Expression, override val right: Expression) : BinaryExpression() {
-        override val resultType: Type = Type.boolean
-        override val operandType: Type? = null
-
-        override fun accept(visitor: Visitor<Expression>): Expression {
-            return Equal(visitor.visit(left), visitor.visit(right))
-        }
-
-        override fun evaluate(context: Context): MemoryElement? {
-            val left = left.evaluate(context)
-            val right = right.evaluate(context)
-
-            if (left == null || right == null) return null
-
-            return MemoryBoolean(left.toString() == right.toString())
-        }
-
-        override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-
-            val leftType = left.getBottomUpType(context)?.resolve() ?: return false
-            val rightType = right.getBottomUpType(context)?.resolve() ?: return false
-
-
-            if (!left.typecheck(context, leftType) || !right.typecheck(
-                    context,
-                    rightType
-                )
-            ) return false
-            if (!typeEquality(resultType, expected)) return false
-            checkedType = expected
-            return true
-        }
-    }
 }
 
 data class PatternMatchExpression(val left: Expression, val right: Pattern) : Expression() {
-    val resultType: Type = Type.boolean
-    val operandType: Type? = null
-
-    override fun getBottomUpType(context: TypecheckContext): Type {
-        return resultType
-    }
-
     override fun accept(visitor: Visitor<Expression>): Expression {
-        return PatternMatchExpression(visitor.visit(left), TODO("visit right"))
+        return PatternMatchExpression(visitor.visit(left), right.visit {
+            if (it is ExpressionPattern) {
+                return@visit ExpressionPattern(visitor.visit(it.value), name = it.name)
+            }
+            return@visit null
+        })
     }
 
     override fun evaluate(context: Context): MemoryElement? {
-        val left = left.evaluate(context)
-        val right = right.evaluate(TODO())
-
-        if (left == null || right == null) return null
-
-        return MemoryBoolean(left.toString() == right.toString())
-    }
-
-    override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-
-        val leftType = left.getBottomUpType(context)?.resolve() ?: return false
-
         TODO()
-//        val rightType = right.getBottomUpType(context)?.resolve() ?: return false
-//
-//
-//        if (!left.typecheck(context, leftType) || !right.typecheck(
-//                context,
-//                rightType
-//            )
-//        ) return false
-//        if (!typeEquality(resultType, expected)) return false
-//        checkedType = expected
-//        return true
     }
 }
 
 abstract class UnaryExpression : Expression() {
     abstract val operand: Expression
     abstract val operandAndResultType: Type
-
-    override fun getBottomUpType(context: TypecheckContext): Type? {
-        return operandAndResultType
-    }
-
-    override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-        val operand = operand
-
-        if (!operand.typecheck(context, operandAndResultType)) return false
-        if (!typeEquality(operandAndResultType, expected)) return false
-
-        checkedType = expected
-        return true
-    }
 
     data class Negate(override val operand: Expression) : UnaryExpression() {
         override val operandAndResultType: Type
@@ -449,13 +296,6 @@ data class ArrayExpression(val values: List<Expression>) : Expression() {
         return MemoryArray(type as ArrayType, evaluatedValues)
     }
 
-    override fun getBottomUpType(context: TypecheckContext): Type? {
-        TODO()
-    }
-
-    override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-        TODO()
-    }
 }
 
 data class UnorderedArrayExpression(val values: List<Expression>) : Expression() {
@@ -472,16 +312,9 @@ data class UnorderedArrayExpression(val values: List<Expression>) : Expression()
         return MemoryArray(type as ArrayType, evaluatedValues)
     }
 
-    override fun getBottomUpType(context: TypecheckContext): Type? {
-        TODO()
-    }
-
-    override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-        TODO()
-    }
 }
 
-data class ObjectExpression(
+data class PropertyExpression(
     val identifier: String,
     val fields: List<Pair<String, Expression>>,
     val parent: Expression? = null
@@ -491,7 +324,7 @@ data class ObjectExpression(
         get() = fields.associateBy({ it.first }, { it.second })
 
     override fun accept(visitor: Visitor<Expression>): Expression {
-        return ObjectExpression(
+        return PropertyExpression(
             identifier,
             fields.map { Pair(it.first, visitor.visit(it.second)) },
             parent?.let { visitor.visit(it) })
@@ -504,28 +337,6 @@ data class ObjectExpression(
 
         val evaluatedFields = nullableEvaluatedFields.mapValues { (_, value) -> value!! }
         return MemoryObject(type as PropertyType, evaluatedFields)
-    }
-
-    override fun getBottomUpType(context: TypecheckContext): Type? {
-        return context[identifier]
-    }
-
-    override fun typecheck(context: TypecheckContext, expected: Type): Boolean {
-
-        if (expected !is PropertyType) return false
-        if (identifier != expected.identifier) return false
-
-        val typeChildrenMap = expected.childrenMap
-        val mapFields = this.mapFields
-
-        if (mapFields.keys != typeChildrenMap.keys) return false
-
-        val typedValues = mapFields.map { (key, pattern) ->
-            pattern.typecheck(context, typeChildrenMap[key]!!.resolve())
-        }
-        if (typedValues.contains(false)) return false
-        checkedType = expected
-        return true
     }
 
 }

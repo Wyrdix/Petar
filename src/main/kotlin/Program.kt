@@ -10,14 +10,14 @@ import fr.univ_lille.iut_info.steps.TypecheckStep
 
 interface Statement
 
-data class TypeDeclarationStatement(
+data class PropertyDeclarationStatement(
     val identifier: String,
     val type: PropertyType
 ) : Statement
 
-data class RewriteRuleStatement(
+data class ProductionRuleStatement(
     val pattern: Pattern,
-    val transform: Expression
+    val production: Expression
 ) : Statement
 
 class Program(val statements: List<Statement>) {

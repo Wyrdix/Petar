@@ -50,13 +50,13 @@ class SpecificationParser {
             throw IllegalStateException("Statement type is not found.")
         }
 
-        fun visitProperty_declaration_statement(ctx: Property_declaration_statementContext): TypeDeclarationStatement {
+        fun visitProperty_declaration_statement(ctx: Property_declaration_statementContext): PropertyDeclarationStatement {
             val type = visitProperty_type(ctx.property_type())
-            return TypeDeclarationStatement(type.identifier, type)
+            return PropertyDeclarationStatement(type.identifier, type)
         }
 
-        fun visitRewrite_rule_statement(ctx: Rewrite_rule_statementContext): RewriteRuleStatement {
-            return RewriteRuleStatement(
+        fun visitRewrite_rule_statement(ctx: Rewrite_rule_statementContext): ProductionRuleStatement {
+            return ProductionRuleStatement(
                 visitPattern(ctx.pattern()), visitExpression(ctx.result)
             )
         }
@@ -66,8 +66,7 @@ class SpecificationParser {
             val fields = ctx.fields.map { visitProperty_type_field(it) }
             val parent = ctx.property_type_parent()?.let { parent ->
                 Pair(
-                    parent.parent_identifier.text,
-                    parent.restrictions.map(this::visitProperty_type_field)
+                    parent.parent_identifier.text, parent.restrictions.map(this::visitProperty_type_field)
                 )
             }
             return PropertyType(id, fields, parent = parent)
@@ -106,11 +105,10 @@ class SpecificationParser {
         fun visitEnclosed_type_2(ctx: Enclosed_type_2Context): Type {
             return when (val identifier = ctx.type_identifier()?.text) {
                 null -> visitType(ctx.type())
-                else ->
-                    when (identifier) {
-                        "Any" -> AnyType()
-                        else -> ReferenceType(identifier)
-                    }
+                else -> when (identifier) {
+                    "Any" -> AnyType()
+                    else -> ReferenceType(identifier)
+                }
 
             }
         }
@@ -125,21 +123,30 @@ class SpecificationParser {
 
                 else -> PatternModifier.AT_LEAST_ONE
             }
-            val patternArray = ctx.pattern_array()?.let { visitPattern_array(it, name, modifier) }
+            val condition = ctx.condition?.let { visitExpression(ctx.condition) }
+
+            val patternArray = ctx.pattern_array()?.let { visitPattern_array(it, name, modifier, condition) }
             val patternUnorderedArray =
-                ctx.pattern_unordered_array()?.let { visitPattern_unordered_array(it, name, modifier) }
-            val patternObject = ctx.pattern_property()?.let { visitPattern_object(it, name, modifier) }
-            val patternExpression = ctx.pattern_expression()?.let { visitPattern_expression(it, name, modifier) }
+                ctx.pattern_unordered_array()?.let { visitPattern_unordered_array(it, name, modifier, condition) }
+            val patternObject = ctx.pattern_property()?.let { visitPattern_object(it, name, modifier, condition) }
+            val patternExpression =
+                ctx.pattern_expression()?.let { visitPattern_expression(it, name, modifier, condition) }
+            val patternRegex = ctx.pattern_regex()?.let { visitPattern_regex(it, name, modifier, condition) }
             return patternArray ?: patternUnorderedArray ?: patternObject ?: patternExpression
-            ?: throw IllegalStateException("Unknown pattern context")
+            ?: patternRegex ?: throw IllegalStateException("Unknown pattern context")
+        }
+
+        fun visitPattern_regex(
+            ctx: Pattern_regexContext, name: String?, modifier: PatternModifier, condition: Expression?
+        ): RegexPattern {
+            val regex = ctx.REGEX_STRING().text
+            return RegexPattern(regex.substring(1, regex.length - 1), name, modifier, condition)
         }
 
         fun visitPattern_expression(
-            ctx: Pattern_expressionContext,
-            name: String?,
-            modifier: PatternModifier
+            ctx: Pattern_expressionContext, name: String?, modifier: PatternModifier, condition: Expression?
         ): ExpressionPattern {
-            return ExpressionPattern(visitExpression(ctx.expression()), name);
+            return ExpressionPattern(visitExpression(ctx.expression()), name, modifier, condition);
         }
 
         fun visitPattern_object_field(ctx: Pattern_property_fieldContext): Pair<String, Pattern> {
@@ -148,24 +155,26 @@ class SpecificationParser {
             return Pair(text, pattern)
         }
 
-        fun visitPattern_object(ctx: Pattern_propertyContext, name: String?, modifier: PatternModifier): ObjectPattern {
+        fun visitPattern_object(
+            ctx: Pattern_propertyContext, name: String?, modifier: PatternModifier, condition: Expression?
+        ): PropertyPattern {
             val id = ctx.type_identifier().text
             val fields = ctx.fields.map { visitPattern_object_field(it) }
-            return ObjectPattern(id, fields, name)
+            return PropertyPattern(id, fields, name, modifier, condition)
         }
 
-        fun visitPattern_array(ctx: Pattern_arrayContext, name: String?, modifier: PatternModifier): ArrayPattern {
+        fun visitPattern_array(
+            ctx: Pattern_arrayContext, name: String?, modifier: PatternModifier, condition: Expression?
+        ): ArrayPattern {
             val values = ctx.values.map { visitPattern(it) }
-            return ArrayPattern(values, name)
+            return ArrayPattern(values, name, modifier, condition)
         }
 
         fun visitPattern_unordered_array(
-            ctx: Pattern_unordered_arrayContext,
-            name: String?,
-            modifier: PatternModifier
+            ctx: Pattern_unordered_arrayContext, name: String?, modifier: PatternModifier, condition: Expression?
         ): UnorderedArrayPattern {
             val values = ctx.values.map { visitPattern(it) }
-            return UnorderedArrayPattern(values, name)
+            return UnorderedArrayPattern(values, name, modifier, condition)
         }
 
         fun visitExpression(ctx: ExpressionContext?): Expression {
@@ -209,7 +218,6 @@ class SpecificationParser {
             if (ctx.PLUS() != null) return BinaryExpression.Plus(left, right)
             if (ctx.MINUS() != null) return BinaryExpression.Minus(left, right)
             if (ctx.DIVIDE() != null) return BinaryExpression.Divide(left, right)
-            if (ctx.EQUAL() != null) return BinaryExpression.Equal(left, right)
             throw IllegalStateException("Unknown binary expression context")
         }
 
@@ -230,8 +238,8 @@ class SpecificationParser {
             val unaryExpression = ctx.unary_expression()?.let { visitUnary_expression(it) }
             val expression = ctx.expression()?.let { visitExpression(it) }
             return expressionAccess ?: expressionArray ?: expressionUnorderedArray ?: expressionObject
-            ?: expressionLiteral ?: unaryExpression
-            ?: expression ?: throw IllegalStateException("Unknown enclosed expression context")
+            ?: expressionLiteral ?: unaryExpression ?: expression
+            ?: throw IllegalStateException("Unknown enclosed expression context")
         }
 
         fun visitObject_field(ctx: Expression_property_fieldContext): Pair<String, Expression> {
@@ -240,11 +248,11 @@ class SpecificationParser {
             return Pair(text, expression)
         }
 
-        fun visitExpression_object(ctx: Expression_propertyContext): ObjectExpression {
+        fun visitExpression_object(ctx: Expression_propertyContext): PropertyExpression {
             val id = ctx.type_identifier().text
             val parent = ctx.parent?.let { visitExpression(it) }
             val fields = ctx.fields.map { visitObject_field(it) }
-            return ObjectExpression(id, fields, parent)
+            return PropertyExpression(id, fields, parent)
         }
 
         fun visitExpression_array(ctx: Expression_arrayContext): ArrayExpression {

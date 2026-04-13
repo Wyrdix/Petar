@@ -1,11 +1,15 @@
 package fr.univ_lille.iut_info
 
-import fr.univ_lille.iut_info.memory.*
+import fr.univ_lille.iut_info.memory.MemoryArray
+import fr.univ_lille.iut_info.memory.MemoryElement
+import fr.univ_lille.iut_info.memory.MemoryObject
+import java.util.*
 
 abstract class Pattern : Visitable<Pattern> {
+    val id = UUID.randomUUID().node()
     abstract val name: String?
-
-    var checkedType: Type? = null
+    abstract val modifier: PatternModifier
+    abstract val condition: Expression?
 
     fun singleton(element: MemoryElement): Map<String, MemoryElement> {
         val first = name
@@ -14,16 +18,30 @@ abstract class Pattern : Visitable<Pattern> {
 
     abstract fun evaluate(element: MemoryElement): Map<String, MemoryElement>?
 
-    abstract fun typecheck(expected: Type): Boolean
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Expression
+
+        return id == other.id
+    }
 }
 
 enum class PatternModifier {
-    ONE,
-    ANY,
-    AT_LEAST_ONE
+    ONE, ANY, AT_LEAST_ONE
 }
 
-data class ExpressionPattern(val value: Expression, override val name: String? = null) : Pattern() {
+data class ExpressionPattern(
+    val value: Expression,
+    override val name: String? = null,
+    override val modifier: PatternModifier = PatternModifier.ONE,
+    override val condition: Expression? = null
+) : Pattern() {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
         return this
     }
@@ -32,14 +50,31 @@ data class ExpressionPattern(val value: Expression, override val name: String? =
         TODO("Not yet implemented")
     }
 
-    override fun typecheck(expected: Type): Boolean {
+}
+
+data class RegexPattern(
+    val value: String,
+    override val name: String? = null,
+    override val modifier: PatternModifier = PatternModifier.ONE,
+    override val condition: Expression? = null
+) : Pattern() {
+    override fun accept(visitor: Visitor<Pattern>): Pattern {
+        return this
+    }
+
+    override fun evaluate(element: MemoryElement): Map<String, MemoryElement>? {
         TODO("Not yet implemented")
     }
 }
 
-data class ArrayPattern(val values: List<Pattern>, override val name: String? = null) : Pattern() {
+data class ArrayPattern(
+    val values: List<Pattern>,
+    override val name: String? = null,
+    override val modifier: PatternModifier = PatternModifier.ONE,
+    override val condition: Expression? = null
+) : Pattern() {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
-        return ArrayPattern(values.map(visitor::visit), name)
+        return ArrayPattern(values.map(visitor::visit), name = this.name, modifier = this.modifier)
     }
 
     override fun evaluate(element: MemoryElement): Map<String, MemoryElement>? {
@@ -52,18 +87,16 @@ data class ArrayPattern(val values: List<Pattern>, override val name: String? = 
         }
     }
 
-    override fun typecheck(expected: Type): Boolean {
-        if (expected !is ArrayType) return false
-        val elementType = expected.type
-        val typechecking = !values.map { pattern -> pattern.typecheck(elementType) }.contains(false)
-        if(typechecking) checkedType = expected
-        return typechecking
-    }
 }
 
-data class UnorderedArrayPattern(val values: List<Pattern>, override val name: String? = null) : Pattern() {
+data class UnorderedArrayPattern(
+    val values: List<Pattern>,
+    override val name: String? = null,
+    override val modifier: PatternModifier = PatternModifier.ONE,
+    override val condition: Expression? = null
+) : Pattern() {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
-        return UnorderedArrayPattern(values.map(visitor::visit), name)
+        return UnorderedArrayPattern(values.map(visitor::visit), name, modifier)
     }
 
     override fun evaluate(element: MemoryElement): Map<String, MemoryElement>? {
@@ -76,26 +109,21 @@ data class UnorderedArrayPattern(val values: List<Pattern>, override val name: S
         }
     }
 
-    override fun typecheck(expected: Type): Boolean {
-        if (expected !is ArrayType) return false
-        val elementType = expected.type
-        val typechecking = !values.map { pattern -> pattern.typecheck(elementType) }.contains(false)
-        if(typechecking) checkedType = expected
-        return typechecking
-    }
 }
 
-data class ObjectPattern(
+data class PropertyPattern(
     val identifier: String,
     val fields: List<Pair<String, Pattern>>,
-    override val name: String? = null
+    override val name: String? = null,
+    override val modifier: PatternModifier = PatternModifier.ONE,
+    override val condition: Expression? = null
 ) : Pattern() {
 
     val fieldsMap
         get() = fields.associateBy({ it.first }, { it.second })
 
     override fun accept(visitor: Visitor<Pattern>): Pattern {
-        return ObjectPattern(identifier, fields.map { Pair(it.first, visitor.visit(it.second)) }, name)
+        return PropertyPattern(identifier, fields.map { Pair(it.first, visitor.visit(it.second)) }, name, modifier)
     }
 
     override fun evaluate(element: MemoryElement): Map<String, MemoryElement>? {
@@ -106,22 +134,5 @@ data class ObjectPattern(
                     .associateBy({ it.key }, { it.value })
             }
         }
-    }
-
-    override fun typecheck(expected: Type): Boolean {
-        if (expected !is PropertyType) return false
-        if (identifier != expected.identifier) return false
-
-        val typeChildrenMap = expected.childrenMap
-        val fieldsMap = fieldsMap
-
-        if (fieldsMap.keys.intersect(typeChildrenMap.keys).size != fieldsMap.size) return false
-
-        val typechecking = !fieldsMap.map { (key, pattern) ->
-            pattern.typecheck(typeChildrenMap[key]!!)
-        }.contains(false)
-
-        if(typechecking) checkedType = expected
-        return typechecking
     }
 }

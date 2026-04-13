@@ -1,7 +1,7 @@
 package fr.univ_lille.iut_info.steps
 
 import com.google.gson.JsonObject
-import fr.univ_lille.iut_info.RewriteRuleStatement
+import fr.univ_lille.iut_info.ProductionRuleStatement
 import fr.univ_lille.iut_info.Statement
 import fr.univ_lille.iut_info.memory.MemoryBoolean
 import fr.univ_lille.iut_info.memory.MemoryElement
@@ -9,10 +9,10 @@ import fr.univ_lille.iut_info.memory.createMemoryElement
 import fr.univ_lille.iut_info.memory.safeCheck
 import fr.univ_lille.iut_info.visit
 
-fun MemoryElement.evaluate(rule: RewriteRuleStatement): Pair<Boolean, MemoryElement> {
+fun MemoryElement.evaluate(rule: ProductionRuleStatement): Pair<Boolean, MemoryElement> {
     val pattern = rule.pattern
     val condition = rule.condition
-    val transform = rule.transform
+    val transform = rule.production
 
     var used = false
 
@@ -30,7 +30,7 @@ fun MemoryElement.evaluate(rule: RewriteRuleStatement): Pair<Boolean, MemoryElem
 }
 
 fun List<Statement>.evaluate(element: MemoryElement): MemoryElement {
-    val ruleStatements = this.filterIsInstance<RewriteRuleStatement>()
+    val ruleStatements = this.filterIsInstance<ProductionRuleStatement>()
 
     var accumulation: Pair<Boolean, MemoryElement> = Pair(true, element)
 
