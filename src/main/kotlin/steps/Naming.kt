@@ -78,7 +78,6 @@ fun getTypeDependencies(type: Type): List<String> {
         is PrimitiveType.NumberType -> listOf("Number")
         is PrimitiveType.BooleanType -> listOf("Boolean")
         is ArrayType -> getTypeDependencies(type.type)
-        is UnorderedArrayType -> getTypeDependencies(type.type)
         is PropertyType -> (((type.children.map { it.second }).flatMap { getTypeDependencies(it) }) + type.parent?.first).filterNotNull()
 
         else -> emptyList()
@@ -154,7 +153,7 @@ fun fillNodes(context: INameContext, root: Pattern): Pattern {
             is PropertyPattern -> {
                 type = context.typeNameMap[pattern.identifier] ?: Type.bottom
 
-                pattern.fields.forEach { (key, pattern) ->
+                pattern.values.forEach { (key, pattern) ->
                     val name = pattern.name
                     val modifier = pattern.modifier
                     if (name != null && type is PropertyType) if (modifier == PatternModifier.ONE) context.patternNodeMap[pattern]?.nameMap[name] =

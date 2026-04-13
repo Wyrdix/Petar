@@ -2,11 +2,15 @@ package fr.univ_lille.iut_info
 
 import java.util.*
 
-abstract class Pattern : Visitable<Pattern> {
+data class PatternFields(
+    val name: String? = null, val modifier: PatternModifier = PatternModifier.ONE, val condition: Expression? = null
+)
+
+abstract class Pattern(open val fields: PatternFields) : Visitable<Pattern> {
     val id = UUID.randomUUID().node()
-    abstract val name: String?
-    abstract val modifier: PatternModifier
-    abstract val condition: Expression?
+    val name: String? = fields.name
+    val modifier: PatternModifier = fields.modifier
+    val condition: Expression? = fields.condition
 
     override fun hashCode(): Int {
         return id.hashCode()
@@ -27,11 +31,8 @@ enum class PatternModifier {
 }
 
 data class ExpressionPattern(
-    val value: Expression,
-    override val name: String? = null,
-    override val modifier: PatternModifier = PatternModifier.ONE,
-    override val condition: Expression? = null
-) : Pattern() {
+    val value: Expression, override val fields: PatternFields
+) : Pattern(fields) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
         return this
     }
@@ -39,11 +40,8 @@ data class ExpressionPattern(
 }
 
 data class RegexPattern(
-    val value: String,
-    override val name: String? = null,
-    override val modifier: PatternModifier = PatternModifier.ONE,
-    override val condition: Expression? = null
-) : Pattern() {
+    val value: String, override val fields: PatternFields
+) : Pattern(fields) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
         return this
     }
@@ -51,42 +49,32 @@ data class RegexPattern(
 }
 
 data class ArrayPattern(
-    val values: List<Pattern>,
-    override val name: String? = null,
-    override val modifier: PatternModifier = PatternModifier.ONE,
-    override val condition: Expression? = null
-) : Pattern() {
+    val values: List<Pattern>, override val fields: PatternFields
+) : Pattern(fields) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
-        return ArrayPattern(values.map(visitor::visit), name = this.name, modifier = this.modifier)
+        return ArrayPattern(values.map(visitor::visit), fields)
     }
 
 }
 
 data class UnorderedArrayPattern(
-    val values: List<Pattern>,
-    override val name: String? = null,
-    override val modifier: PatternModifier = PatternModifier.ONE,
-    override val condition: Expression? = null
-) : Pattern() {
+    val values: List<Pattern>, override val fields: PatternFields
+) : Pattern(fields) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
-        return UnorderedArrayPattern(values.map(visitor::visit), name, modifier)
+        return UnorderedArrayPattern(values.map(visitor::visit), fields)
     }
 
 }
 
 data class PropertyPattern(
-    val identifier: String,
-    val fields: List<Pair<String, Pattern>>,
-    override val name: String? = null,
-    override val modifier: PatternModifier = PatternModifier.ONE,
-    override val condition: Expression? = null
-) : Pattern() {
+    val identifier: String, val values: List<Pair<String, Pattern>>, override val fields: PatternFields
+) : Pattern(fields) {
 
     val fieldsMap
-        get() = fields.associateBy({ it.first }, { it.second })
+        get() = values.associateBy({ it.first }, { it.second })
 
     override fun accept(visitor: Visitor<Pattern>): Pattern {
-        return PropertyPattern(identifier, fields.map { Pair(it.first, visitor.visit(it.second)) }, name, modifier)
+        return PropertyPattern(identifier, values.map { Pair(it.first, visitor.visit(it.second)) }, fields)
     }
 
 }

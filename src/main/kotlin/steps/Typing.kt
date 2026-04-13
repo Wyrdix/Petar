@@ -48,10 +48,6 @@ fun Type.isAssignableFrom(context: ITypingContext, other: Type): Boolean {
         return this.type.isAssignableFrom(context, resolvedOther.type)
     }
 
-    if (this is UnorderedArrayType && resolvedOther is UnorderedArrayType) {
-        return this.type.isAssignableFrom(context, resolvedOther.type)
-    }
-
 
     return resolvedOther.javaClass.isAssignableFrom(javaClass) && javaClass.isAssignableFrom(resolvedOther.javaClass);
 }
@@ -71,11 +67,6 @@ fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean 
 
     if (this is ArrayPattern) {
         if (type !is ArrayType) return false
-        return context.typePatternChecked(this, this.values.all { this.typeCheck(context, type.type, true) }, type)
-    }
-
-    if (this is UnorderedArrayPattern) {
-        if (type !is UnorderedArrayType) return false
         return context.typePatternChecked(this, this.values.all { this.typeCheck(context, type.type, true) }, type)
     }
 
@@ -165,11 +156,6 @@ fun Expression.typeCheck(context: ITypingContext, type: Type): Boolean {
 
     if (this is ArrayExpression) {
         if (type !is ArrayType) return false
-        return context.typeChecked(this, this.values.all { this.typeCheck(context, type.type) }, type)
-    }
-
-    if (this is UnorderedArrayExpression) {
-        if (type !is UnorderedArrayType) return false
         return context.typeChecked(this, this.values.all { this.typeCheck(context, type.type) }, type)
     }
 

@@ -47,10 +47,6 @@ abstract class Type : Visitable<Type> {
             return ArrayType(type)
         }
 
-        fun unordered(type: Type = any): UnorderedArrayType {
-            return UnorderedArrayType(type)
-        }
-
         fun objectT(
             identifier: String, children: Map<String, Type>, parent: Pair<String, List<Pair<String, Type>>>? = null
         ): PropertyType {
@@ -188,19 +184,5 @@ data class ArrayType(val type: Type) : Type() {
 
     override fun accept(visitor: Visitor<Type>): Type {
         return ArrayType(visitor.visit(type))
-    }
-}
-
-data class UnorderedArrayType(val type: Type) : Type() {
-    init {
-        assertThrow(type !is UnorderedArrayType, {})
-    }
-
-    override fun toString(): String {
-        return "$type[||]"
-    }
-
-    override fun accept(visitor: Visitor<Type>): Type {
-        return UnorderedArrayType(visitor.visit(type))
     }
 }
