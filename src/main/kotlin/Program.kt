@@ -1,7 +1,6 @@
 package fr.univ_lille.iut_info
 
 import com.google.gson.JsonObject
-import fr.univ_lille.iut_info.memory.MemoryElement
 import fr.univ_lille.iut_info.steps.EvaluateStep
 import fr.univ_lille.iut_info.steps.ExecutionStep
 import fr.univ_lille.iut_info.steps.NameStep
