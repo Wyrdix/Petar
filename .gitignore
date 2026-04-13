@@ -47,3 +47,6 @@ bin/
 
 ## Playground ##
 /playground/
+/src/main/gen/AlfrLexer.interp
+/src/main/gen/AlfrLexer.java
+/src/main/gen/AlfrLexer.tokens
