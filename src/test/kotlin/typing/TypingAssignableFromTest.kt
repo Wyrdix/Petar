@@ -37,17 +37,17 @@ class TypingAssignableFromTest {
 
     @Test
     fun testNullableAssignableFrom() {
-        assert(Type.nullable(Type.string).emptyIsAssignableFrom(Type.string))
-        assert(Type.nullable(Type.number).emptyIsAssignableFrom(Type.number))
-        assert(Type.nullable(Type.boolean).emptyIsAssignableFrom(Type.boolean))
-        assert(Type.nullable(Type.any).emptyIsAssignableFrom(Type.any))
+        assert(Type.optional(Type.string).emptyIsAssignableFrom(Type.string))
+        assert(Type.optional(Type.number).emptyIsAssignableFrom(Type.number))
+        assert(Type.optional(Type.boolean).emptyIsAssignableFrom(Type.boolean))
+        assert(Type.optional(Type.any).emptyIsAssignableFrom(Type.any))
 
-        assertFalse(Type.string.emptyIsAssignableFrom(Type.nullable(Type.string)))
-        assertFalse(Type.number.emptyIsAssignableFrom(Type.nullable(Type.number)))
-        assertFalse(Type.boolean.emptyIsAssignableFrom(Type.nullable(Type.boolean)))
-        assertFalse(Type.any.emptyIsAssignableFrom(Type.nullable(Type.any)))
+        assertFalse(Type.string.emptyIsAssignableFrom(Type.optional(Type.string)))
+        assertFalse(Type.number.emptyIsAssignableFrom(Type.optional(Type.number)))
+        assertFalse(Type.boolean.emptyIsAssignableFrom(Type.optional(Type.boolean)))
+        assertFalse(Type.any.emptyIsAssignableFrom(Type.optional(Type.any)))
 
-        assert(Type.nullable(Type.string).emptyIsAssignableFrom(Type.nullable(Type.string)))
+        assert(Type.optional(Type.string).emptyIsAssignableFrom(Type.optional(Type.string)))
     }
 
     @Test
@@ -55,13 +55,13 @@ class TypingAssignableFromTest {
         assert(Type.any.emptyIsAssignableFrom(Type.array(Type.number)))
         assert(Type.array(Type.number).emptyIsAssignableFrom(Type.array(Type.number)))
         assert(Type.array(Type.any).emptyIsAssignableFrom(Type.array(Type.number)))
-        assert(Type.array(Type.nullable(Type.number)).emptyIsAssignableFrom(Type.array(Type.number)))
+        assert(Type.array(Type.optional(Type.number)).emptyIsAssignableFrom(Type.array(Type.number)))
     }
 
     @Test
     fun testPropertyAssignableFrom() {
         val type1 = Type.property("Root", mapOf(Pair("value", Type.number)))
-        val type2 = Type.property("Root1", mapOf(Pair("value1", Type.nullable(Type.string))), Pair("Root", emptyList()))
+        val type2 = Type.property("Root1", mapOf(Pair("value1", Type.optional(Type.string))), Pair("Root", emptyList()))
         val type3 = Type.property("Root2", emptyMap(), Pair("Root1", listOf(Pair("value1", Type.string))))
 
         val context = TypecheckStep(NameStep(Program(ProgramData(emptyList()))))

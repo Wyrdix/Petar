@@ -73,12 +73,13 @@ interface INameContext {
 fun getTypeDependencies(type: Type): List<String> {
     return when (type) {
         is ReferenceType -> listOf(type.value)
-        is NullableType -> getTypeDependencies(type.type)
+        is UnionType -> type.types.flatMap { getTypeDependencies(it) }
         is PrimitiveType.StringType -> listOf("String")
         is PrimitiveType.NumberType -> listOf("Number")
         is PrimitiveType.BooleanType -> listOf("Boolean")
+        is PrimitiveType.UndefinedType -> listOf("undefined")
         is ArrayType -> getTypeDependencies(type.type)
-        is PropertyType -> (((type.children.map { it.second }).flatMap { getTypeDependencies(it) }) + type.parent?.first).filterNotNull()
+        is PropertyType -> (((type.inlineFields.map { it.second }).flatMap { getTypeDependencies(it) }) + type.parent?.first).filterNotNull()
 
         else -> emptyList()
     }
@@ -116,7 +117,7 @@ fun initial(context: INameContext, expression: Expression, root: NameNode = cont
     expression.accept(collector)
     collector.children.forEach { context.expressionParentMap[it] = expression }
     context.expressionChildrenMap[expression] = collector.children.toList()
-    context.expressionNodeMap[expression] = NameNode(parent=context.expressionNodeMap[expression])
+    context.expressionNodeMap[expression] = NameNode(parent = context.expressionNodeMap[expression])
     return expression
 }
 
@@ -125,7 +126,7 @@ fun initial(context: INameContext, pattern: Pattern, root: NameNode = context.ro
     pattern.accept(collector)
     collector.children.forEach { context.patternParentMap[it] = pattern }
     context.patternChildrenMap[pattern] = collector.children.toList()
-    context.patternNodeMap[pattern] = NameNode(parent=context.patternNodeMap[pattern])
+    context.patternNodeMap[pattern] = NameNode(parent = context.patternNodeMap[pattern])
 
     return pattern
 }
@@ -155,13 +156,13 @@ fun fillNodes(context: INameContext, root: Pattern): Pattern {
             is PropertyPattern -> {
                 type = context.typeNameMap[pattern.identifier] ?: Type.bottom
 
-                pattern.values.forEach { (key, pattern) ->
+                pattern.inlineFields.forEach { (key, pattern) ->
                     val name = pattern.name
                     val modifier = pattern.modifier
                     if (name != null && type is PropertyType) if (modifier == PatternModifier.ONE) context.patternNodeMap[pattern]?.nameMap[name] =
-                        type.childrenMap[key] ?: Type.bottom
+                        type.fields[key] ?: Type.bottom
                     else context.patternNodeMap[pattern]?.nameMap[name] =
-                        Type.array(type.childrenMap[key] ?: Type.bottom)
+                        Type.array(type.fields[key] ?: Type.bottom)
                     fillNodes(context, pattern)
                 }
             }

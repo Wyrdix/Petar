@@ -1,4 +1,4 @@
-package fr.univ_lille.iut_info.serializers
+package fr.univ_lille.iut_info.serializer
 
 import fr.univ_lille.iut_info.MemoryElement
 import fr.univ_lille.iut_info.Type

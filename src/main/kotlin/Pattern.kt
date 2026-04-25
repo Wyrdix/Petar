@@ -2,18 +2,18 @@ package fr.univ_lille.iut_info
 
 import java.util.*
 
-data class PatternFields(
+data class PatternMeta(
     val name: String? = null, val modifier: PatternModifier = PatternModifier.ONE, val condition: Expression? = null
 )
 
-abstract class Pattern(open val fields: PatternFields) : Visitable<Pattern> {
+abstract class Pattern(open val meta: PatternMeta) : Visitable<Pattern> {
     val id = UUID.randomUUID().toString()
     val name: String?
-        get() = fields.name
+        get() = meta.name
     val modifier: PatternModifier
-        get() = fields.modifier
+        get() = meta.modifier
     val condition: Expression?
-        get() = fields.condition
+        get() = meta.condition
 
     override fun hashCode(): Int {
         return id.hashCode()
@@ -34,8 +34,8 @@ enum class PatternModifier {
 }
 
 data class ExpressionPattern(
-    val value: Expression, override val fields: PatternFields
-) : Pattern(fields) {
+    val value: Expression, override val meta: PatternMeta
+) : Pattern(meta) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
         return this
     }
@@ -43,8 +43,8 @@ data class ExpressionPattern(
 }
 
 data class RegexPattern(
-    val value: String, override val fields: PatternFields
-) : Pattern(fields) {
+    val value: String, override val meta: PatternMeta
+) : Pattern(meta) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
         return this
     }
@@ -52,32 +52,32 @@ data class RegexPattern(
 }
 
 data class ArrayPattern(
-    val values: List<Pattern>, override val fields: PatternFields
-) : Pattern(fields) {
+    val values: List<Pattern>, override val meta: PatternMeta
+) : Pattern(meta) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
-        return ArrayPattern(values.map(visitor::visit), fields)
+        return ArrayPattern(values.map(visitor::visit), meta)
     }
 
 }
 
 data class UnorderedArrayPattern(
-    val values: List<Pattern>, override val fields: PatternFields
-) : Pattern(fields) {
+    val values: List<Pattern>, override val meta: PatternMeta
+) : Pattern(meta) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
-        return UnorderedArrayPattern(values.map(visitor::visit), fields)
+        return UnorderedArrayPattern(values.map(visitor::visit), meta)
     }
 
 }
 
 data class PropertyPattern(
-    val identifier: String, val values: List<Pair<String, Pattern>>, override val fields: PatternFields
-) : Pattern(fields) {
+    val identifier: String, val inlineFields: List<Pair<String, Pattern>>, override val meta: PatternMeta
+) : Pattern(meta) {
 
-    val fieldsMap
-        get() = values.associateBy({ it.first }, { it.second })
+    val fields
+        get() = inlineFields.associate { it }
 
     override fun accept(visitor: Visitor<Pattern>): Pattern {
-        return PropertyPattern(identifier, values.map { Pair(it.first, visitor.visit(it.second)) }, fields)
+        return PropertyPattern(identifier, inlineFields.map { Pair(it.first, visitor.visit(it.second)) }, meta)
     }
 
 }

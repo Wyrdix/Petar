@@ -83,7 +83,7 @@ class TypingPropertyCheckTest {
         )
 
         val type3 = Type.property("3", HashMap<String, Type>().apply {
-            put("value", Type.nullable(Type.number))
+            put("value", Type.optional(Type.number))
         })
         context.typeNameMap["3"] = type3
 

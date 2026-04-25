@@ -4,7 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import fr.univ_lille.iut_info.*
-import fr.univ_lille.iut_info.serializers.JsonSerializer
+import fr.univ_lille.iut_info.serializer.JsonSerializer
 import fr.univ_lille.iut_info.steps.NameStep
 import fr.univ_lille.iut_info.steps.TypecheckStep
 import org.junit.jupiter.api.Test

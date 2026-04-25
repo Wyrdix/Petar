@@ -20,6 +20,7 @@ class NameStep(val program: Program) : ExecutionStep, INameContext {
         val types = program.statements.filterIsInstance<PropertyDeclarationStatement>().map { it.type }
         val rules = program.statements.filterIsInstance<ProductionRuleStatement>()
 
+        typeNameMap["undefined"] = Type.undefined
         typeNameMap["String"] = Type.string
         typeNameMap["Number"] = Type.number
         typeNameMap["Boolean"] = Type.boolean

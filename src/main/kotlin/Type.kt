@@ -38,9 +38,9 @@ abstract class Type : Visitable<Type> {
         val undefined: PrimitiveType.UndefinedType
             get() = PrimitiveType.UndefinedType.instance
 
-        fun nullable(type: Type): NullableType {
-            if (type is NullableType) return type
-            return NullableType(type)
+        fun optional(type: Type): UnionType {
+            if (type is UnionType) return UnionType(type.types.filter { it !is PrimitiveType.UndefinedType } + undefined)
+            return UnionType(types = listOf(type, undefined))
         }
 
         fun array(type: Type = any): ArrayType {
@@ -82,16 +82,15 @@ class BottomType : Type() {
     }
 }
 
-
-class NullableType(val type: Type) : Type() {
+class UnionType(val types: List<Type>) : Type() {
     override fun toString(): String {
-        return "Nullable<${type}>"
+        val joinToString = types.joinToString(separator = " | ") { it.toString() }
+        return joinToString
     }
 
     override fun accept(visitor: Visitor<Type>): Type {
-        return NullableType(visitor.visit(type))
+        return UnionType(types.map(visitor::visit))
     }
-
 }
 
 abstract class PrimitiveType : Type() {
@@ -142,15 +141,15 @@ abstract class PrimitiveType : Type() {
 
 data class PropertyType(
     val identifier: String,
-    val children: List<Pair<String, Type>>,
+    val inlineFields: List<Pair<String, Type>>,
     val parent: Pair<String, List<Pair<String, Type>>>? = null
 ) : Type() {
 
-    val childrenMap: Map<String, Type>
-        get() = children.associateBy({ it.first }, { it.second })
+    val fields: Map<String, Type>
+        get() = inlineFields.associateBy({ it.first }, { it.second })
 
     override fun accept(visitor: Visitor<Type>): Type {
-        return PropertyType(identifier, children.map { Pair(it.first, visitor.visit(it.second)) }, parent)
+        return PropertyType(identifier, inlineFields.map { Pair(it.first, visitor.visit(it.second)) }, parent)
     }
 }
 

@@ -78,7 +78,7 @@ class SpecificationParser {
             return Pair(
                 id, when (ctx.QUESTION_MARK()) {
                     null -> type
-                    else -> Type.nullable(type)
+                    else -> Type.optional(type)
                 }
             )
         }
@@ -117,7 +117,7 @@ class SpecificationParser {
                 else -> PatternModifier.AT_LEAST_ONE
             }
             val condition = ctx.condition?.let { visitExpression(ctx.condition) }
-            val patternFields = PatternFields(name, modifier, condition)
+            val patternFields = PatternMeta(name, modifier, condition)
 
             val patternArray = ctx.pattern_array()?.let { visitPattern_array(it, patternFields) }
             val patternObject = ctx.pattern_property()?.let { visitPattern_object(it, patternFields) }
@@ -128,14 +128,14 @@ class SpecificationParser {
         }
 
         fun visitPattern_regex(
-            ctx: Pattern_regexContext, fields: PatternFields
+            ctx: Pattern_regexContext, fields: PatternMeta
         ): RegexPattern {
             val regex = ctx.REGEX_STRING().text
             return RegexPattern(regex.substring(1, regex.length - 1), fields)
         }
 
         fun visitPattern_expression(
-            ctx: Pattern_expressionContext, fields: PatternFields
+            ctx: Pattern_expressionContext, fields: PatternMeta
         ): ExpressionPattern {
             return ExpressionPattern(visitExpression(ctx.expression()), fields)
         }
@@ -147,7 +147,7 @@ class SpecificationParser {
         }
 
         fun visitPattern_object(
-            ctx: Pattern_propertyContext, fields: PatternFields
+            ctx: Pattern_propertyContext, fields: PatternMeta
         ): PropertyPattern {
             val id = ctx.type_identifier().text
             val values = ctx.fields.map { visitPattern_object_field(it) }
@@ -155,7 +155,7 @@ class SpecificationParser {
         }
 
         fun visitPattern_array(
-            ctx: Pattern_arrayContext, fields: PatternFields
+            ctx: Pattern_arrayContext, fields: PatternMeta
         ): ArrayPattern {
             val values = ctx.values.map { visitPattern(it) }
             return ArrayPattern(values, fields)

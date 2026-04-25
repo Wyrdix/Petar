@@ -1,4 +1,4 @@
-package fr.univ_lille.iut_info.serializers
+package fr.univ_lille.iut_info.serializer
 
 import com.google.gson.*
 import fr.univ_lille.iut_info.*
@@ -39,7 +39,7 @@ class JsonSerializer : Serializer<JsonElement> {
             is JsonObject if root.isJsonObject && resolvedType is PropertyType -> MemoryElement.property(
                 resolvedType,
                 root.asJsonObject.asMap()
-                    .mapValues { this.deserialize(it.value, resolvedType.childrenMap[it.key] ?: Type.bottom, context) })
+                    .mapValues { this.deserialize(it.value, resolvedType.fields[it.key] ?: Type.bottom, context) })
 
             is JsonNull if root.isJsonNull && resolvedType is PrimitiveType.UndefinedType -> MemoryElement.undefined()
             else -> throw IllegalStateException("Could not deserialize data (type: ${type}, value: ${root})")

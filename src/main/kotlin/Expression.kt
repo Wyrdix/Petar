@@ -53,7 +53,11 @@ abstract class LiteralExpression : Expression() {
 
     data class EBoolean(val value: Boolean) : LiteralExpression()
 
-    class EUndefined : LiteralExpression()
+    class EUndefined : LiteralExpression() {
+        override fun toString(): String {
+            return "EUndefined"
+        }
+    }
 }
 
 abstract class BinaryExpression : Expression() {
@@ -129,7 +133,7 @@ data class PatternMatchExpression(val left: Expression, val right: Pattern) : Ex
     override fun accept(visitor: Visitor<Expression>): Expression {
         return PatternMatchExpression(visitor.visit(left), right.visit {
             if (it is ExpressionPattern) {
-                return@visit ExpressionPattern(visitor.visit(it.value), it.fields)
+                return@visit ExpressionPattern(visitor.visit(it.value), it.meta)
             }
             return@visit null
         })
@@ -171,17 +175,17 @@ data class ArrayExpression(val values: List<Expression>) : Expression() {
 
 data class PropertyExpression(
     val identifier: String,
-    val fields: List<Pair<String, Expression>>,
+    val inlinedFields: List<Pair<String, Expression>>,
     val parent: Expression? = null
 ) : Expression() {
 
-    val mapFields
-        get() = fields.associateBy({ it.first }, { it.second })
+    val fields
+        get() = inlinedFields.associate { it }
 
     override fun accept(visitor: Visitor<Expression>): Expression {
         return PropertyExpression(
             identifier,
-            fields.map { Pair(it.first, visitor.visit(it.second)) },
+            inlinedFields.map { Pair(it.first, visitor.visit(it.second)) },
             parent?.let { visitor.visit(it) })
     }
 
