@@ -3,7 +3,7 @@ package fr.univ_lille.iut_info
 import java.util.*
 
 abstract class Expression : Visitable<Expression> {
-    val id = UUID.randomUUID().node()
+    val id = UUID.randomUUID().toString()
 
     override fun hashCode(): Int {
         return id.hashCode()
