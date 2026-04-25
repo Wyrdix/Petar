@@ -47,18 +47,16 @@ abstract class Type : Visitable<Type> {
             return ArrayType(type)
         }
 
-        fun objectT(
+        fun property(
             identifier: String, children: Map<String, Type>, parent: Pair<String, List<Pair<String, Type>>>? = null
         ): PropertyType {
             return PropertyType(identifier, children.map { Pair(it.key, it.value) }, parent)
         }
 
         fun reference(
-            identifier: String, cache: Type? = null
+            identifier: String
         ): ReferenceType {
-            val reference = ReferenceType(identifier)
-            reference.cache = cache
-            return reference
+            return ReferenceType(identifier)
         }
     }
 
@@ -148,11 +146,6 @@ data class PropertyType(
     val parent: Pair<String, List<Pair<String, Type>>>? = null
 ) : Type() {
 
-    var nameChecked: Boolean = false
-    var indirectViews: Set<String> = emptySet()
-    val allViews: Set<String>
-        get() = setOf(identifier) + indirectViews
-
     val childrenMap: Map<String, Type>
         get() = children.associateBy({ it.first }, { it.second })
 
@@ -162,10 +155,9 @@ data class PropertyType(
 }
 
 data class ReferenceType(val value: String) : Type() {
-    var cache: Type? = null
 
     override fun toString(): String {
-        return cache?.toString() ?: "<empty reference to $value>"
+        return value
     }
 
     override fun accept(visitor: Visitor<Type>): Type {

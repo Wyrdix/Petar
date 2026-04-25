@@ -5,6 +5,7 @@ import fr.univ_lille.iut_info.*
 class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITypingContext,
     INameContext by nameContext {
 
+    override val propertyResolved: HashMap<PropertyType, Map<String, Type>> = HashMap()
     override val expressionSynthesized: HashMap<Expression, Type> = HashMap()
     override val expressionChecked: HashMap<Expression, Type> = HashMap()
     override val patternSynthesized: HashMap<Pattern, Type> = HashMap()

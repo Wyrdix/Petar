@@ -3,6 +3,7 @@ package fr.univ_lille.iut_info.steps
 import fr.univ_lille.iut_info.*
 
 interface ITypingContext : INameContext {
+    val propertyResolved: HashMap<PropertyType, Map<String, Type>>
     val nameContext: INameContext
     val expressionSynthesized: HashMap<Expression, Type>
     val expressionChecked: HashMap<Expression, Type>
@@ -20,7 +21,7 @@ interface ITypingContext : INameContext {
 }
 
 fun Type.resolveReference(context: ITypingContext): Type {
-    if (this is ReferenceType) return cache ?: context.getType(value)
+    if (this is ReferenceType) return context.getType(value)
     return this
 }
 
@@ -30,18 +31,56 @@ fun Type.ascendants(context: ITypingContext): List<String> {
     return listOf(this.identifier)
 }
 
+fun PropertyType.getAllFields(context: ITypingContext): Map<String, Type> {
+    return context.propertyResolved[this]!!
+}
+
+fun PropertyType.check(context: ITypingContext) {
+    if (context.propertyResolved[this] != null) return
+
+    val map: HashMap<String, Type> = HashMap()
+    val parent = this.parent?.first
+    if (parent != null) {
+        val type = context.getType(parent)
+        if (type !is PropertyType) throw IllegalStateException("Type parent is not a property type")
+        type.check(context)
+        map.putAll(type.getAllFields(context))
+    }
+
+    val fields = this.children.associate { it }
+    if (fields.size != this.children.size) throw IllegalStateException("Children list contains twice the same key")
+
+    if (fields.keys.intersect(map.keys)
+            .isNotEmpty()
+    ) throw IllegalStateException("Parent and children contains same keys, parent type specialisation should occur in the parent call.")
+
+    val specialisations = this.parent?.second?.associate { it } ?: emptyMap()
+    if (specialisations.size != (this.parent?.second?.size
+            ?: 0)
+    ) throw IllegalStateException("Specialisation field contains twice the same key.")
+
+    if (!map.keys.containsAll(specialisations.keys)) throw IllegalStateException("Some specialisation do not exist in the parent type.")
+
+    for ((key, spe) in specialisations) {
+        if (!map[key]!!.isAssignableFrom(context, spe))
+            throw IllegalStateException("Type specialization for key $key is not assignable to parent type")
+    }
+
+    context.propertyResolved[this] = map + specialisations + fields
+}
+
 fun Type.isAssignableFrom(context: ITypingContext, other: Type): Boolean {
     if (this is ReferenceType) resolveReference(context).isAssignableFrom(context, other)
     val resolvedOther = other.resolveReference(context)
 
     if (this is AnyType && resolvedOther !is NullableType) return true
 
-    if (this is NullableType && this.type.isAssignableFrom(context, other)) {
-        return true
+    if (this is NullableType) {
+        return this.type.isAssignableFrom(context, other)
     }
 
-    if (this is PropertyType && other.ascendants(context).contains(this.identifier)) {
-        return true
+    if (this is PropertyType) {
+        return other.ascendants(context).contains(this.identifier)
     }
 
     if (this is ArrayType && resolvedOther is ArrayType) {
