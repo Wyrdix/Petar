@@ -7,10 +7,13 @@ data class PatternFields(
 )
 
 abstract class Pattern(open val fields: PatternFields) : Visitable<Pattern> {
-    val id = UUID.randomUUID().node()
-    val name: String? = fields.name
-    val modifier: PatternModifier = fields.modifier
-    val condition: Expression? = fields.condition
+    val id = UUID.randomUUID().toString()
+    val name: String?
+        get() = fields.name
+    val modifier: PatternModifier
+        get() = fields.modifier
+    val condition: Expression?
+        get() = fields.condition
 
     override fun hashCode(): Int {
         return id.hashCode()
@@ -20,7 +23,7 @@ abstract class Pattern(open val fields: PatternFields) : Visitable<Pattern> {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as Expression
+        other as Pattern
 
         return id == other.id
     }
