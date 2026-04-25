@@ -54,6 +54,10 @@ fun PropertyType.check(context: ITypingContext) {
             .isNotEmpty()
     ) throw IllegalStateException("Parent and children contains same keys, parent type specialisation should occur in the parent call.")
 
+    fields.values.find { it is ReferenceType && !context.typeNameMap.containsKey(it.value) }?.let {
+        throw IllegalStateException("Type $it is used but not defined.")
+    }
+
     val specialisations = this.parent?.second?.associate { it } ?: emptyMap()
     if (specialisations.size != (this.parent?.second?.size
             ?: 0)
@@ -62,20 +66,26 @@ fun PropertyType.check(context: ITypingContext) {
     if (!map.keys.containsAll(specialisations.keys)) throw IllegalStateException("Some specialisation do not exist in the parent type.")
 
     for ((key, spe) in specialisations) {
-        if (!map[key]!!.isAssignableFrom(context, spe))
-            throw IllegalStateException("Type specialization for key $key is not assignable to parent type")
+        val parentKeyType = map[key]
+        if (!parentKeyType!!.isAssignableFrom(
+                context,
+                spe
+            )
+        ) throw IllegalStateException("Type specialization for key '$key' is not assignable from parent type ($parentKeyType is not assignable from $spe)")
     }
 
     context.propertyResolved[this] = map + specialisations + fields
 }
 
 fun Type.isAssignableFrom(context: ITypingContext, other: Type): Boolean {
-    if (this is ReferenceType) resolveReference(context).isAssignableFrom(context, other)
+    if (this is ReferenceType) return resolveReference(context).isAssignableFrom(context, other)
     val resolvedOther = other.resolveReference(context)
+    if(resolvedOther != other) return isAssignableFrom(context, resolvedOther)
 
-    if (this is AnyType && resolvedOther !is NullableType) return true
+    if (this is AnyType && other !is NullableType) return true
 
     if (this is NullableType) {
+        if(other is NullableType) return this.type.isAssignableFrom(context, other.type)
         return this.type.isAssignableFrom(context, other)
     }
 
@@ -83,12 +93,11 @@ fun Type.isAssignableFrom(context: ITypingContext, other: Type): Boolean {
         return other.ascendants(context).contains(this.identifier)
     }
 
-    if (this is ArrayType && resolvedOther is ArrayType) {
-        return this.type.isAssignableFrom(context, resolvedOther.type)
+    if (this is ArrayType && other is ArrayType) {
+        return this.type.isAssignableFrom(context, other.type)
     }
 
-
-    return resolvedOther.javaClass.isAssignableFrom(javaClass) && javaClass.isAssignableFrom(resolvedOther.javaClass)
+    return other.javaClass.isAssignableFrom(javaClass) && javaClass.isAssignableFrom(other.javaClass)
 }
 
 fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean = false): Boolean {

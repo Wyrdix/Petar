@@ -2,8 +2,7 @@ package fr.univ_lille.iut_info.steps
 
 import fr.univ_lille.iut_info.*
 
-class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITypingContext,
-    INameContext by nameContext {
+class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITypingContext, INameContext by nameContext {
 
     override val propertyResolved: HashMap<PropertyType, Map<String, Type>> = HashMap()
     override val expressionSynthesized: HashMap<Expression, Type> = HashMap()
@@ -77,18 +76,39 @@ class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITyping
 
     override fun run(): List<String> {
 
+        val errorList: MutableList<String> = ArrayList()
+
+        val types = program.statements.filterIsInstance<PropertyDeclarationStatement>()
         val rules = program.statements.filterIsInstance<ProductionRuleStatement>()
 
-        val typeContext = this
-        val typeError = rules.map {
-            val leftSynthesized = it.pattern.typeSynthesis(typeContext)
-            val rightSynthesized = it.production.typeSynthesis(typeContext)
+        val ruleTypeError = rules.map {
+            try {
+                val leftSynthesized = it.pattern.typeSynthesis(this)
+                val rightSynthesized = it.production.typeSynthesis(this)
 
-            return@map !((leftSynthesized != null && leftSynthesized !is BottomType) && (rightSynthesized != null && rightSynthesized !is BottomType))
+                return@map !((leftSynthesized != null && leftSynthesized !is BottomType) && (rightSynthesized != null && rightSynthesized !is BottomType))
+            } catch (e: Exception) {
+                val message = e.message
+                if (message != null) errorList.add(message)
+                return@map false
+            }
+        }.contains(false)
+        if (ruleTypeError) errorList.add("FatalError : Type error found in annotation rules.")
+
+        val declarationTypeError = types.map {
+            try {
+                it.type.check(this)
+                return@map true
+            } catch (e: Exception) {
+                val message = e.message
+                if (message != null) errorList.add(message)
+                return@map false
+            }
         }.contains(false)
 
-        if (typeError) return listOf("TypeError")
+        if (declarationTypeError) errorList.add("FatalError : Type error found in property type declaration")
 
-        return emptyList()
+
+        return errorList
     }
 }
