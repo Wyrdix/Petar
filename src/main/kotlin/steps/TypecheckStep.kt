@@ -81,25 +81,11 @@ class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITyping
         val types = program.statements.filterIsInstance<PropertyDeclarationStatement>()
         val rules = program.statements.filterIsInstance<ProductionRuleStatement>()
 
-        val ruleTypeError = rules.map {
-            try {
-                val leftSynthesized = it.pattern.typeSynthesis(this)
-                val rightSynthesized = it.production.typeSynthesis(this)
-
-                return@map !((leftSynthesized != null && leftSynthesized !is BottomType) && (rightSynthesized != null && rightSynthesized !is BottomType))
-            } catch (e: Exception) {
-                val message = e.message
-                if (message != null) errorList.add(message)
-                return@map false
-            }
-        }.contains(false)
-        if (ruleTypeError) errorList.add("FatalError : Type error found in annotation rules.")
-
         val declarationTypeError = types.map {
             try {
                 it.type.check(this)
                 return@map true
-            } catch (e: Exception) {
+            } catch (e: IllegalStateException) {
                 val message = e.message
                 if (message != null) errorList.add(message)
                 return@map false
@@ -107,6 +93,20 @@ class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITyping
         }.contains(false)
 
         if (declarationTypeError) errorList.add("FatalError : Type error found in property type declaration")
+
+        val ruleTypeError = rules.map {
+            try {
+                val leftSynthesized = it.pattern.typeSynthesis(this)
+                val rightSynthesized = it.production.typeSynthesis(this)
+
+                return@map (leftSynthesized != null && leftSynthesized !is BottomType) && (rightSynthesized != null && rightSynthesized !is BottomType)
+            } catch (e: IllegalStateException) {
+                val message = e.message
+                if (message != null) errorList.add(message)
+                return@map false
+            }
+        }.contains(false)
+        if (ruleTypeError) errorList.add("FatalError : Type error found in annotation rules.")
 
 
         return errorList

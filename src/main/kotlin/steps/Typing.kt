@@ -47,8 +47,8 @@ fun PropertyType.check(context: ITypingContext) {
         map.putAll(type.getAllFields(context))
     }
 
-    val fields = this.children.associate { it }
-    if (fields.size != this.children.size) throw IllegalStateException("Children list contains twice the same key")
+    val fields = this.inlineFields.associate { it }
+    if (fields.size != this.inlineFields.size) throw IllegalStateException("Children list contains twice the same key")
 
     if (fields.keys.intersect(map.keys)
             .isNotEmpty()
@@ -68,8 +68,7 @@ fun PropertyType.check(context: ITypingContext) {
     for ((key, spe) in specialisations) {
         val parentKeyType = map[key]
         if (!parentKeyType!!.isAssignableFrom(
-                context,
-                spe
+                context, spe
             )
         ) throw IllegalStateException("Type specialization for key '$key' is not assignable from parent type ($parentKeyType is not assignable from $spe)")
     }
@@ -80,13 +79,15 @@ fun PropertyType.check(context: ITypingContext) {
 fun Type.isAssignableFrom(context: ITypingContext, other: Type): Boolean {
     if (this is ReferenceType) return resolveReference(context).isAssignableFrom(context, other)
     val resolvedOther = other.resolveReference(context)
-    if(resolvedOther != other) return isAssignableFrom(context, resolvedOther)
+    if (resolvedOther != other) return isAssignableFrom(context, resolvedOther)
 
-    if (this is AnyType && other !is NullableType) return true
+    if (this is AnyType && other !is PrimitiveType.UndefinedType) return true
+    if (this is PrimitiveType.UndefinedType && other is PrimitiveType.UndefinedType) return true
+    if (this is BottomType) return false
 
-    if (this is NullableType) {
-        if(other is NullableType) return this.type.isAssignableFrom(context, other.type)
-        return this.type.isAssignableFrom(context, other)
+    if (this is UnionType) {
+        if (other is UnionType) return other.types.all { isAssignableFrom(context, it) }
+        return this.types.any { it.isAssignableFrom(context, other) }
     }
 
     if (this is PropertyType) {
@@ -142,12 +143,13 @@ fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false)
     if (this is PropertyPattern) {
         val type = context.getType(this.identifier)
         if (type !is PropertyType) return null
-        if (!type.childrenMap.keys.containsAll(this.fieldsMap.keys)) return null
+        if (!type.fields.keys.containsAll(this.fields.keys)) return null
 
-        return if (type.childrenMap.all {
-                val fieldValue = this.fieldsMap[it.key]
+        if (!type.fields.all {
+                val fieldValue = this.fields[it.key]
                 fieldValue?.typeCheck(context, it.value) ?: true
-            }) type else Type.bottom
+            }) return Type.bottom
+        return type
     }
 
     return null
@@ -160,7 +162,7 @@ fun Expression.typeCheck(context: ITypingContext, type: Type): Boolean {
     if (type is ReferenceType) return typeCheck(context, type.resolveReference(context))
 
     val synthesizedType = this.typeSynthesis(context)
-    if (synthesizedType != null) return synthesizedType.isAssignableFrom(context, type)
+    if (synthesizedType != null) return type.isAssignableFrom(context, synthesizedType)
 
     if (this is BinaryExpression) {
         return when (this) {
@@ -247,12 +249,22 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
     if (this is PropertyExpression) {
         val type = context.getType(this.identifier)
         if (type !is PropertyType) return null
-        if (!type.childrenMap.keys.containsAll(this.mapFields.keys)) return null
 
-        return if (type.childrenMap.all {
-                val fieldValue = this.mapFields[it.key] ?: LiteralExpression.EUndefined()
-                fieldValue.typeCheck(context, it.value)
-            }) type else Type.bottom
+        val typeFields = type.fields
+        val declaredFields = fields
+        val inferredFields = typeFields.filterValues { it.isAssignableFrom(context, Type.undefined) }
+            .mapValues { LiteralExpression.EUndefined() } + declaredFields
+        val parentType = type.parent?.let { Type.reference(it.first) }
+
+        return if (inferredFields.keys == typeFields.keys) {
+            val expressionTypeMap = inferredFields.mapValues { Pair(it.value, typeFields[it.key]!!) }
+            if (!expressionTypeMap.values.all { it.first.typeCheck(context, it.second) }) Type.bottom
+            else if ((parentType == null) != (parent == null) || (parentType != null && !(parent?.typeCheck(
+                    context, parentType
+                ) ?: true))
+            ) Type.bottom
+            else type
+        } else Type.bottom
     }
     return null
 }
