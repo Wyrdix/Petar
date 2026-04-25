@@ -46,6 +46,8 @@ class TypingAssignableFromTest {
         assertFalse(Type.number.emptyIsAssignableFrom(Type.nullable(Type.number)))
         assertFalse(Type.boolean.emptyIsAssignableFrom(Type.nullable(Type.boolean)))
         assertFalse(Type.any.emptyIsAssignableFrom(Type.nullable(Type.any)))
+
+        assert(Type.nullable(Type.string).emptyIsAssignableFrom(Type.nullable(Type.string)))
     }
 
     @Test
@@ -67,9 +69,20 @@ class TypingAssignableFromTest {
         context.typeNameMap[type2.identifier] = type2
         context.typeNameMap[type3.identifier] = type3
 
+
         assert(type1.isAssignableFrom(context, type1))
         assert(type2.isAssignableFrom(context, type2))
         assert(type3.isAssignableFrom(context, type3))
+        assert(type1.isAssignableFrom(context, Type.reference(type1.identifier)))
+        assert(type2.isAssignableFrom(context, Type.reference(type2.identifier)))
+        assert(type3.isAssignableFrom(context, Type.reference(type3.identifier)))
+        assert(Type.reference(type1.identifier).isAssignableFrom(context, type1))
+        assert(Type.reference(type2.identifier).isAssignableFrom(context, type2))
+        assert(Type.reference(type3.identifier).isAssignableFrom(context, type3))
+        assert(Type.reference(type1.identifier).isAssignableFrom(context, Type.reference(type1.identifier)))
+        assert(Type.reference(type2.identifier).isAssignableFrom(context, Type.reference(type2.identifier)))
+        assert(Type.reference(type3.identifier).isAssignableFrom(context, Type.reference(type3.identifier)))
+
         assertFalse(type3.isAssignableFrom(context, type1))
         assertFalse(type2.isAssignableFrom(context, type1))
 
