@@ -57,6 +57,19 @@ data class MemoryString(val value: String) : MemoryElement() {
     override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
         return this
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as MemoryString
+
+        return value == other.value
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
+    }
 }
 
 data class MemoryNumber(val value: Number) : MemoryElement() {
@@ -70,6 +83,19 @@ data class MemoryNumber(val value: Number) : MemoryElement() {
 
     override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
         return this
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as MemoryNumber
+
+        return value.toDouble() == other.value.toDouble()
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
     }
 }
 
@@ -85,6 +111,19 @@ data class MemoryBoolean(val value: Boolean) : MemoryElement() {
     override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
         return this
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as MemoryBoolean
+
+        return value == other.value
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
+    }
 }
 
 data class MemoryObject(val type: PropertyType, val value: Map<String, MemoryElement>) : MemoryElement() {
@@ -98,6 +137,19 @@ data class MemoryObject(val type: PropertyType, val value: Map<String, MemoryEle
 
     override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
         return MemoryObject(type, value.mapValues { (_, value) -> visitor.visit(value) })
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as MemoryObject
+
+        return value.keys == other.value.keys && value.entries.all { (key, value) -> other.value[key] == value }
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
     }
 }
 
@@ -113,5 +165,18 @@ data class MemoryArray(val type: ArrayType, val value: List<MemoryElement>) : Me
 
     override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
         return MemoryArray(type, value.map { visitor.visit(it) })
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as MemoryArray
+
+        return value.size == other.value.size && value.zip(other.value).all { (e1, e2) -> e1 == e2 }
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
     }
 }
