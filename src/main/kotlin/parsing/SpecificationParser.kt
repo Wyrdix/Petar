@@ -52,7 +52,7 @@ class SpecificationParser {
 
         fun visitProperty_declaration_statement(ctx: Property_declaration_statementContext): PropertyDeclarationStatement {
             val type = visitProperty_type(ctx.property_type())
-            return PropertyDeclarationStatement(type.identifier, type)
+            return PropertyDeclarationStatement(type)
         }
 
         fun visitRewrite_rule_statement(ctx: Rewrite_rule_statementContext): ProductionRuleStatement {

@@ -5,6 +5,7 @@ import com.beust.jcommander.ParameterException
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import fr.univ_lille.iut_info.Program
+import fr.univ_lille.iut_info.ProgramData
 import fr.univ_lille.iut_info.parsing.SpecificationParser
 
 fun main(args: Array<String>) {
@@ -52,7 +53,7 @@ fun main(args: Array<String>) {
     }
 
     val statements = parsed.flatMap { it.value.second }
-    val program = Program(statements)
+    val program = Program(ProgramData(statements))
 
     program.compile().let { errors ->
         if (errors.isNotEmpty()) {
@@ -79,20 +80,20 @@ fun main(args: Array<String>) {
     val jsonObject = JsonParser.parseString(input.readLines().joinToString(separator = "")).asJsonObject
 
     println("Transforming file $input :")
-    val evaluation = program.evaluate(jsonObject).let { (errors, evaluation) ->
-        if (errors.isNotEmpty()) {
-            errors.forEach { println(it) }
-            return
-        }
-        evaluation!!
-    }
-
-    val output = command.output
-    if (output != null) {
-        val gson = GsonBuilder().setPrettyPrinting().create()
-        output.writeText(gson.toJson(evaluation.toJson()))
-        println("Result was written in $output.")
-    } else {
-        println(evaluation)
-    }
+//    val evaluation = program.evaluate(jsonObject).let { (errors, evaluation) ->
+//        if (errors.isNotEmpty()) {
+//            errors.forEach { println(it) }
+//            return
+//        }
+//        evaluation!!
+//    }
+//
+//    val output = command.output
+//    if (output != null) {
+//        val gson = GsonBuilder().setPrettyPrinting().create()
+//        output.writeText(gson.toJson(evaluation.toJson()))
+//        println("Result was written in $output.")
+//    } else {
+//        println(evaluation)
+//    }
 }

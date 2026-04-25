@@ -1,25 +1,26 @@
 package fr.univ_lille.iut_info
 
-import com.google.gson.JsonObject
-import fr.univ_lille.iut_info.steps.EvaluateStep
 import fr.univ_lille.iut_info.steps.ExecutionStep
 import fr.univ_lille.iut_info.steps.NameStep
 import fr.univ_lille.iut_info.steps.TypecheckStep
 
 
+data class ProgramData(val statements: List<Statement>)
+
 interface Statement
 
 data class PropertyDeclarationStatement(
-    val identifier: String,
     val type: PropertyType
 ) : Statement
 
 data class ProductionRuleStatement(
-    val pattern: Pattern,
-    val production: Expression
+    val pattern: Pattern, val production: Expression
 ) : Statement
 
-class Program(val statements: List<Statement>) {
+class Program(val data: ProgramData) {
+
+    val statements
+        get() = data.statements
 
     val name = NameStep(this)
     val type = TypecheckStep(name)
@@ -32,12 +33,5 @@ class Program(val statements: List<Statement>) {
             if (errors.isNotEmpty()) return errors
         }
         return emptyList()
-    }
-
-    fun evaluate(input: JsonObject): Pair<List<String>, MemoryElement?> {
-        val evaluateStep = EvaluateStep(type, input)
-        val errors = evaluateStep.run()
-
-        return Pair(errors, evaluateStep.evaluation)
     }
 }
