@@ -3,7 +3,7 @@ package fr.univ_lille.iut_info
 import java.util.*
 import kotlin.assert as assertThrow
 
-abstract class Type : Visitable<Type> {
+sealed class Type : Visitable<Type> {
     val id = UUID.randomUUID().toString()
 
     override fun hashCode(): Int {
@@ -93,7 +93,7 @@ class UnionType(val types: List<Type>) : Type() {
     }
 }
 
-abstract class PrimitiveType : Type() {
+sealed class PrimitiveType : Type() {
     override fun accept(visitor: Visitor<Type>): Type {
         return this
     }

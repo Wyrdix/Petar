@@ -6,7 +6,7 @@ data class PatternMeta(
     val name: String? = null, val modifier: PatternModifier = PatternModifier.ONE, val condition: Expression? = null
 )
 
-abstract class Pattern(open val meta: PatternMeta) : Visitable<Pattern> {
+sealed class Pattern(open val meta: PatternMeta) : Visitable<Pattern> {
     val id = UUID.randomUUID().toString()
     val name: String?
         get() = meta.name

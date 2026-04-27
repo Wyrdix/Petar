@@ -2,7 +2,7 @@ package fr.univ_lille.iut_info
 
 import java.util.*
 
-abstract class Expression : Visitable<Expression> {
+sealed class Expression : Visitable<Expression> {
     val id = UUID.randomUUID().toString()
 
     override fun hashCode(): Int {
@@ -19,7 +19,7 @@ abstract class Expression : Visitable<Expression> {
     }
 }
 
-abstract class ExpressionAccess : Expression() {
+sealed class ExpressionAccess : Expression() {
     abstract val parent: ExpressionAccess?
 
     data class Index(
@@ -41,7 +41,7 @@ abstract class ExpressionAccess : Expression() {
     }
 }
 
-abstract class LiteralExpression : Expression() {
+sealed class LiteralExpression : Expression() {
 
     override fun accept(visitor: Visitor<Expression>): Expression {
         return this
@@ -60,7 +60,7 @@ abstract class LiteralExpression : Expression() {
     }
 }
 
-abstract class BinaryExpression : Expression() {
+sealed class BinaryExpression : Expression() {
     abstract val left: Expression
     abstract val right: Expression
     abstract val operandType: Type?
@@ -141,7 +141,7 @@ data class PatternMatchExpression(val left: Expression, val right: Pattern) : Ex
 
 }
 
-abstract class UnaryExpression : Expression() {
+sealed class UnaryExpression : Expression() {
     abstract val operand: Expression
     abstract val operandAndResultType: Type
 
