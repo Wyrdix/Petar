@@ -153,6 +153,10 @@ fun fillNodes(context: INameContext, root: Pattern): Pattern {
                 fillNodes(context, pattern.value)
             }
 
+            is RegexPattern -> {
+
+            }
+
             is PropertyPattern -> {
                 type = context.typeNameMap[pattern.identifier] ?: Type.bottom
 

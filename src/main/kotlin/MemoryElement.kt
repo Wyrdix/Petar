@@ -1,7 +1,23 @@
 package fr.univ_lille.iut_info
 
-abstract class MemoryElement : Visitable<MemoryElement> {
-    abstract fun type(): Type
+import java.util.*
+
+sealed class MemoryElement : Visitable<MemoryElement> {
+    val id = UUID.randomUUID().toString()
+    abstract val type: Type
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as MemoryElement
+
+        return id == other.id
+    }
 
     companion object {
         fun string(value: String): MemoryString {
@@ -31,10 +47,7 @@ abstract class MemoryElement : Visitable<MemoryElement> {
 }
 
 class MemoryUndefined : MemoryElement() {
-
-    override fun type(): Type {
-        return Type.undefined
-    }
+    override val type = Type.undefined
 
     override fun toString(): String {
         return "MemoryUndefined()"
@@ -46,9 +59,7 @@ class MemoryUndefined : MemoryElement() {
 }
 
 data class MemoryString(val value: String) : MemoryElement() {
-    override fun type(): Type {
-        return Type.string
-    }
+    override val type = Type.string
 
     override fun toString(): String {
         return "MemoryString(value=$value)"
@@ -73,9 +84,7 @@ data class MemoryString(val value: String) : MemoryElement() {
 }
 
 data class MemoryNumber(val value: Number) : MemoryElement() {
-    override fun type(): Type {
-        return Type.number
-    }
+    override val type = Type.number
 
     override fun toString(): String {
         return "MemoryNumber(value=$value)"
@@ -100,9 +109,7 @@ data class MemoryNumber(val value: Number) : MemoryElement() {
 }
 
 data class MemoryBoolean(val value: Boolean) : MemoryElement() {
-    override fun type(): Type {
-        return Type.boolean
-    }
+    override val type = Type.boolean
 
     override fun toString(): String {
         return "MemoryBoolean(value=$value)"
@@ -126,10 +133,7 @@ data class MemoryBoolean(val value: Boolean) : MemoryElement() {
     }
 }
 
-data class MemoryObject(val type: PropertyType, val value: Map<String, MemoryElement>) : MemoryElement() {
-    override fun type(): Type {
-        return type
-    }
+data class MemoryObject(override val type: PropertyType, val value: Map<String, MemoryElement>) : MemoryElement() {
 
     override fun toString(): String {
         return "MemoryObject(type=$type, value=${value.toSortedMap()})"
@@ -153,11 +157,7 @@ data class MemoryObject(val type: PropertyType, val value: Map<String, MemoryEle
     }
 }
 
-data class MemoryArray(val type: ArrayType, val value: List<MemoryElement>) : MemoryElement() {
-
-    override fun type(): Type {
-        return type
-    }
+data class MemoryArray(override val type: ArrayType, val value: List<MemoryElement>) : MemoryElement() {
 
     override fun toString(): String {
         return "MemoryArray(type=$type, value=$value)"
