@@ -25,7 +25,7 @@ class TypingAssignableFromTest {
         assert(Type.any.emptyIsAssignableFrom(Type.number))
         assert(Type.any.emptyIsAssignableFrom(Type.string))
         assert(Type.any.emptyIsAssignableFrom(Type.bottom))
-        assert(Type.any.emptyIsAssignableFrom(Type.undefined))
+        assertFalse(Type.any.emptyIsAssignableFrom(Type.undefined))
         assert(Type.any.emptyIsAssignableFrom(Type.any))
 
         assertFalse(Type.boolean.emptyIsAssignableFrom(Type.any))

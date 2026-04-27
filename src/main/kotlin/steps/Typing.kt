@@ -80,13 +80,13 @@ fun Type.isAssignableFrom(context: ITypingContext, other: Type): Boolean {
     if (this is ReferenceType) return resolveReference(context).isAssignableFrom(context, other)
     val resolvedOther = other.resolveReference(context)
     if (resolvedOther != other) return isAssignableFrom(context, resolvedOther)
+    if (other is UnionType) return other.types.all { isAssignableFrom(context, it) }
 
     if (this is AnyType && other !is PrimitiveType.UndefinedType) return true
     if (this is PrimitiveType.UndefinedType && other is PrimitiveType.UndefinedType) return true
     if (this is BottomType) return false
 
     if (this is UnionType) {
-        if (other is UnionType) return other.types.all { isAssignableFrom(context, it) }
         return this.types.any { it.isAssignableFrom(context, other) }
     }
 
