@@ -60,15 +60,6 @@ data class ArrayPattern(
 
 }
 
-data class UnorderedArrayPattern(
-    val values: List<Pattern>, override val meta: PatternMeta
-) : Pattern(meta) {
-    override fun accept(visitor: Visitor<Pattern>): Pattern {
-        return UnorderedArrayPattern(values.map(visitor::visit), meta)
-    }
-
-}
-
 data class PropertyPattern(
     val identifier: String, val inlineFields: List<Pair<String, Pattern>>, override val meta: PatternMeta
 ) : Pattern(meta) {

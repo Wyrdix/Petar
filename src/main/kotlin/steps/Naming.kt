@@ -170,10 +170,6 @@ fun fillNodes(context: INameContext, root: Pattern): Pattern {
             is ArrayPattern -> {
                 pattern.values.forEach { fillNodes(context, it) }
             }
-
-            is UnorderedArrayPattern -> {
-                pattern.values.forEach { fillNodes(context, it) }
-            }
         }
 
         if (name != null && type != null) if (modifier == PatternModifier.ONE) context.patternNodeMap[pattern]?.nameMap[name] =
