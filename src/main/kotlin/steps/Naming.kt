@@ -70,19 +70,39 @@ interface INameContext {
     }
 }
 
-fun getTypeDependencies(type: Type): List<String> {
-    return when (type) {
-        is ReferenceType -> listOf(type.value)
-        is UnionType -> type.types.flatMap { getTypeDependencies(it) }
-        is PrimitiveType.StringType -> listOf("String")
-        is PrimitiveType.NumberType -> listOf("Number")
-        is PrimitiveType.BooleanType -> listOf("Boolean")
-        is PrimitiveType.UndefinedType -> listOf("undefined")
-        is ArrayType -> getTypeDependencies(type.type)
-        is PropertyType -> (((type.inlineFields.map { it.second }).flatMap { getTypeDependencies(it) }) + type.parent?.first).filterNotNull()
+fun INameContext.getTypeDependencies(type: Type): Set<String> {
 
-        else -> emptyList()
+    val processedDefinitions: MutableSet<String> = HashSet()
+    val accumulation: MutableSet<String> = HashSet()
+
+
+    fun auxiliary(type: Type): Set<String> {
+        return when (type) {
+            is ReferenceType -> setOf(type.value)
+            is UnionType -> type.types.flatMap { auxiliary(it) }.toSet()
+            is PrimitiveType.StringType -> setOf("String")
+            is PrimitiveType.NumberType -> setOf("Number")
+            is PrimitiveType.BooleanType -> setOf("Boolean")
+            is PrimitiveType.UndefinedType -> setOf("undefined")
+            is ArrayType -> auxiliary(type.type)
+            is PropertyType -> (((type.inlineFields.map { it.second }).flatMap { auxiliary(it) }) + type.parent?.first).filterNotNull()
+                .toSet()
+
+            is AnyType -> setOf("Any")
+            is BottomType -> emptySet()
+        }
     }
+
+    accumulation.addAll(auxiliary(type))
+
+    while (accumulation.size != processedDefinitions.size) {
+        accumulation.addAll(
+            accumulation.subtract(processedDefinitions)
+                .mapNotNull { typeNameMap[it.apply { processedDefinitions.add(this) }] }
+                .flatMap { auxiliary(it) })
+    }
+
+    return accumulation
 }
 
 class ChildrenExpressionCollector(val context: INameContext, val parent: Expression, val root: NameNode) :
@@ -165,8 +185,7 @@ fun fillNodes(context: INameContext, root: Pattern): Pattern {
                     val modifier = pattern.modifier
                     if (name != null && type is PropertyType) if (modifier == PatternModifier.ONE) context.patternNodeMap[pattern]?.nameMap[name] =
                         type.fields[key] ?: Type.bottom
-                    else context.patternNodeMap[pattern]?.nameMap[name] =
-                        Type.array(type.fields[key] ?: Type.bottom)
+                    else context.patternNodeMap[pattern]?.nameMap[name] = Type.array(type.fields[key] ?: Type.bottom)
                     fillNodes(context, pattern)
                 }
             }
