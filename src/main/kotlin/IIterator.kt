@@ -21,6 +21,8 @@ interface IIterator<T> : Iterator<T>, Iterable<T> {
 
     fun copy(): IIterator<T>
 
+    fun freshCopy() = copy().apply { reset() }
+
     companion object {
 
         fun <T> Iterable<T>.toIIterator(): IIterator<T> {
@@ -40,8 +42,12 @@ interface IIterator<T> : Iterator<T>, Iterable<T> {
             return ListIterator(list)
         }
 
+        fun <T> iterator(vararg iterators: T): IIterator<T> {
+            return fromList(iterators.toList())
+        }
+
         fun <T> flat(vararg iterators: IIterator<T>): IIterator<T> {
-            return fromList(iterators.toList()).flatten()
+            return fromList(iterators.toList().map { it.copy().apply { reset() } }).flatten()
         }
 
         fun <T> IIterator<IIterator<T>>.flatten(): IIterator<T> {
@@ -74,7 +80,7 @@ interface IIterator<T> : Iterator<T>, Iterable<T> {
 
         fun updateCurrent() {
             var localCurrent = current
-            while ((localCurrent == null || !localCurrent.hasNext()) && iter.hasNext()) localCurrent = iter.next()
+            while ((localCurrent == null || !localCurrent.hasNext()) && iter.hasNext()) localCurrent = iter.next().apply { reset() }
             current = if (localCurrent == null || !localCurrent.hasNext()) null else localCurrent
         }
 
@@ -112,7 +118,7 @@ interface IIterator<T> : Iterator<T>, Iterable<T> {
         }
 
         override fun hasNext(): Boolean {
-            return index >= list.size
+            return index < list.size
         }
 
         override fun copy(): IIterator<T> {
