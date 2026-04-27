@@ -103,11 +103,6 @@ unary_expression:
 	| PLUS operand = expression
 	| NOT operand = expression;
 
-function_call_expression:
-	FUNCTION_SEARCH LPAREN expression COMMA pattern (
-		COMMA pattern
-	)* RPAREN;
-
 enclosed_expression:
 	LPAREN expression RPAREN
 	| expression_literal
@@ -115,8 +110,7 @@ enclosed_expression:
 	| expression_access
 	| expression_array
 	| expression_unordered_array
-	| expression_property
-	| function_call_expression;
+	| expression_property;
 
 expression: binary_expression | enclosed_expression;
 
