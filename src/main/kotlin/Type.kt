@@ -67,6 +67,10 @@ class AnyType : Type() {
         return this
     }
 
+    override fun toString(): String {
+        return "Any"
+    }
+
     companion object {
         val instance = AnyType()
     }

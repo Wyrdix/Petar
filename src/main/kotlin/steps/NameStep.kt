@@ -4,6 +4,7 @@ import fr.univ_lille.iut_info.*
 
 class NameStep(val program: Program) : ExecutionStep, INameContext {
 
+
     override val root: NameNode = NameNode(null)
     override val typeNameMap: MutableMap<String, Type> = HashMap()
     override val patternNodeMap: MutableMap<Pattern, NameNode> = HashMap()
@@ -14,17 +15,20 @@ class NameStep(val program: Program) : ExecutionStep, INameContext {
     override val patternParentMap: MutableMap<Pattern, Pattern?> = HashMap()
     override val patternChildrenMap: MutableMap<Pattern, List<Pattern>> = HashMap()
 
+    init {
+        typeNameMap[Type.undefined.toString()] = Type.undefined
+        typeNameMap[Type.string.toString()] = Type.string
+        typeNameMap[Type.number.toString()] = Type.number
+        typeNameMap[Type.boolean.toString()] = Type.boolean
+        typeNameMap[Type.any.toString()] = Type.any
+    }
+
     override fun run(): List<String> {
 
 
         val types = program.statements.filterIsInstance<PropertyDeclarationStatement>().map { it.type }
         val rules = program.statements.filterIsInstance<ProductionRuleStatement>()
 
-        typeNameMap["undefined"] = Type.undefined
-        typeNameMap["String"] = Type.string
-        typeNameMap["Number"] = Type.number
-        typeNameMap["Boolean"] = Type.boolean
-        typeNameMap["Any"] = Type.any
         types.forEach { typeNameMap[it.identifier] = it }
 
         val undefinedTypeUsages = types.flatMap { getTypeDependencies(it) }.filter { !typeNameMap.containsKey(it) }
