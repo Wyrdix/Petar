@@ -10,68 +10,6 @@ class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITyping
     override val patternSynthesized: HashMap<Pattern, Type> = HashMap()
     override val patternChecked: HashMap<Pattern, Type> = HashMap()
 
-    override fun typeSynthesis(exp: Expression, type: Type): Type {
-        expressionSynthesized[exp] = type
-        return type
-    }
-
-    override fun typePatternSynthesis(pattern: Pattern, type: Type?): Type? {
-        if (type != null) patternSynthesized[pattern] = type
-        return type
-    }
-
-    override fun typeChecked(exp: Expression, condition: Boolean, type: Type): Boolean {
-        if (condition) {
-            val alreadyChecked = expressionChecked[exp]
-            if (alreadyChecked != null) {
-
-                if (!alreadyChecked.isAssignableFrom(this, type)) expressionChecked[exp] = type
-                else if (!type.isAssignableFrom(this, alreadyChecked)) {
-                    expressionChecked[exp] = Type.bottom
-                    return false
-                }
-            } else expressionChecked[exp] = type
-        }
-        return condition
-    }
-
-    override fun typePatternChecked(pattern: Pattern, condition: Boolean, type: Type): Boolean {
-        if (condition) {
-            val alreadyChecked = patternChecked[pattern]
-            if (alreadyChecked != null) {
-
-                if (!alreadyChecked.isAssignableFrom(this, type)) patternChecked[pattern] =
-                    if (pattern.modifier == PatternModifier.ONE) type else Type.array(type)
-                else if (!type.isAssignableFrom(this, alreadyChecked)) {
-                    patternChecked[pattern] = Type.bottom
-                    return false
-                }
-            } else patternChecked[pattern] = if (pattern.modifier == PatternModifier.ONE) type else Type.array(type)
-        }
-        return condition
-    }
-
-    override fun getSynthesizedType(exp: Expression): Type? {
-        return expressionSynthesized[exp]
-    }
-
-    override fun getPatternSynthesizedType(pattern: Pattern): Type? {
-        return patternSynthesized[pattern]
-    }
-
-    override fun getCheckedType(exp: Expression): Type? {
-        return expressionChecked[exp]
-    }
-
-    override fun getCheckedPatternType(pattern: Pattern): Type? {
-        return patternChecked[pattern]
-    }
-
-    override fun getType(name: String): Type {
-        return typeNameMap[name] ?: throw IllegalStateException("Could not find type by name: $name.")
-    }
-
-
     val program
         get() = nameContext.program
 

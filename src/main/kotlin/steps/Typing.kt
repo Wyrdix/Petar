@@ -9,15 +9,69 @@ interface ITypingContext : INameContext {
     val expressionChecked: HashMap<Expression, Type>
     val patternSynthesized: HashMap<Pattern, Type>
     val patternChecked: HashMap<Pattern, Type>
-    fun typeSynthesis(exp: Expression, type: Type): Type
-    fun typePatternSynthesis(pattern: Pattern, type: Type?): Type?
-    fun typeChecked(exp: Expression, condition: Boolean, type: Type): Boolean
-    fun typePatternChecked(pattern: Pattern, condition: Boolean, type: Type): Boolean
-    fun getSynthesizedType(exp: Expression): Type?
-    fun getPatternSynthesizedType(pattern: Pattern): Type?
-    fun getCheckedType(exp: Expression): Type?
-    fun getCheckedPatternType(pattern: Pattern): Type?
-    fun getType(name: String): Type
+
+    fun typeSynthesis(exp: Expression, type: Type): Type {
+        expressionSynthesized[exp] = type
+        return type
+    }
+
+    fun typePatternSynthesis(pattern: Pattern, type: Type?): Type? {
+        if (type != null) patternSynthesized[pattern] = type
+        return type
+    }
+
+    fun typeChecked(exp: Expression, condition: Boolean, type: Type): Boolean {
+        if (condition) {
+            val alreadyChecked = expressionChecked[exp]
+            if (alreadyChecked != null) {
+
+                if (!alreadyChecked.isAssignableFrom(this, type)) expressionChecked[exp] = type
+                else if (!type.isAssignableFrom(this, alreadyChecked)) {
+                    expressionChecked[exp] = Type.bottom
+                    return false
+                }
+            } else expressionChecked[exp] = type
+        }
+        return condition
+    }
+
+    fun typePatternChecked(pattern: Pattern, condition: Boolean, type: Type): Boolean {
+        if (condition) {
+            val alreadyChecked = patternChecked[pattern]
+            if (alreadyChecked != null) {
+
+                if (!alreadyChecked.isAssignableFrom(this, type)) patternChecked[pattern] =
+                    if (pattern.modifier == PatternModifier.ONE) type else Type.array(type)
+                else if (!type.isAssignableFrom(this, alreadyChecked)) {
+                    patternChecked[pattern] = Type.bottom
+                    return false
+                }
+            } else patternChecked[pattern] = if (pattern.modifier == PatternModifier.ONE) type else Type.array(type)
+        }
+        return condition
+    }
+
+    fun getSynthesizedType(exp: Expression): Type? {
+        return expressionSynthesized[exp]
+    }
+
+    fun getPatternSynthesizedType(pattern: Pattern): Type? {
+        return patternSynthesized[pattern]
+    }
+
+    fun getCheckedType(exp: Expression): Type? {
+        return expressionChecked[exp]
+    }
+
+    fun getCheckedPatternType(pattern: Pattern): Type? {
+        return patternChecked[pattern]
+    }
+
+    fun getType(name: String): Type {
+        return typeNameMap[name] ?: throw IllegalStateException("Could not find type by name: $name.")
+    }
+
+
 }
 
 fun Type.resolveReference(context: ITypingContext): Type {
