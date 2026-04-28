@@ -11,6 +11,12 @@ interface IIterator<T> : Iterator<T>, Iterable<T> {
         return MapIterator(this.copy().apply { reset() }, transform)
     }
 
+    fun <R> foldI(initial: R, operation: (acc: R, T) -> R): R {
+        var accumulator = initial
+        for (element in this) accumulator = operation(accumulator, element)
+        return accumulator
+    }
+
     fun <R> flatMapI(transform: (T) -> IIterator<R>): IIterator<R> {
         val mapIterator =
             MapIterator<T, IIterator<R>>(this.copy().apply { reset() }) { p -> transform(p) }

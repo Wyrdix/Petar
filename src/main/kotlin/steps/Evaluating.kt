@@ -13,13 +13,13 @@ interface IEvaluatingContext : ITypingContext {
 
     val memoryParentMap: MutableMap<MemoryElement, Pair<String, MemoryElement>>
     val memoryAnnotationRoot: MutableMap<MemoryElement, MemoryElement>
-    val memoryAnnotationMap: MutableMap<MemoryElement, List<MemoryElement>>
+    val memoryAnnotationMap: MutableMap<MemoryElement, List<MemoryObject>>
 
     fun getParent(element: MemoryElement) = memoryParentMap[element]
     fun getAnnotationRoot(element: MemoryElement) = memoryAnnotationRoot[element]
     fun getAnnotations(element: MemoryElement) = memoryAnnotationMap[element] ?: emptyList()
 
-    fun addAnnotation(element: MemoryElement, annotation: MemoryElement) {
+    fun addAnnotation(element: MemoryElement, annotation: MemoryObject) {
         memoryAnnotationRoot[annotation] = element
         memoryAnnotationMap[element] = getAnnotations(element) + annotation
     }
@@ -51,7 +51,7 @@ fun Pattern.applyEffects(
     return if (name != null) {
         if (this.modifier == ONE) if (element != null) environment.add(name, element) else environment
         else {
-            val arrayType = context.getCheckedPatternType(this)!! as ArrayType
+            val arrayType = context.getCheckedPatternType(context.patternParentMap[this]!!)!! as ArrayType
             val existing =
                 environment.definitions[name].let {
                     when (it) {
@@ -61,7 +61,7 @@ fun Pattern.applyEffects(
                     }
                 }
 
-            val array = MemoryArray(arrayType, (if (element == null) emptyList() else listOf(element)) + existing.value)
+            val array = MemoryArray(arrayType, existing.value + (if (element == null) emptyList() else listOf(element)))
             environment.add(name, array)
         }
     } else environment
@@ -94,7 +94,14 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
         }
 
         is ExpressionAccess -> when (this) {
-            is ExpressionAccess.Index -> this.parent.evaluate(context, environment)
+            is ExpressionAccess.Index -> {
+                val array = this.parent.evaluate(context, environment) as MemoryArray
+                val index = (this.expression.evaluate(context, environment) as MemoryNumber).value.toInt()
+
+                if (index < 0 || index >= array.value.size) throw IllegalStateException("Index out of bounds")
+                else array.value[index]
+            }
+
             is ExpressionAccess.Member -> when (this.parent) {
                 null -> environment.definitions[this.identifier] ?: MemoryUndefined()
                 else -> (this.parent.evaluate(context, environment) as MemoryObject).value[this.identifier]
@@ -136,9 +143,8 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
 }
 
 fun Pattern.match(
-    context: IEvaluatingContext, element: MemoryElement, environment: EvaluationEnvironment
+    context: IEvaluatingContext, element: MemoryElement, environment: EvaluationEnvironment = EvaluationEnvironment()
 ): IIterator<EvaluationEnvironment> {
-
     return when (this) {
         is ExpressionPattern -> {
             val stored = this.value.evaluate(context, environment)
@@ -161,16 +167,21 @@ fun Pattern.match(
             environment
         )
 
-        is PropertyPattern if element is MemoryObject && this.typeCheck(context, element.type) -> {
-            val transformer: (Map.Entry<String, Pattern>) -> IIterator<EvaluationEnvironment> = { (key, value) ->
-                val keyedElement = element.value[key] ?: MemoryUndefined()
-                value.match(
-                    context, keyedElement, this.applyEffects(context, keyedElement, environment)
-                )
-            }
-            (context.getAnnotations(element).map { it as MemoryObject } + this).toIIterator().flatMapI {
-                fields.entries.toIIterator().flatMapI(transformer)
-            }
+        is PropertyPattern -> {
+            (context.getAnnotations(element).map { it } + element).filterIsInstance<MemoryObject>()
+                .filter { it.type.identifier == this.identifier }.toIIterator().flatMapI {
+                    fields.entries.toIIterator().foldI(
+                        IIterator.singleton(this.applyEffects(context, element, environment))
+                    ) { acc, (key, value) ->
+                        val keyedElement = it.value[key] ?: MemoryUndefined()
+                        acc.flatMapI { env ->
+                            value.match(
+                                context, keyedElement, env
+                            )
+                        }
+
+                    }
+                }
         }
 
         else -> IIterator.empty()
@@ -182,28 +193,29 @@ fun arrayMatching(
     context: IEvaluatingContext,
     patterns: List<Pattern>,
     elements: List<MemoryElement>,
-    environment: EvaluationEnvironment,
+    environment: EvaluationEnvironment = EvaluationEnvironment(),
     modifierAccumulation: PatternModifier? = null
 ): IIterator<EvaluationEnvironment> {
-    if (patterns.isEmpty()) return IIterator.singleton(environment)
+    if (patterns.isEmpty() && elements.isEmpty()) return IIterator.singleton(environment)
+    if (patterns.isEmpty()) return IIterator.empty()
 
     val patternHead = patterns[0]
     val patternTail = patterns.subList(1, patterns.size)
     val elementsHead = if (elements.isEmpty()) null else elements[0]
-    val elementsTails = elements.subList(1, elements.size)
+    val elementsTails = if (elements.isEmpty()) emptyList() else elements.subList(1, elements.size)
 
     return when (modifierAccumulation ?: patternHead.modifier) {
         ANY if elementsHead == null -> arrayMatching(
-            context, patternTail, elements, patternHead.applyEffects(context, null, environment)
+            context, patternTail, elements, patternHead.applyEffects(context, null, environment), modifierAccumulation
         )
 
         ANY -> IIterator.flat(
             patternHead.match(context, elementsHead!!, environment).flatMapI {
                 arrayMatching(
-                    context, patternTail, elementsTails, patternHead.applyEffects(context, elementsHead, environment)
+                    context, patterns, elementsTails, patternHead.applyEffects(context, elementsHead, environment), modifierAccumulation
                 )
             }, arrayMatching(
-                context, patternTail, elements, patternHead.applyEffects(context, null, environment)
+                context, patternTail, elements, patternHead.applyEffects(context, null, environment), modifierAccumulation
             )
         )
 
@@ -211,12 +223,12 @@ fun arrayMatching(
             context, elementsHead, patternHead.applyEffects(context, elementsHead, environment)
         ).flatMapI {
             arrayMatching(
-                context, patternTail, elementsTails, patternHead.applyEffects(context, elementsHead, environment)
+                context, patternTail, elementsTails, patternHead.applyEffects(context, elementsHead, environment), modifierAccumulation
             )
         }
 
-        AT_LEAST_ONE ->
-            patternHead.match(context, elementsHead!!, environment).flatMapI {
+        AT_LEAST_ONE if elementsHead != null ->
+            patternHead.match(context, elementsHead, environment).flatMapI {
                 arrayMatching(
                     context,
                     patterns,
