@@ -111,12 +111,20 @@ fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean 
 
     if (type is ReferenceType) return typeCheck(context, type.resolveReference(context))
 
-    val synthesizedType = this.typeSynthesis(context)
-    if (synthesizedType != null) return synthesizedType.isAssignableFrom(context, type)
+    val synthesizedType = this.typeSynthesis(context, listPattern)
+    if (synthesizedType != null) return context.typePatternChecked(
+        this,
+        type.isAssignableFrom(context, synthesizedType),
+        type
+    )
 
     if (this is ArrayPattern) {
         if (type !is ArrayType) return false
-        return context.typePatternChecked(this, this.values.all { this.typeCheck(context, type.type, true) }, type)
+        return context.typePatternChecked(this, this.values.all { it.typeCheck(context, type.type, true) }, type)
+    }
+
+    if (type is AnyType) {
+        return context.typePatternChecked(this, true, Type.any)
     }
 
     return false

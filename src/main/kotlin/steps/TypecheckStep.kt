@@ -40,12 +40,13 @@ class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITyping
             val alreadyChecked = patternChecked[pattern]
             if (alreadyChecked != null) {
 
-                if (!alreadyChecked.isAssignableFrom(this, type)) patternChecked[pattern] = type
+                if (!alreadyChecked.isAssignableFrom(this, type)) patternChecked[pattern] =
+                    if (pattern.modifier == PatternModifier.ONE) type else Type.array(type)
                 else if (!type.isAssignableFrom(this, alreadyChecked)) {
                     patternChecked[pattern] = Type.bottom
                     return false
                 }
-            } else patternChecked[pattern] = type
+            } else patternChecked[pattern] = if (pattern.modifier == PatternModifier.ONE) type else Type.array(type)
         }
         return condition
     }
