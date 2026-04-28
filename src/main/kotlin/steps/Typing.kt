@@ -131,28 +131,26 @@ fun PropertyType.check(context: ITypingContext) {
 }
 
 fun Type.isAssignableFrom(context: ITypingContext, other: Type): Boolean {
-    if (this is ReferenceType) return resolveReference(context).isAssignableFrom(context, other)
+
     val resolvedOther = other.resolveReference(context)
     if (resolvedOther != other) return isAssignableFrom(context, resolvedOther)
     if (other is UnionType) return other.types.all { isAssignableFrom(context, it) }
 
-    if (this is AnyType && other !is PrimitiveType.UndefinedType) return true
-    if (this is PrimitiveType.UndefinedType && other is PrimitiveType.UndefinedType) return true
-    if (this is BottomType) return false
+    return when (this) {
+        is ReferenceType -> resolveReference(context).isAssignableFrom(context, other)
+        is AnyType -> other !is PrimitiveType.UndefinedType
+        is BottomType -> false
+        is UnionType -> this.types.any { it.isAssignableFrom(context, other) }
 
-    if (this is UnionType) {
-        return this.types.any { it.isAssignableFrom(context, other) }
+        is PropertyType -> other.ascendants(context).contains(this.identifier)
+
+        is ArrayType -> other is ArrayType && this.type.isAssignableFrom(context, other.type)
+
+        is PrimitiveType.BooleanType -> other is PrimitiveType.BooleanType
+        is PrimitiveType.NumberType -> other is PrimitiveType.NumberType
+        is PrimitiveType.StringType -> other is PrimitiveType.StringType
+        is PrimitiveType.UndefinedType -> other is PrimitiveType.UndefinedType
     }
-
-    if (this is PropertyType) {
-        return other.ascendants(context).contains(this.identifier)
-    }
-
-    if (this is ArrayType && other is ArrayType) {
-        return this.type.isAssignableFrom(context, other.type)
-    }
-
-    return other.javaClass.isAssignableFrom(javaClass) && javaClass.isAssignableFrom(other.javaClass)
 }
 
 fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean = false): Boolean {
@@ -167,21 +165,19 @@ fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean 
 
     val synthesizedType = this.typeSynthesis(context, listPattern)
     if (synthesizedType != null) return context.typePatternChecked(
-        this,
-        type.isAssignableFrom(context, synthesizedType),
-        type
+        this, type.isAssignableFrom(context, synthesizedType), type
     )
 
-    if (this is ArrayPattern) {
-        if (type !is ArrayType) return false
-        return context.typePatternChecked(this, this.values.all { it.typeCheck(context, type.type, true) }, type)
+    when {
+        this is ArrayPattern -> {
+            if (type !is ArrayType) return false
+            return context.typePatternChecked(this, this.values.all { it.typeCheck(context, type.type, true) }, type)
+        }
+        type is AnyType -> {
+            return context.typePatternChecked(this, true, Type.any)
+        }
+        else -> return false
     }
-
-    if (type is AnyType) {
-        return context.typePatternChecked(this, true, Type.any)
-    }
-
-    return false
 }
 
 fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false): Type? {
@@ -192,29 +188,26 @@ fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false)
     val alreadySynthesized = context.getPatternSynthesizedType(this)
     if (alreadySynthesized != null) return alreadySynthesized
 
-    if (this is ExpressionPattern) {
-        return context.typePatternSynthesis(
+    return when (this) {
+        is ExpressionPattern -> context.typePatternSynthesis(
             this, this.value.typeSynthesis(context)
         )
+
+        is RegexPattern -> context.typePatternSynthesis(this, Type.string)
+
+        is PropertyPattern -> {
+            val type = context.getType(this.identifier)
+            if (type !is PropertyType) null
+            else if (!type.fields.keys.containsAll(this.fields.keys)) null
+            else if (!type.fields.all {
+                    val fieldValue = this.fields[it.key]
+                    fieldValue?.typeCheck(context, it.value) ?: true
+                }) Type.bottom
+            else type
+        }
+
+        else -> null
     }
-
-    if (this is RegexPattern) {
-        return context.typePatternSynthesis(this, Type.string)
-    }
-
-    if (this is PropertyPattern) {
-        val type = context.getType(this.identifier)
-        if (type !is PropertyType) return null
-        if (!type.fields.keys.containsAll(this.fields.keys)) return null
-
-        if (!type.fields.all {
-                val fieldValue = this.fields[it.key]
-                fieldValue?.typeCheck(context, it.value) ?: true
-            }) return Type.bottom
-        return type
-    }
-
-    return null
 }
 
 fun Expression.typeCheck(context: ITypingContext, type: Type): Boolean {
@@ -226,107 +219,95 @@ fun Expression.typeCheck(context: ITypingContext, type: Type): Boolean {
     val synthesizedType = this.typeSynthesis(context)
     if (synthesizedType != null) return type.isAssignableFrom(context, synthesizedType)
 
-    if (this is BinaryExpression) {
-        return when (this) {
-            is BinaryExpression.And, is BinaryExpression.Or -> context.typeChecked(
-                this, this.left.typeCheck(
-                    context, Type.boolean
-                ) && this.right.typeCheck(
-                    context, Type.boolean
-                ), Type.boolean
-            )
+    return when (this) {
+        is BinaryExpression.And, is BinaryExpression.Or -> context.typeChecked(
+            this, this.left.typeCheck(
+                context, Type.boolean
+            ) && this.right.typeCheck(
+                context, Type.boolean
+            ), Type.boolean
+        )
 
-            is BinaryExpression.Multiply, is BinaryExpression.Divide, is BinaryExpression.Plus, is BinaryExpression.Minus -> context.typeChecked(
-                this, this.left.typeCheck(
-                    context, Type.number
-                ) && this.right.typeCheck(
-                    context, Type.number
-                ), Type.number
-            )
+        is BinaryExpression.Multiply, is BinaryExpression.Divide, is BinaryExpression.Plus, is BinaryExpression.Minus -> context.typeChecked(
+            this, this.left.typeCheck(
+                context, Type.number
+            ) && this.right.typeCheck(
+                context, Type.number
+            ), Type.number
+        )
 
-            else -> false
-        }
+        is UnaryExpression.Negate -> context.typeChecked(
+            this, this.operand.typeCheck(context, Type.boolean), Type.boolean
+        )
+
+        is UnaryExpression.Opposite -> context.typeChecked(
+            this, this.operand.typeCheck(context, Type.number), Type.number
+        )
+
+
+        is PatternMatchExpression -> context.typeChecked(
+            this, Type.boolean.isAssignableFrom(context, type), Type.boolean
+        )
+
+        is ArrayExpression -> if (type !is ArrayType) false
+        else context.typeChecked(this, this.values.all { this.typeCheck(context, type.type) }, type)
+
+        is ExpressionAccess.Index, is ExpressionAccess.Member, is LiteralExpression.EBoolean, is LiteralExpression.ENumber, is LiteralExpression.EString, is LiteralExpression.EUndefined, is PropertyExpression -> false
     }
-
-    if (this is UnaryExpression) {
-        return when (this) {
-            is UnaryExpression.Negate -> context.typeChecked(
-                this, this.operand.typeCheck(context, Type.boolean), Type.boolean
-            )
-
-            is UnaryExpression.Opposite -> context.typeChecked(
-                this, this.operand.typeCheck(context, Type.number), Type.number
-            )
-
-            else -> false
-        }
-    }
-
-    if (this is PatternMatchExpression) return context.typeChecked(
-        this, Type.boolean.isAssignableFrom(context, type), Type.boolean
-    )
-
-    if (this is ArrayExpression) {
-        if (type !is ArrayType) return false
-        return context.typeChecked(this, this.values.all { this.typeCheck(context, type.type) }, type)
-    }
-
-    return false
 }
 
 fun Expression.typeSynthesis(context: ITypingContext): Type? {
     val alreadySynthesized = context.getSynthesizedType(this)
     if (alreadySynthesized != null) return alreadySynthesized
 
-    if (this is LiteralExpression) {
-        return context.typeSynthesis(
-            this, when (this) {
-                is LiteralExpression.EBoolean -> Type.boolean
-                is LiteralExpression.EString -> Type.string
-                is LiteralExpression.ENumber -> Type.number
-                is LiteralExpression.EUndefined -> Type.undefined
-                else -> null
-            }!!
-        )
-    }
-
-    if (this is ExpressionAccess) {
-        return when (this) {
-            is ExpressionAccess.Member if this.parent == null -> context.typeSynthesis(
-                this, context.getNameNode(this).get(this.identifier)
+    return when (this) {
+        is LiteralExpression -> {
+            context.typeSynthesis(
+                this, when (this) {
+                    is LiteralExpression.EBoolean -> Type.boolean
+                    is LiteralExpression.EString -> Type.string
+                    is LiteralExpression.ENumber -> Type.number
+                    is LiteralExpression.EUndefined -> Type.undefined
+                }
             )
-
-            is ExpressionAccess.Index -> {
-                val arrayType = this.parent.typeSynthesis(context)
-                if (arrayType !is ArrayType) null
-                else if (this.expression.typeCheck(context, Type.number)) context.typeSynthesis(this, arrayType.type)
-                else null
-            }
-
-            else -> null
         }
+
+        // TODO check what happens exactly during a member access type checking, it seems odd to be able to synthesize the type
+        is ExpressionAccess.Member if this.parent == null -> context.typeSynthesis(
+            this, context.getNameNode(this).get(this.identifier)
+        )
+
+        is ExpressionAccess.Index -> {
+            val arrayType = this.parent.typeSynthesis(context)
+            if (arrayType !is ArrayType) null
+            else if (this.expression.typeCheck(context, Type.number)) context.typeSynthesis(
+                this, arrayType.type
+            )
+            else null
+        }
+
+        is PropertyExpression -> {
+            val type = context.getType(this.identifier)
+            if (type !is PropertyType) null
+            else {
+                val typeFields = type.fields
+                val declaredFields = fields
+                val inferredFields = typeFields.filterValues { it.isAssignableFrom(context, Type.undefined) }
+                    .mapValues { LiteralExpression.EUndefined() } + declaredFields
+                val parentType = type.parent?.let { Type.reference(it.first) }
+
+                if (inferredFields.keys == typeFields.keys) {
+                    val expressionTypeMap = inferredFields.mapValues { Pair(it.value, typeFields[it.key]!!) }
+                    if (!expressionTypeMap.values.all { it.first.typeCheck(context, it.second) }) Type.bottom
+                    else if ((parentType == null) != (parent == null) || (parentType != null && !(parent?.typeCheck(
+                            context, parentType
+                        ) ?: true))
+                    ) Type.bottom
+                    else type
+                } else Type.bottom
+            }
+        }
+
+        else -> null
     }
-
-
-    if (this is PropertyExpression) {
-        val type = context.getType(this.identifier)
-        if (type !is PropertyType) return null
-
-        val typeFields = type.fields
-        val declaredFields = fields
-        val inferredFields = typeFields.filterValues { it.isAssignableFrom(context, Type.undefined) }
-            .mapValues { LiteralExpression.EUndefined() } + declaredFields
-        val parentType = type.parent?.let { Type.reference(it.first) }
-
-        return if (inferredFields.keys == typeFields.keys) {
-            val expressionTypeMap = inferredFields.mapValues { Pair(it.value, typeFields[it.key]!!) }
-            if (!expressionTypeMap.values.all { it.first.typeCheck(context, it.second) }) Type.bottom
-            else if ((parentType == null) != (parent == null) || (parentType != null && !(parent?.typeCheck(
-                    context, parentType
-                ) ?: true))
-            ) Type.bottom
-            else type
-        } else Type.bottom
-    }
-    return null
 }
