@@ -1,8 +1,6 @@
 property Root(value1: A, value2: A)
-property A(a: String)
+property A(a: Boolean)
 
 property Found()
 
-A(a="2") => Found()
-
-Found() => Found()
+A(a=True) => Found()

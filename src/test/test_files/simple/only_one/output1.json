@@ -1,8 +1,13 @@
 {
   "value1": {
-    "a": false,
+    "a": true,
     "_type": "A",
-    "_annotations": []
+    "_annotations": [
+      {
+        "_type": "Found",
+        "_annotations": []
+      }
+    ]
   },
   "value2": {
     "a": false,
