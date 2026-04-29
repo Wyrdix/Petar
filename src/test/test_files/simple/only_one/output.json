@@ -1,14 +1,11 @@
 {
   "value1": {
     "a": false,
-    "_type": "A",
-    "_annotations": []
+    "_type": "A"
   },
   "value2": {
     "a": false,
-    "_type": "A",
-    "_annotations": []
+    "_type": "A"
   },
-  "_type": "Root",
-  "_annotations": []
+  "_type": "Root"
 }

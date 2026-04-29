@@ -21,11 +21,12 @@ class JsonSerializer : Serializer<JsonElement> {
                     .forEach { (key, value) -> obj.add(key, value) }
                 obj.add("_type", JsonPrimitive(data.type.identifier))
             }.also { obj ->
-                if (context != null) {
+                val annotations = context?.getAnnotations(data)
+                if (context != null && !annotations.isNullOrEmpty()) {
                     obj.add(
                         "_annotations",
                         JsonArray().also {
-                            context.getAnnotations(data).map { data ->
+                            annotations.map { data ->
                                 this.serialize(
                                     data,
                                     context

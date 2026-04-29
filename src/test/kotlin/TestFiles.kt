@@ -3,6 +3,7 @@ import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.stream.Stream
 import kotlin.streams.asStream
 import kotlin.test.assertEquals

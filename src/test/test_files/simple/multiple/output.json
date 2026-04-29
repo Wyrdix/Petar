@@ -9,8 +9,13 @@
     ]
   },
   "value2": {
-    "a": false,
-    "_type": "A"
+    "a": true,
+    "_type": "A",
+    "_annotations": [
+      {
+        "_type": "Found"
+      }
+    ]
   },
   "_type": "Root"
 }
