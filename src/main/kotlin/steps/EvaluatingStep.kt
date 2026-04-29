@@ -24,14 +24,15 @@ class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingCon
                 rootInput.visit { input ->
                     val pattern = statement.pattern
                     val production = statement.production
-                    if (getAnnotations(input).find { it.type.identifier == production.identifier } != null) return@visit null
+                    val restriction = if (input is MemoryObject) listOf(input.type.identifier) else emptyList()
+                    if ((restriction + getAnnotations(input).map { it.type.identifier }).find { it == production.identifier } != null) return@visit null
                     val environments = pattern.match(this, input)
                     if (!environments.hasNext()) return@visit null
                     val env = environments.next()
                     val annotation = production.evaluate(this, env)
                     if (annotation is MemoryObject) {
                         changed = true
-                        addAnnotation(input, annotation)
+                        addAnnotation(env.choices[input] ?: input, annotation)
                     }
                     return@visit null
                 }

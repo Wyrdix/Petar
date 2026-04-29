@@ -5,7 +5,8 @@ import fr.univ_lille.iut_info.IIterator.Companion.toIIterator
 import fr.univ_lille.iut_info.PatternModifier.*
 
 data class EvaluationEnvironment(
-    val definitions: Map<String, MemoryElement> = emptyMap(), val guards: List<Expression> = emptyList()
+    val definitions: Map<String, MemoryElement> = emptyMap(),
+    val choices: Map<MemoryObject, MemoryObject> = emptyMap()
 )
 
 interface IEvaluatingContext : ITypingContext {
@@ -42,14 +43,18 @@ interface IEvaluatingContext : ITypingContext {
 }
 
 fun EvaluationEnvironment.add(key: String, element: MemoryElement): EvaluationEnvironment {
-    return EvaluationEnvironment(definitions + Pair(key, element), guards)
+    return EvaluationEnvironment(definitions + Pair(key, element))
+}
+
+fun EvaluationEnvironment.choice(parent: MemoryObject, choice: MemoryObject): EvaluationEnvironment {
+    return EvaluationEnvironment(definitions, choices + (parent to choice))
 }
 
 fun Pattern.applyEffects(
     context: IEvaluatingContext, element: MemoryElement?, environment: EvaluationEnvironment
 ): EvaluationEnvironment {
     val name = name;
-    return if (name != null) {
+    return (if (name != null) {
         if (this.modifier == ONE) if (element != null) environment.add(name, element) else environment
         else {
             val arrayType = context.getCheckedPatternType(context.patternParentMap[this]!!)!! as ArrayType
@@ -65,7 +70,14 @@ fun Pattern.applyEffects(
             val array = MemoryArray(arrayType, existing.value + (if (element == null) emptyList() else listOf(element)))
             environment.add(name, array)
         }
-    } else environment
+    } else environment).let { environment ->
+        if (element != null && element is MemoryObject) {
+            val parent = context.memoryAnnotationRoot[element]
+            if (parent != null && parent is MemoryObject) environment.choice(parent, element)
+            else environment
+        } else
+            environment
+    }
 }
 
 fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvironment): MemoryElement {
@@ -172,7 +184,7 @@ fun Pattern.match(
             (context.getAnnotations(element).map { it } + element).filterIsInstance<MemoryObject>()
                 .filter { it.type.identifier == this.identifier }.toIIterator().flatMapI {
                     fields.entries.toIIterator().foldI(
-                        IIterator.singleton(this.applyEffects(context, element, environment))
+                        IIterator.singleton(this.applyEffects(context, it, environment))
                     ) { acc, (key, value) ->
                         val keyedElement = it.value[key] ?: MemoryUndefined()
                         acc.flatMapI { env ->
