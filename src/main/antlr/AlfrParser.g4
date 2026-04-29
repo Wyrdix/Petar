@@ -47,7 +47,7 @@ enclosed_type_2: LPAREN type RPAREN | ref = type_identifier;
 type: enclosed_type_1;
 
 rewrite_rule_statement:
-	pattern KEYWORD_SPECIFY_REWRITE result = expression;
+	pattern KEYWORD_SPECIFY_REWRITE result = expression_property;
 
 // Patterns
 pattern: (

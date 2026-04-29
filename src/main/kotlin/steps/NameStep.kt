@@ -2,7 +2,7 @@ package fr.univ_lille.iut_info.steps
 
 import fr.univ_lille.iut_info.*
 
-class NameStep(val program: Program) : ExecutionStep, INameContext {
+class NameStep(override val program: Program) : ExecutionStep, INameContext {
 
 
     override val root: NameNode = NameNode(null)

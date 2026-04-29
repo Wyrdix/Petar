@@ -10,9 +10,6 @@ class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITyping
     override val patternSynthesized: HashMap<Pattern, Type> = HashMap()
     override val patternChecked: HashMap<Pattern, Type> = HashMap()
 
-    val program
-        get() = nameContext.program
-
     override fun run(): List<String> {
 
         val errorList: MutableList<String> = ArrayList()

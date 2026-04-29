@@ -57,7 +57,7 @@ class SpecificationParser {
 
         fun visitRewrite_rule_statement(ctx: Rewrite_rule_statementContext): ProductionRuleStatement {
             return ProductionRuleStatement(
-                visitPattern(ctx.pattern()), visitExpression(ctx.result)
+                visitPattern(ctx.pattern()), visitExpression_object(ctx.result)
             )
         }
 

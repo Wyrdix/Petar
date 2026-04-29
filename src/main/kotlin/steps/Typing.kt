@@ -60,11 +60,11 @@ interface ITypingContext : INameContext {
     }
 
     fun getCheckedType(exp: Expression): Type? {
-        return expressionChecked[exp]
+        return expressionChecked[exp] ?: expressionSynthesized[exp]
     }
 
     fun getCheckedPatternType(pattern: Pattern): Type? {
-        return patternChecked[pattern]
+        return patternChecked[pattern] ?: patternSynthesized[pattern]
     }
 
     fun getType(name: String): Type {
@@ -173,9 +173,11 @@ fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean 
             if (type !is ArrayType) return false
             return context.typePatternChecked(this, this.values.all { it.typeCheck(context, type.type, true) }, type)
         }
+
         type is AnyType -> {
             return context.typePatternChecked(this, true, Type.any)
         }
+
         else -> return false
     }
 }
@@ -298,13 +300,13 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
 
                 if (inferredFields.keys == typeFields.keys) {
                     val expressionTypeMap = inferredFields.mapValues { Pair(it.value, typeFields[it.key]!!) }
-                    if (!expressionTypeMap.values.all { it.first.typeCheck(context, it.second) }) Type.bottom
+                    if (!expressionTypeMap.values.all { it.first.typeCheck(context, it.second) }) context.typeSynthesis(this, Type.bottom)
                     else if ((parentType == null) != (parent == null) || (parentType != null && !(parent?.typeCheck(
                             context, parentType
                         ) ?: true))
-                    ) Type.bottom
-                    else type
-                } else Type.bottom
+                    ) context.typeSynthesis(this, Type.bottom)
+                    else context.typeSynthesis(this, type)
+                } else context.typeSynthesis(this, Type.bottom)
             }
         }
 

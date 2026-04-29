@@ -18,6 +18,7 @@ interface IEvaluatingContext : ITypingContext {
     fun getParent(element: MemoryElement) = memoryParentMap[element]
     fun getAnnotationRoot(element: MemoryElement) = memoryAnnotationRoot[element]
     fun getAnnotations(element: MemoryElement) = memoryAnnotationMap[element] ?: emptyList()
+    var output: MemoryObject?
 
     fun addAnnotation(element: MemoryElement, annotation: MemoryObject) {
         memoryAnnotationRoot[annotation] = element
@@ -212,10 +213,18 @@ fun arrayMatching(
         ANY -> IIterator.flat(
             patternHead.match(context, elementsHead!!, environment).flatMapI {
                 arrayMatching(
-                    context, patterns, elementsTails, patternHead.applyEffects(context, elementsHead, environment), modifierAccumulation
+                    context,
+                    patterns,
+                    elementsTails,
+                    patternHead.applyEffects(context, elementsHead, environment),
+                    modifierAccumulation
                 )
             }, arrayMatching(
-                context, patternTail, elements, patternHead.applyEffects(context, null, environment), modifierAccumulation
+                context,
+                patternTail,
+                elements,
+                patternHead.applyEffects(context, null, environment),
+                modifierAccumulation
             )
         )
 
@@ -223,7 +232,11 @@ fun arrayMatching(
             context, elementsHead, patternHead.applyEffects(context, elementsHead, environment)
         ).flatMapI {
             arrayMatching(
-                context, patternTail, elementsTails, patternHead.applyEffects(context, elementsHead, environment), modifierAccumulation
+                context,
+                patternTail,
+                elementsTails,
+                patternHead.applyEffects(context, elementsHead, environment),
+                modifierAccumulation
             )
         }
 

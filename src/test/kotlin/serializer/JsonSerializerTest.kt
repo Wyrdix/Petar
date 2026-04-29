@@ -27,7 +27,7 @@ class JsonSerializerTest {
 
     fun deserializeEmpty(value: String, type: Type): MemoryElement {
         return JsonSerializer.deserialize(
-            parse(value), type, emptyContext
+            parse(value),  emptyContext, type
         )
     }
 

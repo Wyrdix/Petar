@@ -15,6 +15,9 @@ class Command {
     @Parameter(names = ["-i"], description = "Input file", converter = FileConverter::class)
     var input: File? = null
 
+    @Parameter(names = ["-r"], description = "Root type")
+    var rootType: String? = null
+
     @Parameter(names = ["-o"], description = "Output file", converter = FileConverter::class)
     var output: File? = null
 

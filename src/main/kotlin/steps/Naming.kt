@@ -52,6 +52,7 @@ class NameNode(override val parent: INameNode?) : INameNode {
 }
 
 interface INameContext {
+    val program: Program
     val typeNameMap: MutableMap<String, Type>
     val patternNodeMap: MutableMap<Pattern, NameNode>
     val expressionNodeMap: MutableMap<Expression, NameNode>

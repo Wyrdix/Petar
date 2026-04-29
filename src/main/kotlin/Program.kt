@@ -1,11 +1,9 @@
 package fr.univ_lille.iut_info
 
-import fr.univ_lille.iut_info.steps.ExecutionStep
-import fr.univ_lille.iut_info.steps.NameStep
-import fr.univ_lille.iut_info.steps.TypecheckStep
+import fr.univ_lille.iut_info.steps.*
 
 
-data class ProgramData(val statements: List<Statement>)
+data class ProgramData(val statements: List<Statement>, val input: ((typing: ITypingContext) -> MemoryObject)? = null)
 
 interface Statement
 
@@ -14,7 +12,7 @@ data class PropertyDeclarationStatement(
 ) : Statement
 
 data class ProductionRuleStatement(
-    val pattern: Pattern, val production: Expression
+    val pattern: Pattern, val production: PropertyExpression
 ) : Statement
 
 class Program(val data: ProgramData) {
@@ -24,6 +22,7 @@ class Program(val data: ProgramData) {
 
     val name = NameStep(this)
     val type = TypecheckStep(name)
+    val evaluate = EvaluatingStep(type)
 
     val steps: List<ExecutionStep> = listOf(name, type)
 
@@ -33,5 +32,10 @@ class Program(val data: ProgramData) {
             if (errors.isNotEmpty()) return errors
         }
         return emptyList()
+    }
+
+    fun evaluate(): MemoryObject? {
+        evaluate.run()
+        return evaluate.output
     }
 }
