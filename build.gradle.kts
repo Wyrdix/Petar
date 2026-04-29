@@ -1,5 +1,7 @@
 plugins {
+    application
     kotlin("jvm") version "2.3.0"
+    id("com.gradleup.shadow") version "9.4.1"
     antlr
 }
 
@@ -44,4 +46,8 @@ tasks.compileKotlin {
 
 tasks.compileTestKotlin {
     dependsOn("generateTestGrammarSource")
+}
+
+application {
+    mainClass = "fr.univ_lille.iut_info.cli.MainKt"
 }
