@@ -1,0 +1,19 @@
+{
+  "value1": {
+    "a": "3",
+    "_type": "A",
+    "_annotations": []
+  },
+  "value2": {
+    "a": "2",
+    "_type": "A",
+    "_annotations": [
+      {
+        "_type": "Found",
+        "_annotations": []
+      }
+    ]
+  },
+  "_type": "Root",
+  "_annotations": []
+}

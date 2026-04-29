@@ -1,0 +1,8 @@
+property Root(value1: A, value2: A)
+property A(a: String)
+
+property Found()
+
+A(a="2") => Found()
+
+Found() => Found()
