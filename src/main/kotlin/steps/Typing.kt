@@ -138,7 +138,9 @@ fun Type.isAssignableFrom(context: ITypingContext, other: Type): Boolean {
 
     return when (this) {
         is ReferenceType -> resolveReference(context).isAssignableFrom(context, other)
+        is AnyPatternType,
         is AnyType -> other !is PrimitiveType.UndefinedType
+
         is BottomType -> false
         is UnionType -> this.types.any { it.isAssignableFrom(context, other) }
 
@@ -169,6 +171,10 @@ fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean 
     )
 
     when {
+        type is AnyPatternType -> {
+            return context.typePatternChecked(this, true, Type.anyPattern)
+        }
+
         this is ArrayPattern -> {
             if (type !is ArrayType) return false
             return context.typePatternChecked(this, this.values.all { it.typeCheck(context, type.type, true) }, type)
@@ -254,7 +260,7 @@ fun Expression.typeCheck(context: ITypingContext, type: Type): Boolean {
         is ArrayExpression -> if (type !is ArrayType) false
         else context.typeChecked(this, this.values.all { this.typeCheck(context, type.type) }, type)
 
-        is ExpressionAccess.Index, is ExpressionAccess.Member, is LiteralExpression.EBoolean, is LiteralExpression.ENumber, is LiteralExpression.EString, is LiteralExpression.EUndefined, is PropertyExpression -> false
+        is ExpressionAccess.Index, is ExpressionAccess.Member, is LiteralExpression.EBoolean, is LiteralExpression.ENumber, is LiteralExpression.EString, is LiteralExpression.EUndefined, is PropertyExpression, is FunctionCallExpression -> false
     }
 }
 
@@ -288,6 +294,22 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
             else null
         }
 
+        is FunctionCallExpression -> {
+            val prototype = FunctionPrototype.valueOf(this.name)
+
+            val argsType =
+                if (prototype.arbitraryLast) prototype.args.toList() + List(0.coerceAtLeast(this.arguments.size - prototype.args.size)) { prototype.args.last() }
+                else prototype.args.toList()
+
+            val argTypeCheck = argsType.zip(this.arguments).all { (type, pattern) ->
+                val typeCheck = pattern.typeCheck(context, type)
+                typeCheck
+            }
+
+            if (argTypeCheck) context.typeSynthesis(this, prototype.returnType)
+            else context.typeSynthesis(this, Type.bottom)
+        }
+
         is PropertyExpression -> {
             val type = context.getType(this.identifier)
             if (type !is PropertyType) null
@@ -300,7 +322,9 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
 
                 if (inferredFields.keys == typeFields.keys) {
                     val expressionTypeMap = inferredFields.mapValues { Pair(it.value, typeFields[it.key]!!) }
-                    if (!expressionTypeMap.values.all { it.first.typeCheck(context, it.second) }) context.typeSynthesis(this, Type.bottom)
+                    if (!expressionTypeMap.values.all { it.first.typeCheck(context, it.second) }) context.typeSynthesis(
+                        this, Type.bottom
+                    )
                     else if ((parentType == null) != (parent == null) || (parentType != null && !(parent?.typeCheck(
                             context, parentType
                         ) ?: true))

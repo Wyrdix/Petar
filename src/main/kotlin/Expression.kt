@@ -173,6 +173,19 @@ data class ArrayExpression(val values: List<Expression>) : Expression() {
 
 }
 
+data class FunctionCallExpression(val name: String, val arguments: List<Pattern>) : Expression() {
+    override fun accept(visitor: Visitor<Expression>): Expression {
+        return FunctionCallExpression(name, arguments.map { arg ->
+            arg.visit {
+                if (it is ExpressionPattern) {
+                    return@visit ExpressionPattern(visitor.visit(it.value), it.meta)
+                }
+                return@visit null
+            }
+        })
+    }
+}
+
 data class PropertyExpression(
     val identifier: String,
     val inlinedFields: List<Pair<String, Expression>>,

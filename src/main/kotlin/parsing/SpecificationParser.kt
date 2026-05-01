@@ -217,12 +217,19 @@ class SpecificationParser {
             val expressionAccess = ctx.expression_access()?.let { visitExpression_access(it) }
             val expressionArray = ctx.expression_array()?.let { visitExpression_array(it) }
             val expressionObject = ctx.expression_property()?.let { visitExpression_object(it) }
+            val expressionFunction = ctx.expression_function()?.let { visitExpression_function(it) }
             val expressionLiteral = ctx.expression_literal()?.let { visitExpression_literal(it) }
             val unaryExpression = ctx.unary_expression()?.let { visitUnary_expression(it) }
             val expression = ctx.expression()?.let { visitExpression(it) }
             return expressionAccess ?: expressionArray ?: expressionObject
             ?: expressionLiteral ?: unaryExpression ?: expression
-            ?: throw IllegalStateException("Unknown enclosed expression context")
+            ?: expressionFunction ?: throw IllegalStateException("Unknown enclosed expression context")
+        }
+
+        fun visitExpression_function(ctx: Expression_functionContext): FunctionCallExpression {
+            val id = ctx.FUNCTION_IDENTIFIER().text.substring(1)
+            val args = ctx.args.map { visitPattern(it) }
+            return FunctionCallExpression(id, args)
         }
 
         fun visitObject_field(ctx: Expression_property_fieldContext): Pair<String, Expression> {

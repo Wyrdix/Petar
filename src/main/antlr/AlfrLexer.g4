@@ -4,8 +4,7 @@ channels {
 	COMMENTS
 }
 
-// Function
-FUNCTION_SEARCH: '$search';
+FUNCTION_IDENTIFIER: DOLLAR IDENTIFIER;
 
 UNDEFINED: 'undefined';
 TRUE: 'True';
@@ -16,6 +15,7 @@ COMMA: ',';
 EQUAL: '=';
 LBRACK: '[';
 RBRACK: ']';
+DOLLAR: '$';
 LUNORDERED_ARRAY: '[|';
 RUNORDERED_ARRAY: '|]';
 LCURB: '{';

@@ -45,6 +45,24 @@ fun <T : Visitable<T>, U> T.mapFilter(func: Function<T, Pair<U, Boolean>>): List
     return accumulation
 }
 
+fun <T : Visitable<T>> T.find(
+    visitor: ((node: T) -> Boolean)
+): T? {
+    var found: T? = null
+    this.visit { node, _ ->
+        if (found != null) node
+        else if (visitor(node)) {
+            found = node
+            node
+        } else null
+    }
+    return found
+}
+
+fun <T : Visitable<T>> T.any(
+    visitor: ((node: T) -> Boolean)
+): Boolean = find(visitor) != null
+
 fun <T : Visitable<T>, U> T.map(func: Function<T, U>): List<U> {
     return this.mapFilter { node -> Pair(func.apply(node), true) }
 }

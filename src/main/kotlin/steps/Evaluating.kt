@@ -141,6 +141,11 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
                 this.fields.mapValues { (_, value) -> value.evaluate(context, environment) })
         }
 
+        is FunctionCallExpression -> {
+            val prototype = FunctionPrototype.entries.find { it.name == this.name }!!
+            prototype.evaluation(this, context, environment)
+        }
+
         is UnaryExpression -> when (this) {
             is UnaryExpression.Negate -> MemoryBoolean(
                 !(operand.evaluate(context, environment) as MemoryBoolean).value

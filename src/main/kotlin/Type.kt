@@ -23,6 +23,9 @@ sealed class Type : Visitable<Type> {
         val any: AnyType
             get() = AnyType.instance
 
+        val anyPattern: AnyPatternType
+            get() = AnyPatternType.instance
+
         val bottom: BottomType
             get() = BottomType.instance
 
@@ -83,6 +86,16 @@ class BottomType : Type() {
 
     companion object {
         val instance = BottomType()
+    }
+}
+
+class AnyPatternType : Type() {
+    override fun accept(visitor: Visitor<Type>): Type {
+        return this
+    }
+
+    companion object {
+        val instance = AnyPatternType()
     }
 }
 

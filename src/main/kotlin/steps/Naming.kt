@@ -61,6 +61,7 @@ interface INameContext {
     val expressionChildrenMap: MutableMap<Expression, List<Expression>>
     val patternParentMap: MutableMap<Pattern, Pattern?>
     val patternChildrenMap: MutableMap<Pattern, List<Pattern>>
+    val nameErrors: MutableList<String>
 
     fun getNameNode(expression: Expression): NameNode {
         return expressionNodeMap[expression] ?: throw IllegalStateException("Could not find name node for expression.")
@@ -68,6 +69,10 @@ interface INameContext {
 
     fun getNameNode(expression: Pattern): NameNode {
         return patternNodeMap[expression] ?: throw IllegalStateException("Could not find name node for pattern.")
+    }
+
+    fun addNameError(error: String) {
+        nameErrors.add(error)
     }
 }
 
@@ -91,6 +96,7 @@ fun INameContext.getTypeDependencies(type: Type): Set<String> {
 
             is AnyType -> setOf("Any")
             is BottomType -> emptySet()
+            is AnyPatternType -> emptySet()
         }
     }
 
@@ -154,9 +160,16 @@ fun initial(context: INameContext, pattern: Pattern, root: NameNode = context.ro
 
 fun fillNodes(context: INameContext, root: Expression): Expression {
     return root.visit {
-        if (it is PatternMatchExpression) fillNodes(context, it.right)
-        if (it is ExpressionAccess.Member && it.parent == null) {
-            context.getNameNode(it).addUsage(it.identifier, it)
+        when (it) {
+            is PatternMatchExpression -> fillNodes(context, it.right)
+            is ExpressionAccess.Member if it.parent == null -> {
+                context.getNameNode(it).addUsage(it.identifier, it)
+            }
+
+            is FunctionCallExpression if !FunctionPrototype.entries.map { proto -> proto.name }.contains(it.name) ->
+                context.addNameError("$it function is used but does not exist")
+
+            else -> null
         }
         return@visit null
     }

@@ -110,7 +110,8 @@ enclosed_expression:
 	| expression_access
 	| expression_array
 	| expression_unordered_array
-	| expression_property;
+	| expression_property
+	| expression_function;
 
 expression: binary_expression | enclosed_expression;
 
@@ -133,3 +134,5 @@ expression_unordered_array:
 	LUNORDERED_ARRAY (
 		(values += expression COMMA)* (values += expression)?
 	) RUNORDERED_ARRAY;
+
+expression_function: FUNCTION_IDENTIFIER LPAREN ( (args+=pattern COMMA)* args+=pattern )? RPAREN;

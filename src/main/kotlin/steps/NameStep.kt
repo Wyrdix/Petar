@@ -9,6 +9,7 @@ class NameStep(override val program: Program) : ExecutionStep, INameContext {
     override val typeNameMap: MutableMap<String, Type> = HashMap()
     override val patternNodeMap: MutableMap<Pattern, NameNode> = HashMap()
     override val expressionNodeMap: MutableMap<Expression, NameNode> = HashMap()
+    override val nameErrors: MutableList<String> = ArrayList()
 
     override val expressionParentMap: MutableMap<Expression, Expression?> = HashMap()
     override val expressionChildrenMap: MutableMap<Expression, List<Expression>> = HashMap()
@@ -47,6 +48,6 @@ class NameStep(override val program: Program) : ExecutionStep, INameContext {
 
         if (undefinedUsages.isNotEmpty()) return undefinedUsages.map { "$it is used but not defined." }
 
-        return emptyList()
+        return nameErrors
     }
 }
