@@ -12,7 +12,8 @@ import fr.univ_lille.iut_info.parsing.SpecificationParser
 import fr.univ_lille.iut_info.serializer.JsonSerializer
 import fr.univ_lille.iut_info.steps.StepError
 import java.util.Locale.getDefault
-import kotlin.io.path.isDirectory
+import kotlin.math.ceil
+import kotlin.math.log10
 
 fun main(args: Array<String>) {
     val command = Command()
@@ -47,11 +48,9 @@ fun main(args: Array<String>) {
         println("The input file do not exist.")
     }
 
-    val commonAncestor = command.specifications.map { it.toPath().toAbsolutePath() }
-        .reduce { acc, file -> acc.zip(file).findLast { (it1, it2) -> it1 == it2 }!!.first }.let {
-            if (!it.isDirectory()) it.parent
-            else it
-        }.toAbsolutePath().toString() + "/"
+    val commonAncestor = command.specifications.map { it.parentFile.toPath().toAbsolutePath() }
+        .reduce { acc, file -> acc.zip(file).findLast { (it1, it2) -> it1 == it2 }!!.first.toAbsolutePath() }
+        .toAbsolutePath().toString() + "/"
 
     val fileMap = command.specifications.associateBy { file ->
         file.toPath().toAbsolutePath().toString().substring(commonAncestor.length)
@@ -99,13 +98,23 @@ fun main(args: Array<String>) {
     } catch (e: StepError) {
         val range = e.range.textual
         val message = e.message
-        val errorType =
-            e.step.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(getDefault()) else it.toString() } + "Error"
+        val errorType = e.step.name.lowercase()
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(getDefault()) else it.toString() } + "Error"
         if (range == null || !fileMap.containsKey(range.filename)) {
             System.err.println("${errorType}: $message")
         } else {
             val file = fileMap[range.filename]!!
-            val lines = file.readLines().subList(range.begin.line, range.end.line+1).mapIndexed { index, string -> "${index+range.begin.line} | $string" }
+
+            val padding = ceil(log10((range.end.line + 1).toDouble())).toInt()
+
+            println(padding)
+
+            val lines = file.readLines().subList(range.begin.line, range.end.line + 1)
+                .mapIndexed { index, string ->
+                    val size =
+                        if (index + range.begin.line == 0) 0 else log10((index + range.begin.line).toDouble()).toInt()
+                    "${index + range.begin.line}${" ".repeat(padding - size)}| $string"
+                }
             val linesJoined = lines.joinToString(separator = "\n") { it }
             System.err.println("$errorType in ${range.filename} (${range.begin.line}:${range.begin.row} to ${range.end.line}:${range.end.row}): ${message}\n${linesJoined}")
         }
