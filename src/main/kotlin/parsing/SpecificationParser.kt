@@ -172,10 +172,10 @@ class SpecificationParser {
 
         fun visitExpression_access(ctx: Expression_accessContext): ExpressionAccess {
             val parent = ctx.parent
-            val id = ctx.id
+            val access = ctx.id ?: ctx.access
             val index = ctx.index
             if (index != null) return ExpressionAccess.Index(visitExpression_access(parent), visitExpression(index))
-            if (id != null) return ExpressionAccess.Member(parent?.let { visitExpression_access(it) }, id.text)
+            if (access != null) return ExpressionAccess.Member(parent?.let { visitExpression_access(it) }, access.text)
             throw IllegalStateException("Unknown expression access context")
         }
 
