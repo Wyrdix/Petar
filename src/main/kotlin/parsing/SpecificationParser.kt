@@ -131,7 +131,7 @@ class SpecificationParser {
             ctx: Pattern_regexContext, fields: PatternMeta
         ): RegexPattern {
             val regex = ctx.REGEX_STRING().text
-            return RegexPattern(regex.substring(1, regex.length - 1), fields)
+            return RegexPattern(regex.substring(2, regex.length - 1), fields)
         }
 
         fun visitPattern_expression(
