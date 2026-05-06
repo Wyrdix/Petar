@@ -22,7 +22,7 @@ sealed class Expression : Visitable<Expression> {
 sealed class ExpressionAccess : Expression() {
     abstract val parent: ExpressionAccess?
 
-    data class Index(
+    class Index(
         override val parent: ExpressionAccess, val expression: Expression
     ) : ExpressionAccess() {
         override fun accept(visitor: Visitor<Expression>): Expression {
@@ -31,7 +31,7 @@ sealed class ExpressionAccess : Expression() {
 
     }
 
-    data class Member(
+    class Member(
         override val parent: ExpressionAccess?, val identifier: String
     ) : ExpressionAccess() {
         override fun accept(visitor: Visitor<Expression>): Expression {
@@ -47,11 +47,11 @@ sealed class LiteralExpression : Expression() {
         return this
     }
 
-    data class EString(val value: String) : LiteralExpression()
+    class EString(val value: String) : LiteralExpression()
 
-    data class ENumber(val value: Float) : LiteralExpression()
+    class ENumber(val value: Float) : LiteralExpression()
 
-    data class EBoolean(val value: Boolean) : LiteralExpression()
+    class EBoolean(val value: Boolean) : LiteralExpression()
 
     class EUndefined : LiteralExpression() {
         override fun toString(): String {
@@ -67,7 +67,7 @@ sealed class BinaryExpression : Expression() {
     abstract val resultType: Type
 
 
-    data class And(override val left: Expression, override val right: Expression) : BinaryExpression() {
+    class And(override val left: Expression, override val right: Expression) : BinaryExpression() {
         override val resultType: Type = Type.boolean
         override val operandType: Type = Type.boolean
 
@@ -77,7 +77,7 @@ sealed class BinaryExpression : Expression() {
 
     }
 
-    data class Or(override val left: Expression, override val right: Expression) : BinaryExpression() {
+    class Or(override val left: Expression, override val right: Expression) : BinaryExpression() {
         override val resultType: Type = Type.boolean
         override val operandType: Type = Type.boolean
 
@@ -87,7 +87,7 @@ sealed class BinaryExpression : Expression() {
 
     }
 
-    data class Multiply(override val left: Expression, override val right: Expression) : BinaryExpression() {
+    class Multiply(override val left: Expression, override val right: Expression) : BinaryExpression() {
         override val resultType: Type = Type.number
         override val operandType: Type = Type.number
 
@@ -97,7 +97,7 @@ sealed class BinaryExpression : Expression() {
 
     }
 
-    data class Divide(override val left: Expression, override val right: Expression) : BinaryExpression() {
+    class Divide(override val left: Expression, override val right: Expression) : BinaryExpression() {
         override val resultType: Type = Type.number
         override val operandType: Type = Type.number
 
@@ -108,7 +108,7 @@ sealed class BinaryExpression : Expression() {
 
     }
 
-    data class Plus(override val left: Expression, override val right: Expression) : BinaryExpression() {
+    class Plus(override val left: Expression, override val right: Expression) : BinaryExpression() {
         override val resultType: Type = Type.number
         override val operandType: Type = Type.number
 
@@ -118,7 +118,7 @@ sealed class BinaryExpression : Expression() {
 
     }
 
-    data class Minus(override val left: Expression, override val right: Expression) : BinaryExpression() {
+    class Minus(override val left: Expression, override val right: Expression) : BinaryExpression() {
         override val resultType: Type = Type.number
         override val operandType: Type = Type.number
 
@@ -129,7 +129,7 @@ sealed class BinaryExpression : Expression() {
     }
 }
 
-data class PatternMatchExpression(val left: Expression, val right: Pattern) : Expression() {
+class PatternMatchExpression(val left: Expression, val right: Pattern) : Expression() {
     override fun accept(visitor: Visitor<Expression>): Expression {
         return PatternMatchExpression(visitor.visit(left), right.visit {
             if (it is ExpressionPattern) {
@@ -145,7 +145,7 @@ sealed class UnaryExpression : Expression() {
     abstract val operand: Expression
     abstract val operandAndResultType: Type
 
-    data class Negate(override val operand: Expression) : UnaryExpression() {
+    class Negate(override val operand: Expression) : UnaryExpression() {
         override val operandAndResultType: Type
             get() = Type.boolean
 
@@ -155,7 +155,7 @@ sealed class UnaryExpression : Expression() {
 
     }
 
-    data class Opposite(override val operand: Expression) : UnaryExpression() {
+    class Opposite(override val operand: Expression) : UnaryExpression() {
         override val operandAndResultType: Type
             get() = Type.number
 
@@ -166,14 +166,14 @@ sealed class UnaryExpression : Expression() {
     }
 }
 
-data class ArrayExpression(val values: List<Expression>) : Expression() {
+class ArrayExpression(val values: List<Expression>) : Expression() {
     override fun accept(visitor: Visitor<Expression>): Expression {
         return ArrayExpression(values.map(visitor::visit))
     }
 
 }
 
-data class FunctionCallExpression(val name: String, val arguments: List<Pattern>) : Expression() {
+class FunctionCallExpression(val name: String, val arguments: List<Pattern>) : Expression() {
     override fun accept(visitor: Visitor<Expression>): Expression {
         return FunctionCallExpression(name, arguments.map { arg ->
             arg.visit {
@@ -186,7 +186,7 @@ data class FunctionCallExpression(val name: String, val arguments: List<Pattern>
     }
 }
 
-data class PropertyExpression(
+class PropertyExpression(
     val identifier: String,
     val inlinedFields: List<Pair<String, Expression>>,
     val parent: Expression? = null
