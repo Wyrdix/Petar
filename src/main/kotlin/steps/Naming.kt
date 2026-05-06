@@ -112,48 +112,29 @@ fun INameContext.getTypeDependencies(type: Type): Set<String> {
     return accumulation
 }
 
-class ChildrenExpressionCollector(val context: INameContext, val parent: Expression, val root: NameNode) :
-    Visitor<Expression> {
-    val children: ArrayList<Expression> = ArrayList()
-    override fun visit(obj: Expression): Expression {
-        children.add(obj)
-        context.expressionNodeMap[obj] = context.expressionNodeMap[parent] ?: root
-        if (obj is PatternMatchExpression) {
-            context.expressionNodeMap[obj] = NameNode(context.expressionNodeMap[obj])
-        }
-        return initial(context, obj)
-    }
-}
-
-
-class ChildrenPatternCollector(val context: INameContext, val parent: Pattern, val root: NameNode) : Visitor<Pattern> {
-    val children: ArrayList<Pattern> = ArrayList()
-    override fun visit(obj: Pattern): Pattern {
-        children.add(obj)
-        context.patternNodeMap[obj] = context.patternNodeMap[parent] ?: root
-        if (obj is ExpressionPattern) {
-            context.patternNodeMap[obj] = NameNode(context.patternNodeMap[obj])
-        }
-        return initial(context, obj)
-    }
-}
-
-
 fun initial(context: INameContext, expression: Expression, root: NameNode = context.root): Expression {
-    val collector = ChildrenExpressionCollector(context, expression, root)
-    expression.accept(collector)
-    collector.children.forEach { context.expressionParentMap[it] = expression }
-    context.expressionChildrenMap[expression] = collector.children.toList()
-    context.expressionNodeMap[expression] = NameNode(parent = context.expressionNodeMap[expression])
+    val children = expression.children()
+    children.forEach { context.expressionParentMap[it] = expression }
+    context.expressionChildrenMap[expression] = children
+
+    context.expressionNodeMap[expression] = root
+
+    children.forEach { initial(context, it, root) }
+
     return expression
 }
 
 fun initial(context: INameContext, pattern: Pattern, root: NameNode = context.root): Pattern {
-    val collector = ChildrenPatternCollector(context, pattern, root)
-    pattern.accept(collector)
-    collector.children.forEach { context.patternParentMap[it] = pattern }
-    context.patternChildrenMap[pattern] = collector.children.toList()
-    context.patternNodeMap[pattern] = NameNode(parent = context.patternNodeMap[pattern])
+    val children = pattern.children()
+    children.forEach { context.patternParentMap[it] = pattern }
+    context.patternChildrenMap[pattern] = children
+
+    context.patternNodeMap[pattern] = root
+
+    children.forEach { initial(context, it, root) }
+
+    val condition = pattern.condition
+    if (condition != null) initial(context, condition, root)
 
     return pattern
 }

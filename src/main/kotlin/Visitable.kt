@@ -70,3 +70,18 @@ fun <T : Visitable<T>, U> T.map(func: Function<T, U>): List<U> {
 fun <T : Visitable<T>, U : Any> T.mapNotNull(func: Function<T, U?>): List<U> {
     return this.map(func).filterNotNull()
 }
+
+fun <T : Visitable<T>> T.children(): List<T> {
+    return ArrayList<T>().apply {
+        var first = false
+        visit {
+            if (!first) {
+                first = true
+                null
+            } else {
+                addLast(it)
+                it
+            }
+        }
+    }
+}
