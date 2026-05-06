@@ -206,8 +206,8 @@ fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false)
         is PropertyPattern -> {
             val type = context.getType(this.identifier)
             if (type !is PropertyType) null
-            else if (!type.fields.keys.containsAll(this.fields.keys)) null
-            else if (!type.fields.all {
+            else if (!type.getAllFields(context).keys.containsAll(this.fields.keys)) null
+            else if (!type.getAllFields(context).all {
                     val fieldValue = this.fields[it.key]
                     fieldValue?.typeCheck(context, it.value) ?: true
                 }) Type.bottom
