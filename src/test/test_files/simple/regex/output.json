@@ -1,0 +1,10 @@
+{
+  "a": "Test",
+  "_type": "Root",
+  "_annotations": [
+    {
+      "a": "Test",
+      "_type": "T"
+    }
+  ]
+}
