@@ -202,6 +202,10 @@ class SpecificationParser {
             if (ctx.PLUS() != null) return BinaryExpression.Plus(left, right)
             if (ctx.MINUS() != null) return BinaryExpression.Minus(left, right)
             if (ctx.DIVIDE() != null) return BinaryExpression.Divide(left, right)
+            if (ctx.EQUAL() != null) return PatternMatchExpression(
+                left,
+                visitPattern(ctx.right_pattern)
+            )
             throw IllegalStateException("Unknown binary expression context")
         }
 
