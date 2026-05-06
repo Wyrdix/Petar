@@ -27,29 +27,29 @@ class JsonSerializerTest {
 
     fun deserializeEmpty(value: String, type: Type): MemoryElement {
         return JsonSerializer.deserialize(
-            parse(value),  emptyContext, type
+            parse(value), emptyContext, type
         )
     }
 
     @Test
     fun deserializePrimitive() {
-        assertEquals(
-            MemoryElement.string("Value"), deserializeEmpty("\"Value\"", Type.string)
+        assert(
+            MemoryElement.string("Value").strongEquals(deserializeEmpty("\"Value\"", Type.string))
         )
-        assertEquals(
-            MemoryElement.number(10), deserializeEmpty("10", Type.number)
+        assert(
+            MemoryElement.number(10).strongEquals(deserializeEmpty("10", Type.number))
         )
-        assertEquals(
-            MemoryElement.boolean(true), deserializeEmpty("true", Type.boolean)
+        assert(
+            MemoryElement.boolean(true).strongEquals(deserializeEmpty("true", Type.boolean))
         )
-        assertNotEquals(
-            MemoryElement.boolean(true), deserializeEmpty("\"Value\"", Type.string)
+        assert(
+            !MemoryElement.boolean(true).strongEquals(deserializeEmpty("\"Value\"", Type.string))
         )
-        assertNotEquals(
-            MemoryElement.string("Value"), deserializeEmpty("10", Type.number)
+        assert(
+            !MemoryElement.string("Value").strongEquals(deserializeEmpty("10", Type.number))
         )
-        assertNotEquals(
-            MemoryElement.number(10), deserializeEmpty("true", Type.boolean)
+        assert(
+            !MemoryElement.number(10).strongEquals(deserializeEmpty("true", Type.boolean))
         )
     }
 
@@ -64,20 +64,20 @@ class JsonSerializerTest {
             "_", listOf(Pair("value1", Type.number), Pair("value2", Type.number))
         )
 
-        assertEquals(
+        assert(
             MemoryElement.array(
                 Type.array(type1), listOf(MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))))
-            ), deserializeEmpty("[{\"value\": 10}]", Type.array(type1))
+            ).strongEquals(deserializeEmpty("[{\"value\": 10}]", Type.array(type1)))
         )
 
-        assertEquals(
+        assert(
             MemoryElement.array(
                 Type.array(type2), listOf(
                     MemoryElement.property(
                         type2, mapOf(Pair("value1", MemoryElement.number(10)), Pair("value2", MemoryElement.number(12)))
                     )
                 )
-            ), deserializeEmpty("[{\"value1\": 10, \"value2\": 12}]", Type.array(type2))
+            ).strongEquals(deserializeEmpty("[{\"value1\": 10, \"value2\": 12}]", Type.array(type2)))
         )
 
         assertDoesNotThrow { deserializeEmpty("[]", Type.array(type1)) }
@@ -95,15 +95,16 @@ class JsonSerializerTest {
             "_", listOf(Pair("value1", Type.number), Pair("value2", Type.number))
         )
 
-        assertEquals(
-            MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))),
-            deserializeEmpty("{\"value\": 10}", type1)
+        assert(
+            MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))).strongEquals(
+                deserializeEmpty("{\"value\": 10}", type1)
+            )
         )
 
-        assertEquals(
+        assert(
             MemoryElement.property(
                 type2, mapOf(Pair("value1", MemoryElement.number(11)), Pair("value2", MemoryElement.number(12)))
-            ), deserializeEmpty("{\"value1\": 11, \"value2\":12}", type2)
+            ).strongEquals(deserializeEmpty("{\"value1\": 11, \"value2\":12}", type2))
         )
 
         assertThrows<IllegalStateException> {

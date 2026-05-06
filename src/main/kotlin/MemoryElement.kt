@@ -19,6 +19,8 @@ sealed class MemoryElement : Visitable<MemoryElement> {
         return id == other.id
     }
 
+    abstract fun strongEquals(other: MemoryElement): Boolean
+
     companion object {
         fun string(value: String): MemoryString {
             return MemoryString(value)
@@ -56,6 +58,10 @@ class MemoryUndefined : MemoryElement() {
     override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
         return this
     }
+
+    override fun strongEquals(other: MemoryElement): Boolean {
+        return other is MemoryUndefined
+    }
 }
 
 data class MemoryString(val value: String) : MemoryElement() {
@@ -69,17 +75,8 @@ data class MemoryString(val value: String) : MemoryElement() {
         return this
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as MemoryString
-
-        return value == other.value
-    }
-
-    override fun hashCode(): Int {
-        return value.hashCode()
+    override fun strongEquals(other: MemoryElement): Boolean {
+        return other is MemoryString && other.value == value
     }
 }
 
@@ -94,17 +91,8 @@ data class MemoryNumber(val value: Number) : MemoryElement() {
         return this
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as MemoryNumber
-
-        return value.toDouble() == other.value.toDouble()
-    }
-
-    override fun hashCode(): Int {
-        return value.hashCode()
+    override fun strongEquals(other: MemoryElement): Boolean {
+        return other is MemoryNumber && other.value.toDouble() == value.toDouble()
     }
 }
 
@@ -119,17 +107,8 @@ data class MemoryBoolean(val value: Boolean) : MemoryElement() {
         return this
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as MemoryBoolean
-
-        return value == other.value
-    }
-
-    override fun hashCode(): Int {
-        return value.hashCode()
+    override fun strongEquals(other: MemoryElement): Boolean {
+        return other is MemoryBoolean && other.value == value
     }
 }
 
@@ -143,17 +122,13 @@ data class MemoryObject(override val type: PropertyType, val value: Map<String, 
         return MemoryObject(type, value.mapValues { (_, value) -> visitor.visit(value) })
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as MemoryObject
-
-        return value.keys == other.value.keys && value.entries.all { (key, value) -> other.value[key] == value }
-    }
-
-    override fun hashCode(): Int {
-        return value.hashCode()
+    override fun strongEquals(other: MemoryElement): Boolean {
+        return other is MemoryObject && other.type == type && (other.value.keys.union(value.keys)).map {
+            Pair(
+                other.value[it],
+                value[it]
+            )
+        }.all { (it1, it2) -> it2 != null && it1?.strongEquals(it2) ?: false }
     }
 }
 
@@ -167,16 +142,10 @@ data class MemoryArray(override val type: ArrayType, val value: List<MemoryEleme
         return MemoryArray(type, value.map { visitor.visit(it) })
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as MemoryArray
-
-        return value.size == other.value.size && value.zip(other.value).all { (e1, e2) -> e1 == e2 }
-    }
-
-    override fun hashCode(): Int {
-        return value.hashCode()
+    override fun strongEquals(other: MemoryElement): Boolean {
+        val bool = other is MemoryArray
+        val bool1 = type == other.type
+        return bool && bool1 && other.value.zip(value)
+            .all { (it1, it2) -> it1.strongEquals(it2) }
     }
 }
