@@ -37,7 +37,8 @@ class NameStep(override val program: Program) : ExecutionStep, INameContext {
 
         val nameContext = this
         rules.forEach {
-            initial(nameContext, it.pattern)
+            val ruleRoot = NameNode(root)
+            initial(nameContext, it.pattern, ruleRoot)
             initial(nameContext, it.production, nameContext.getNameNode(it.pattern))
             fillNodes(nameContext, it.pattern)
             fillNodes(nameContext, it.production)
