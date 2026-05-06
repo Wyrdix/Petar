@@ -91,7 +91,8 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
             when (this) {
                 is BinaryExpression.And -> MemoryNumber((left as MemoryNumber).value.toDouble() + (right as MemoryNumber).value.toDouble())
 
-                is BinaryExpression.Divide -> if ((right as MemoryNumber).value.toInt() == 0) throw IllegalStateException(
+                is BinaryExpression.Divide -> if ((right as MemoryNumber).value.toInt() == 0) throw StepError(
+                    Step.EVALUATION, this,
                     "Division by 0"
                 )
                 else MemoryNumber((left as MemoryNumber).value.toDouble() / (right as MemoryNumber).value.toDouble())
@@ -111,7 +112,9 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
                 val array = this.parent.evaluate(context, environment) as MemoryArray
                 val index = (this.expression.evaluate(context, environment) as MemoryNumber).value.toInt()
 
-                if (index < 0 || index >= array.value.size) throw IllegalStateException("Index out of bounds")
+                if (index < 0 || index >= array.value.size) throw StepError(
+                    Step.EVALUATION, this, "Index out of bounds"
+                )
                 else array.value[index]
             }
 
@@ -161,7 +164,9 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
 }
 
 fun Pattern.match(
-    context: IEvaluatingContext, element: MemoryElement, environment: EvaluationEnvironment = EvaluationEnvironment()
+    context: IEvaluatingContext,
+    element: MemoryElement,
+    environment: EvaluationEnvironment = EvaluationEnvironment()
 ): IIterator<EvaluationEnvironment> {
     return when (this) {
         is ExpressionPattern -> {
@@ -170,15 +175,13 @@ fun Pattern.match(
             else IIterator.empty()
         }
 
-        is RegexPattern if element is MemoryString && this.typeCheck(
-            context, element.type
-        ) -> if (element.value.matches(Regex(value))) IIterator.singleton(
+        is RegexPattern if element is MemoryString -> if (element.value.matches(Regex(value))) IIterator.singleton(
             this.applyEffects(
                 context, element, environment
             )
         ) else IIterator.empty()
 
-        is ArrayPattern if element is MemoryArray && this.typeCheck(context, element.type) -> arrayMatching(
+        is ArrayPattern if element is MemoryArray -> arrayMatching(
             context,
             values,
             element.value,
@@ -214,6 +217,19 @@ fun arrayMatching(
     environment: EvaluationEnvironment = EvaluationEnvironment(),
     modifierAccumulation: PatternModifier? = null
 ): IIterator<EvaluationEnvironment> {
+    fun Pattern.safeMatch(
+        context: IEvaluatingContext,
+        element: MemoryElement,
+        environment: EvaluationEnvironment = EvaluationEnvironment()
+    ): IIterator<EvaluationEnvironment> {
+        return try {
+            match(context, element, environment)
+        } catch (_: Error) {
+            IIterator.empty()
+        }
+    }
+
+
     if (patterns.isEmpty() && elements.isEmpty()) return IIterator.singleton(environment)
     if (patterns.isEmpty()) return IIterator.empty()
 
@@ -228,7 +244,7 @@ fun arrayMatching(
         )
 
         ANY -> IIterator.flat(
-            patternHead.match(context, elementsHead!!, environment).flatMapI {
+            patternHead.safeMatch(context, elementsHead!!, environment).flatMapI {
                 arrayMatching(
                     context,
                     patterns,
@@ -245,7 +261,7 @@ fun arrayMatching(
             )
         )
 
-        ONE if elementsHead != null -> patternHead.match(
+        ONE if elementsHead != null -> patternHead.safeMatch(
             context, elementsHead, patternHead.applyEffects(context, elementsHead, environment)
         ).flatMapI {
             arrayMatching(
@@ -258,7 +274,7 @@ fun arrayMatching(
         }
 
         AT_LEAST_ONE if elementsHead != null ->
-            patternHead.match(context, elementsHead, environment).flatMapI {
+            patternHead.safeMatch(context, elementsHead, environment).flatMapI {
                 arrayMatching(
                     context,
                     patterns,

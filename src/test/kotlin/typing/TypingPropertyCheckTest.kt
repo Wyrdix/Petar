@@ -5,6 +5,7 @@ import fr.univ_lille.iut_info.ProgramData
 import fr.univ_lille.iut_info.PropertyType
 import fr.univ_lille.iut_info.Type
 import fr.univ_lille.iut_info.steps.NameStep
+import fr.univ_lille.iut_info.steps.StepError
 import fr.univ_lille.iut_info.steps.TypecheckStep
 import fr.univ_lille.iut_info.steps.check
 import fr.univ_lille.iut_info.steps.getAllFields
@@ -18,11 +19,11 @@ class TypingPropertyCheckTest {
 
     @Test
     fun testMultipleKey() {
-        assertThrows<IllegalStateException> {
+        assertThrows<StepError> {
             PropertyType("_", listOf(Pair("value", Type.number), Pair("value", Type.number))).check(emptyContext)
         }
 
-        assertThrows<IllegalStateException> {
+        assertThrows<StepError> {
             PropertyType("_", listOf(Pair("value", Type.number), Pair("value", Type.string))).check(emptyContext)
         }
 
@@ -40,7 +41,7 @@ class TypingPropertyCheckTest {
         val context = TypecheckStep(NameStep(Program(ProgramData(emptyList()))))
         context.typeNameMap[type1.identifier] = type1
 
-        assertThrows<IllegalStateException> {
+        assertThrows<StepError> {
             PropertyType(
                 "_", listOf(Pair("value", Type.number)), Pair("Root", emptyList())
             ).check(context)
@@ -58,7 +59,7 @@ class TypingPropertyCheckTest {
             ).check(context)
         }
 
-        assertThrows<IllegalStateException> {
+        assertThrows<StepError> {
             PropertyType(
                 "_", listOf(Pair("value1", Type.number)), Pair("Root", listOf(Pair("value", Type.string)))
             ).check(context)

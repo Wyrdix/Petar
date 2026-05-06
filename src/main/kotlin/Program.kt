@@ -3,17 +3,22 @@ package fr.univ_lille.iut_info
 import fr.univ_lille.iut_info.steps.*
 
 
-data class ProgramData(val statements: List<Statement>, val input: ((typing: ITypingContext) -> MemoryObject)? = null)
+data class ProgramData(
+    val statements: List<Statement>,
+    val input: ((typing: ITypingContext) -> MemoryObject)? = null
+)
 
-interface Statement
+sealed class Statement : TextualRangeLocated {
+    override var textual: TextualRange? = null
+}
 
 data class PropertyDeclarationStatement(
     val type: PropertyType
-) : Statement
+) : Statement()
 
 data class ProductionRuleStatement(
     val pattern: Pattern, val production: PropertyExpression
-) : Statement
+) : Statement()
 
 class Program(val data: ProgramData) {
 

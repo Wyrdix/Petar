@@ -3,8 +3,10 @@ package fr.univ_lille.iut_info
 import java.util.*
 import kotlin.assert as assertThrow
 
-sealed class Type : Visitable<Type> {
+sealed class Type : Visitable<Type>, TextualRangeLocated {
     val id = UUID.randomUUID().toString()
+
+    override var textual: TextualRange? = null
 
     override fun hashCode(): Int {
         return javaClass.hashCode()

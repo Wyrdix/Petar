@@ -4,6 +4,7 @@ import fr.univ_lille.iut_info.Program
 import fr.univ_lille.iut_info.ProgramData
 import fr.univ_lille.iut_info.Type
 import fr.univ_lille.iut_info.steps.NameStep
+import fr.univ_lille.iut_info.steps.StepError
 import fr.univ_lille.iut_info.steps.TypecheckStep
 import fr.univ_lille.iut_info.steps.check
 import fr.univ_lille.iut_info.steps.isAssignableFrom
@@ -91,14 +92,14 @@ class TypingAssignableFromTest {
         assertDoesNotThrow { type1.check(context) }
         assertDoesNotThrow { type2.check(context) }
         assertDoesNotThrow { type3.check(context) }
-        assertThrows<IllegalStateException> {
+        assertThrows<StepError> {
             Type.property(
                 "Root2",
                 emptyMap(),
                 Pair("Root1", listOf(Pair("value1", Type.number)))
             ).check(context)
         }
-        assertThrows<IllegalStateException> {
+        assertThrows<StepError> {
             Type.property(
                 "Root2",
                 mapOf(Pair("value1", Type.string)),

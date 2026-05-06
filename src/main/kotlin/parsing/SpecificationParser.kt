@@ -19,7 +19,34 @@ class SpecificationParser {
             }
         }
 
-        fun parse(input: String): Pair<MutableList<String>, List<Statement>> {
+        var fileName: String? = null
+        var content: String? = null
+
+        fun <T : TextualRangeLocated> T.setupRange(ctx: ParserRuleContext): T {
+            val beginIndex = ctx.start.startIndex
+            val endIndex = ctx.stop.stopIndex
+
+            val fileName = fileName
+            val content = content
+            if (beginIndex == -1 || endIndex == -1 || fileName == null || content == null) return this
+
+            val text = content.substring(beginIndex, endIndex)
+            val lines = text.count { it == '\n' }
+            val afterLastCharOnLastLine = ctx.start.charPositionInLine + text.substring(
+                text.lastIndexOf('\n').let { if (it != -1) it else 0 }).length
+
+            this.textual = TextualRange(
+                TextualLocation(fileName, ctx.start.line - 1, ctx.start.charPositionInLine),
+                TextualLocation(fileName, ctx.start.line - 1 + lines, afterLastCharOnLastLine)
+            )
+            return this
+        }
+
+
+        fun parse(name: String, input: String): Pair<MutableList<String>, List<Statement>> {
+            val previous = Pair(fileName, content)
+            fileName = name
+            content = input
             val stream: CharStream = ANTLRInputStream(input)
             val listener = CustomErrorListener()
             val lexer = CollectingAlfrLexer(listener.errors, stream)
@@ -35,6 +62,8 @@ class SpecificationParser {
                 listener.errors.add("Failed to parse: ${e.message}")
                 emptyList()
             }
+            fileName = previous.first
+            content = previous.second
             return Pair(listener.errors, statements)
         }
 
@@ -52,13 +81,13 @@ class SpecificationParser {
 
         fun visitProperty_declaration_statement(ctx: Property_declaration_statementContext): PropertyDeclarationStatement {
             val type = visitProperty_type(ctx.property_type())
-            return PropertyDeclarationStatement(type)
+            return PropertyDeclarationStatement(type).setupRange(ctx)
         }
 
         fun visitRewrite_rule_statement(ctx: Rewrite_rule_statementContext): ProductionRuleStatement {
             return ProductionRuleStatement(
                 visitPattern(ctx.pattern()), visitExpression_object(ctx.result)
-            )
+            ).setupRange(ctx)
         }
 
         fun visitProperty_type(ctx: Property_typeContext): PropertyType {
@@ -69,7 +98,7 @@ class SpecificationParser {
                     parent.parent_identifier.text, parent.restrictions.map(this::visitProperty_type_field)
                 )
             }
-            return PropertyType(id, fields, parent = parent)
+            return PropertyType(id, fields, parent = parent).setupRange(ctx)
         }
 
         fun visitProperty_type_field(ctx: Property_type_fieldContext): Pair<String, Type> {
@@ -78,7 +107,7 @@ class SpecificationParser {
             return Pair(
                 id, when (ctx.QUESTION_MARK()) {
                     null -> type
-                    else -> Type.optional(type)
+                    else -> Type.optional(type).setupRange(ctx)
                 }
             )
         }
@@ -91,7 +120,7 @@ class SpecificationParser {
             val enclosedType2 = ctx.enclosed_type_2()
             return when (val arrayType = ctx.array_type()) {
                 null -> visitEnclosed_type_2(enclosedType2)
-                else -> ArrayType(visitEnclosed_type_2(arrayType.enclosed_type_2()))
+                else -> ArrayType(visitEnclosed_type_2(arrayType.enclosed_type_2())).setupRange(ctx)
             }
         }
 
@@ -101,7 +130,7 @@ class SpecificationParser {
                 else -> when (identifier) {
                     "Any" -> AnyType()
                     else -> ReferenceType(identifier)
-                }
+                }.setupRange(ctx)
 
             }
         }
@@ -131,13 +160,13 @@ class SpecificationParser {
             ctx: Pattern_regexContext, fields: PatternMeta
         ): RegexPattern {
             val regex = ctx.REGEX_STRING().text
-            return RegexPattern(regex.substring(2, regex.length - 1), fields)
+            return RegexPattern(regex.substring(2, regex.length - 1), fields).setupRange(ctx)
         }
 
         fun visitPattern_expression(
             ctx: Pattern_expressionContext, fields: PatternMeta
         ): ExpressionPattern {
-            return ExpressionPattern(visitExpression(ctx.expression()), fields)
+            return ExpressionPattern(visitExpression(ctx.expression()), fields).setupRange(ctx)
         }
 
         fun visitPattern_object_field(ctx: Pattern_property_fieldContext): Pair<String, Pattern> {
@@ -151,14 +180,14 @@ class SpecificationParser {
         ): PropertyPattern {
             val id = ctx.type_identifier().text
             val values = ctx.fields.map { visitPattern_object_field(it) }
-            return PropertyPattern(id, values, fields)
+            return PropertyPattern(id, values, fields).setupRange(ctx)
         }
 
         fun visitPattern_array(
             ctx: Pattern_arrayContext, fields: PatternMeta
         ): ArrayPattern {
             val values = ctx.values.map { visitPattern(it) }
-            return ArrayPattern(values, fields)
+            return ArrayPattern(values, fields).setupRange(ctx)
         }
 
         fun visitExpression(ctx: ExpressionContext?): Expression {
@@ -175,7 +204,9 @@ class SpecificationParser {
             val access = ctx.id ?: ctx.access
             val index = ctx.index
             if (index != null) return ExpressionAccess.Index(visitExpression_access(parent), visitExpression(index))
+                .setupRange(ctx)
             if (access != null) return ExpressionAccess.Member(parent?.let { visitExpression_access(it) }, access.text)
+                .setupRange(ctx)
             throw IllegalStateException("Unknown expression access context")
         }
 
@@ -186,34 +217,35 @@ class SpecificationParser {
             val trueNode = ctx.TRUE()
             val undefinedNode = ctx.UNDEFINED()
             if (string != null) return LiteralExpression.EString(string.text.substring(1, string.text.length - 1))
-            if (number != null) return LiteralExpression.ENumber(number.text.toFloat())
-            if (falseNode != null) return LiteralExpression.EBoolean(false)
-            if (trueNode != null) return LiteralExpression.EBoolean(true)
-            if (undefinedNode != null) return LiteralExpression.EUndefined()
+                .setupRange(ctx)
+            if (number != null) return LiteralExpression.ENumber(number.text.toFloat()).setupRange(ctx)
+            if (falseNode != null) return LiteralExpression.EBoolean(false).setupRange(ctx)
+            if (trueNode != null) return LiteralExpression.EBoolean(true).setupRange(ctx)
+            if (undefinedNode != null) return LiteralExpression.EUndefined().setupRange(ctx)
             throw IllegalStateException("Unknown expression literal context")
         }
 
         fun visitBinary_expression(ctx: Binary_expressionContext): Expression {
             val left = visitEnclosed_expression(ctx.left)
             val right = visitExpression(ctx.right)
-            if (ctx.AND() != null) return BinaryExpression.And(left, right)
-            if (ctx.OR() != null) return BinaryExpression.Or(left, right)
-            if (ctx.MULT() != null) return BinaryExpression.Multiply(left, right)
-            if (ctx.PLUS() != null) return BinaryExpression.Plus(left, right)
-            if (ctx.MINUS() != null) return BinaryExpression.Minus(left, right)
-            if (ctx.DIVIDE() != null) return BinaryExpression.Divide(left, right)
+            if (ctx.AND() != null) return BinaryExpression.And(left, right).setupRange(ctx)
+            if (ctx.OR() != null) return BinaryExpression.Or(left, right).setupRange(ctx)
+            if (ctx.MULT() != null) return BinaryExpression.Multiply(left, right).setupRange(ctx)
+            if (ctx.PLUS() != null) return BinaryExpression.Plus(left, right).setupRange(ctx)
+            if (ctx.MINUS() != null) return BinaryExpression.Minus(left, right).setupRange(ctx)
+            if (ctx.DIVIDE() != null) return BinaryExpression.Divide(left, right).setupRange(ctx)
             if (ctx.EQUAL() != null) return PatternMatchExpression(
                 left,
                 visitPattern(ctx.right_pattern)
-            )
+            ).setupRange(ctx)
             throw IllegalStateException("Unknown binary expression context")
         }
 
         fun visitUnary_expression(ctx: Unary_expressionContext): Expression {
             val operand = visitExpression(ctx.operand)
-            if (ctx.PLUS() != null) return operand
-            if (ctx.MINUS() != null) return UnaryExpression.Opposite(operand)
-            if (ctx.NOT() != null) return UnaryExpression.Negate(operand)
+            if (ctx.PLUS() != null) return operand.setupRange(ctx)
+            if (ctx.MINUS() != null) return UnaryExpression.Opposite(operand).setupRange(ctx)
+            if (ctx.NOT() != null) return UnaryExpression.Negate(operand).setupRange(ctx)
             throw IllegalStateException("Unknown unary expression context")
         }
 
@@ -233,7 +265,7 @@ class SpecificationParser {
         fun visitExpression_function(ctx: Expression_functionContext): FunctionCallExpression {
             val id = ctx.FUNCTION_IDENTIFIER().text.substring(1)
             val args = ctx.args.map { visitPattern(it) }
-            return FunctionCallExpression(id, args)
+            return FunctionCallExpression(id, args).setupRange(ctx)
         }
 
         fun visitObject_field(ctx: Expression_property_fieldContext): Pair<String, Expression> {
@@ -246,12 +278,12 @@ class SpecificationParser {
             val id = ctx.type_identifier().text
             val parent = ctx.parent?.let { visitExpression(it) }
             val fields = ctx.fields.map { visitObject_field(it) }
-            return PropertyExpression(id, fields, parent)
+            return PropertyExpression(id, fields, parent).setupRange(ctx)
         }
 
         fun visitExpression_array(ctx: Expression_arrayContext): ArrayExpression {
             val values = ctx.values.map { visitExpression(it) }
-            return ArrayExpression(values)
+            return ArrayExpression(values).setupRange(ctx)
         }
 
     }

@@ -3,13 +3,10 @@ package fr.univ_lille.iut_info.steps
 import fr.univ_lille.iut_info.*
 
 class NameStep(override val program: Program) : ExecutionStep, INameContext {
-
-
     override val root: NameNode = NameNode(null)
     override val typeNameMap: MutableMap<String, Type> = HashMap()
     override val patternNodeMap: MutableMap<Pattern, NameNode> = HashMap()
     override val expressionNodeMap: MutableMap<Expression, NameNode> = HashMap()
-    override val nameErrors: MutableList<String> = ArrayList()
 
     override val expressionParentMap: MutableMap<Expression, Expression?> = HashMap()
     override val expressionChildrenMap: MutableMap<Expression, List<Expression>> = HashMap()
@@ -32,23 +29,43 @@ class NameStep(override val program: Program) : ExecutionStep, INameContext {
 
         types.forEach { typeNameMap[it.identifier] = it }
 
-        val undefinedTypeUsages = types.flatMap { getTypeDependencies(it) }.filter { !typeNameMap.containsKey(it) }
-        if (undefinedTypeUsages.isNotEmpty()) return undefinedTypeUsages.map { "$it is used in a property definition but not defined." }
-
-        val nameContext = this
-        rules.forEach {
-            val ruleRoot = NameNode(root)
-            initial(nameContext, it.pattern, ruleRoot)
-            initial(nameContext, it.production, nameContext.getNameNode(it.pattern))
-            fillNodes(nameContext, it.pattern)
-            fillNodes(nameContext, it.production)
+        types.forEach { type ->
+            val deps = getTypeDependencies(type).filter { !typeNameMap.containsKey(it) }
+            deps.forEach {
+                throw StepError(
+                    Step.NAME,
+                    type,
+                    "$it is used in a property definition but not defined."
+                )
+            }
         }
 
-        val undefinedUsages =
-            (nameContext.patternNodeMap.values + nameContext.expressionNodeMap.values).flatMap { it.getUndefinedUsages().keys }
+        val checkNode: (NameNode) -> Unit = { node ->
 
-        if (undefinedUsages.isNotEmpty()) return undefinedUsages.map { "$it is used but not defined." }
+            val undefinedUsages = node.getUndefinedUsages()
 
-        return nameErrors
+            undefinedUsages.entries.flatMap { entry -> entry.value.map { Pair(entry.key, it) } }.forEach {
+                throw StepError(
+                    Step.NAME,
+                    it.second,
+                    "'${it.first}' identifier is used but not defined."
+                )
+            }
+        }
+
+        rules.forEach {
+            val ruleRoot = NameNode(root)
+            initial(this, it.pattern, ruleRoot)
+            initial(this, it.production, getNameNode(it.pattern))
+            fillNodes(this, it.pattern)
+            fillNodes(this, it.production)
+            checkNode(ruleRoot)
+        }
+
+        checkNode(root)
+
+        (patternNodeMap.values + expressionNodeMap.values).forEach(checkNode)
+
+        return emptyList()
     }
 }

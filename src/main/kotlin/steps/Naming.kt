@@ -61,7 +61,6 @@ interface INameContext {
     val expressionChildrenMap: MutableMap<Expression, List<Expression>>
     val patternParentMap: MutableMap<Pattern, Pattern?>
     val patternChildrenMap: MutableMap<Pattern, List<Pattern>>
-    val nameErrors: MutableList<String>
 
     fun getNameNode(expression: Expression): NameNode {
         return expressionNodeMap[expression] ?: throw IllegalStateException("Could not find name node for expression.")
@@ -69,10 +68,6 @@ interface INameContext {
 
     fun getNameNode(expression: Pattern): NameNode {
         return patternNodeMap[expression] ?: throw IllegalStateException("Could not find name node for pattern.")
-    }
-
-    fun addNameError(error: String) {
-        nameErrors.add(error)
     }
 }
 
@@ -147,8 +142,12 @@ fun fillNodes(context: INameContext, root: Expression): Expression {
                 context.getNameNode(it).addUsage(it.identifier, it)
             }
 
+            is PropertyExpression if context.typeNameMap[it.identifier] == null -> {
+                throw StepError(Step.NAME, it, "Can't instantiate property ${it.identifier} as it's not defined.")
+            }
+
             is FunctionCallExpression if !FunctionPrototype.entries.map { proto -> proto.name }.contains(it.name) ->
-                context.addNameError("$it function is used but does not exist")
+                throw StepError(Step.NAME, it, "$it function is used but does not exist")
 
             else -> null
         }
@@ -173,14 +172,26 @@ fun fillNodes(context: INameContext, root: Pattern): Pattern {
             }
 
             is PropertyPattern -> {
-                type = context.typeNameMap[pattern.identifier] ?: Type.bottom
+                type = context.typeNameMap[pattern.identifier]
+
+                if (type == null) throw StepError(
+                    Step.NAME,
+                    pattern,
+                    "Cannot use property pattern '${pattern.identifier}' as no property with that name exist."
+                )
 
                 pattern.inlineFields.forEach { (key, pattern) ->
                     val name = pattern.name
                     val modifier = pattern.modifier
                     if (name != null && type is PropertyType) if (modifier == PatternModifier.ONE) context.patternNodeMap[pattern]?.nameMap[name] =
-                        type.fields[key] ?: Type.bottom
-                    else context.patternNodeMap[pattern]?.nameMap[name] = Type.array(type.fields[key] ?: Type.bottom)
+                        type.fields[key] ?: throw StepError(Step.NAME, pattern, "$key is not defined for type $type")
+                    else context.patternNodeMap[pattern]?.nameMap[name] = Type.array(
+                        type.fields[key] ?: throw StepError(
+                            Step.NAME,
+                            pattern,
+                            "$key is not defined for type $type"
+                        )
+                    )
                     fillNodes(context, pattern)
                 }
             }

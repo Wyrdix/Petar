@@ -2,8 +2,10 @@ package fr.univ_lille.iut_info
 
 import java.util.*
 
-sealed class Expression : Visitable<Expression> {
+sealed class Expression : Visitable<Expression>, TextualRangeLocated {
     val id = UUID.randomUUID().toString()
+
+    override var textual: TextualRange? = null
 
     override fun hashCode(): Int {
         return id.hashCode()

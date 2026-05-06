@@ -6,7 +6,7 @@ data class PatternMeta(
     val name: String? = null, val modifier: PatternModifier = PatternModifier.ONE, val condition: Expression? = null
 )
 
-sealed class Pattern(open val meta: PatternMeta) : Visitable<Pattern> {
+sealed class Pattern(open val meta: PatternMeta) : Visitable<Pattern>, TextualRangeLocated {
     val id = UUID.randomUUID().toString()
     val name: String?
         get() = meta.name
@@ -14,6 +14,8 @@ sealed class Pattern(open val meta: PatternMeta) : Visitable<Pattern> {
         get() = meta.modifier
     val condition: Expression?
         get() = meta.condition
+
+    override var textual: TextualRange? = null
 
     override fun hashCode(): Int {
         return id.hashCode()

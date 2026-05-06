@@ -10,6 +10,9 @@ import fr.univ_lille.iut_info.Program
 import fr.univ_lille.iut_info.ProgramData
 import fr.univ_lille.iut_info.parsing.SpecificationParser
 import fr.univ_lille.iut_info.serializer.JsonSerializer
+import fr.univ_lille.iut_info.steps.StepError
+import java.util.Locale.getDefault
+import kotlin.io.path.isDirectory
 
 fun main(args: Array<String>) {
     val command = Command()
@@ -44,10 +47,19 @@ fun main(args: Array<String>) {
         println("The input file do not exist.")
     }
 
+    val commonAncestor = command.specifications.map { it.toPath().toAbsolutePath() }
+        .reduce { acc, file -> acc.zip(file).findLast { (it1, it2) -> it1 == it2 }!!.first }.let {
+            if (!it.isDirectory()) it.parent
+            else it
+        }.toAbsolutePath().toString() + "/"
 
-    val parsed = command.specifications.map { file ->
+    val fileMap = command.specifications.associateBy { file ->
+        file.toPath().toAbsolutePath().toString().substring(commonAncestor.length)
+    }
+
+    val parsed = fileMap.entries.map { (name, file) ->
         val input = file.readLines().joinToString(separator = "\n")
-        val (errors, statements) = SpecificationParser.parse(input)
+        val (errors, statements) = SpecificationParser.parse(name, input)
         Triple(file, errors, statements)
     }.associateBy({ (file, _, _) -> file.absolutePath }, { (_, strings, statements) -> Pair(strings, statements) })
 
@@ -60,29 +72,44 @@ fun main(args: Array<String>) {
     }
 
     val statements = parsed.flatMap { it.value.second }
-    val program = Program(
-        ProgramData(statements, if (rootType != null && input != null) { context ->
-            println("Parsing input file : $input.")
-            val json = Gson().fromJson(
-                input.readLines().joinToString(separator = ""){ it }, JsonElement::class.java
-            )
+    val program = Program(ProgramData(statements, if (rootType != null && input != null) { context ->
+        println("Parsing input file : $input.")
+        val json = Gson().fromJson(
+            input.readLines().joinToString(separator = "") { it }, JsonElement::class.java
+        )
 
-            val type = context.typeNameMap[rootType]
-                ?: throw IllegalStateException("Could not find root type in specification files.")
+        val type = context.typeNameMap[rootType]
+            ?: throw IllegalStateException("Could not find root type in specification files.")
 
-            val element = JsonSerializer.deserialize(
-                json, context, type
-            )
+        val element = JsonSerializer.deserialize(
+            json, context, type
+        )
 
-            if (element !is MemoryObject) throw IllegalStateException("Can only input object.")
-            element
-        } else null))
+        if (element !is MemoryObject) throw IllegalStateException("Can only input object.")
+        element
+    } else null))
 
-    program.compile().let { errors ->
-        if (errors.isNotEmpty()) {
-            errors.forEach { println(it) }
-            return
+    try {
+        program.compile().let { errors ->
+            if (errors.isNotEmpty()) {
+                errors.forEach { println(it) }
+                return
+            }
         }
+    } catch (e: StepError) {
+        val range = e.range.textual
+        val message = e.message
+        val errorType =
+            e.step.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(getDefault()) else it.toString() } + "Error"
+        if (range == null || !fileMap.containsKey(range.filename)) {
+            System.err.println("${errorType}: $message")
+        } else {
+            val file = fileMap[range.filename]!!
+            val lines = file.readLines().subList(range.begin.line, range.end.line+1).mapIndexed { index, string -> "${index+range.begin.line} | $string" }
+            val linesJoined = lines.joinToString(separator = "\n") { it }
+            System.err.println("$errorType in ${range.filename} (${range.begin.line}:${range.begin.row} to ${range.end.line}:${range.end.row}): ${message}\n${linesJoined}")
+        }
+        return
     }
 
     if (command.printSpecification) {
