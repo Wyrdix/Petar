@@ -325,18 +325,26 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
                 val declaredFields = fields
                 val inferredFields = typeFields.filterValues { it.isAssignableFrom(context, Type.undefined) }
                     .mapValues { LiteralExpression.EUndefined() } + declaredFields
-                val parentType = type.parent?.let { Type.reference(it.first) }
+                val parentType =
+                    type.parent?.let { Type.reference(it.first) }?.resolveReference(context) as PropertyType?
 
+                val parent = parent
                 if (inferredFields.keys == typeFields.keys) {
                     val expressionTypeMap = inferredFields.mapValues { Pair(it.value, typeFields[it.key]!!) }
-                    if (!expressionTypeMap.values.all { it.first.typeCheck(context, it.second) }) context.typeSynthesis(
+                    if (!expressionTypeMap.values.all {
+                            it.first.typeCheck(context, it.second)
+                        }) context.typeSynthesis(
                         this, Type.bottom
                     )
-                    else if ((parentType == null) != (parent == null) || (parentType != null && !(parent?.typeCheck(
+                    else {
+                        val uselessParent =
+                            parent == null && (parentType == null || parentType.getAllFields(context).isEmpty())
+                        val usefulParent = parent != null && parentType != null && parent.typeCheck(
                             context, parentType
-                        ) ?: true))
-                    ) context.typeSynthesis(this, Type.bottom)
-                    else context.typeSynthesis(this, type)
+                        )
+                        if (!uselessParent && !usefulParent) context.typeSynthesis(this, Type.bottom)
+                        else context.typeSynthesis(this, type)
+                    }
                 } else context.typeSynthesis(this, Type.bottom)
             }
         }
