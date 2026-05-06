@@ -280,10 +280,17 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
             )
         }
 
-        // TODO check what happens exactly during a member access type checking, it seems odd to be able to synthesize the type
-        is ExpressionAccess.Member if this.parent == null -> context.typeSynthesis(
-            this, context.getNameNode(this).get(this.identifier)
-        )
+        is ExpressionAccess.Member -> {
+            val parent = this.parent
+            if (parent == null) context.typeSynthesis(
+                this, context.getNameNode(this).get(this.identifier)
+            ) else parent.typeSynthesis(context).let {
+                context.typeSynthesis(
+                    this,
+                    if (it is PropertyType) it.getAllFields(context)[this.identifier] ?: Type.bottom else Type.bottom
+                )
+            }
+        }
 
         is ExpressionAccess.Index -> {
             val arrayType = this.parent.typeSynthesis(context)
