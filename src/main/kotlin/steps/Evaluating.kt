@@ -171,7 +171,7 @@ fun Pattern.match(
     return when (this) {
         is ExpressionPattern -> {
             val stored = this.value.evaluate(context, environment)
-            if (stored.strongEquals(element)) IIterator.singleton(applyEffects(context, element, environment))
+            if (stored.isSimilarTo(element, null)) IIterator.singleton(applyEffects(context, element, environment))
             else IIterator.empty()
         }
 

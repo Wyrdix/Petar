@@ -2,9 +2,7 @@ package fr.univ_lille.iut_info.serializer
 
 import com.google.gson.*
 import fr.univ_lille.iut_info.*
-import fr.univ_lille.iut_info.steps.IEvaluatingContext
-import fr.univ_lille.iut_info.steps.ITypingContext
-import fr.univ_lille.iut_info.steps.resolveReference
+import fr.univ_lille.iut_info.steps.*
 
 class JsonSerializer : Serializer<JsonElement> {
     override fun serialize(data: MemoryElement, context: IEvaluatingContext?): JsonElement {
@@ -42,31 +40,44 @@ class JsonSerializer : Serializer<JsonElement> {
     }
 
     override fun deserialize(root: JsonElement, context: ITypingContext, typecheck: Type?): MemoryElement {
-        val type = typecheck?.resolveReference(context)
-        return when (root) {
-            is JsonPrimitive if root.isString && (type == null || type is PrimitiveType.StringType) -> MemoryElement.string(
-                root.asString
-            )
+        val findAssignableFrom = typecheck?.resolveReference(context).findAssignableFrom(context)
+        return findAssignableFrom.map { type ->
+            try {
+                return@map when (root) {
+                    is JsonPrimitive if root.isString && (type == null || type is PrimitiveType.StringType) -> MemoryElement.string(
+                        root.asString
+                    )
 
-            is JsonPrimitive if root.isNumber && (type == null || type is PrimitiveType.NumberType) -> MemoryElement.number(
-                root.asNumber
-            )
+                    is JsonPrimitive if root.isNumber && (type == null || type is PrimitiveType.NumberType) -> MemoryElement.number(
+                        root.asNumber
+                    )
 
-            is JsonPrimitive if root.isBoolean && (type == null || type is PrimitiveType.BooleanType) -> MemoryElement.boolean(
-                root.asBoolean
-            )
+                    is JsonPrimitive if root.isBoolean && (type == null || type is PrimitiveType.BooleanType) -> MemoryElement.boolean(
+                        root.asBoolean
+                    )
 
-            is JsonArray if root.isJsonArray && type is ArrayType -> MemoryElement.array(
-                type, root.asJsonArray.asList().map { this.deserialize(it, context, type.type) })
+                    is JsonArray if root.isJsonArray && type is ArrayType -> MemoryElement.array(
+                        type, root.asJsonArray.asList().map { this.deserialize(it, context, type.type) })
 
-            is JsonObject if root.isJsonObject && type is PropertyType -> MemoryElement.property(
-                type,
-                root.asJsonObject.asMap()
-                    .mapValues { this.deserialize(it.value, context, type.fields[it.key] ?: Type.bottom) })
+                    is JsonObject if root.isJsonObject && type is PropertyType -> MemoryElement.property(
+                        type,
+                        root.asJsonObject.asMap()
+                            .mapValues { it ->
+                                this.deserialize(
+                                    it.value,
+                                    context,
+                                    type.getAllFields(context)[it.key] ?: Type.bottom
+                                )
+                            })
 
-            is JsonNull if root.isJsonNull && type is PrimitiveType.UndefinedType -> MemoryElement.undefined()
-            else -> throw IllegalStateException("Could not deserialize data (type: ${typecheck}, value: ${root})")
-        }
+                    is JsonNull if root.isJsonNull && type is PrimitiveType.UndefinedType -> MemoryElement.undefined()
+                    else -> null
+                }
+            } catch (_: Exception) {
+                return@map null
+            }
+        }.filterNotNull().sortedByDescending { it.type.ascendants(context).size }.firstOrNull { it.type != Type.bottom }
+            ?: throw IllegalStateException("Could not deserialize data (type: ${typecheck}, value: ${root})")
     }
 
     companion object {

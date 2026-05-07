@@ -1,5 +1,7 @@
 package fr.univ_lille.iut_info
 
+import fr.univ_lille.iut_info.steps.ITypingContext
+import fr.univ_lille.iut_info.steps.isAssignableFrom
 import java.util.*
 
 sealed class MemoryElement : Visitable<MemoryElement> {
@@ -19,7 +21,7 @@ sealed class MemoryElement : Visitable<MemoryElement> {
         return id == other.id
     }
 
-    abstract fun strongEquals(other: MemoryElement): Boolean
+    abstract fun isSimilarTo(other: MemoryElement, context: ITypingContext? = null): Boolean
 
     companion object {
         fun string(value: String): MemoryString {
@@ -59,7 +61,7 @@ class MemoryUndefined : MemoryElement() {
         return this
     }
 
-    override fun strongEquals(other: MemoryElement): Boolean {
+    override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
         return other is MemoryUndefined
     }
 }
@@ -75,7 +77,7 @@ data class MemoryString(val value: String) : MemoryElement() {
         return this
     }
 
-    override fun strongEquals(other: MemoryElement): Boolean {
+    override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
         return other is MemoryString && other.value == value
     }
 }
@@ -91,7 +93,7 @@ data class MemoryNumber(val value: Number) : MemoryElement() {
         return this
     }
 
-    override fun strongEquals(other: MemoryElement): Boolean {
+    override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
         return other is MemoryNumber && other.value.toDouble() == value.toDouble()
     }
 }
@@ -107,7 +109,7 @@ data class MemoryBoolean(val value: Boolean) : MemoryElement() {
         return this
     }
 
-    override fun strongEquals(other: MemoryElement): Boolean {
+    override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
         return other is MemoryBoolean && other.value == value
     }
 }
@@ -122,13 +124,20 @@ data class MemoryObject(override val type: PropertyType, val value: Map<String, 
         return MemoryObject(type, value.mapValues { (_, value) -> visitor.visit(value) })
     }
 
-    override fun strongEquals(other: MemoryElement): Boolean {
-        return other is MemoryObject && other.type == type && (other.value.keys.union(value.keys)).map {
-            Pair(
-                other.value[it],
-                value[it]
+    override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
+        if (other !is MemoryObject) return false
+
+        val typecheck = context?.let {
+            type.isAssignableFrom(
+                it, other.type
             )
-        }.all { (it1, it2) -> it2 != null && it1?.strongEquals(it2) ?: false }
+        } ?: (type == other.type)
+
+        return typecheck && (other.value.keys.union(value.keys)).map {
+            Pair(
+                other.value[it], value[it]
+            )
+        }.all { (it1, it2) -> it2 != null && it1?.isSimilarTo(it2, context) ?: false }
     }
 }
 
@@ -142,10 +151,9 @@ data class MemoryArray(override val type: ArrayType, val value: List<MemoryEleme
         return MemoryArray(type, value.map { visitor.visit(it) })
     }
 
-    override fun strongEquals(other: MemoryElement): Boolean {
+    override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
         val bool = other is MemoryArray
         val bool1 = type == other.type
-        return bool && bool1 && other.value.zip(value)
-            .all { (it1, it2) -> it1.strongEquals(it2) }
+        return bool && bool1 && other.value.zip(value).all { (it1, it2) -> it1.isSimilarTo(it2, context) }
     }
 }

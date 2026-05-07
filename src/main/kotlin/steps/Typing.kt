@@ -87,6 +87,17 @@ fun PropertyType.getAllFields(context: ITypingContext): Map<String, Type> {
     return context.propertyResolved[this]!!
 }
 
+fun Type?.findAssignableFrom(context: ITypingContext): List<Type?> {
+    if (this == null) return listOf(null)
+    if (this !is PropertyType) return listOf(this)
+
+    val types = context.typeNameMap.values
+    return types.filter {
+        val ascendants = it.ascendants(context)
+        ascendants.contains(identifier)
+    }
+}
+
 fun PropertyType.check(context: ITypingContext) {
     if (context.propertyResolved[this] != null) return
 
