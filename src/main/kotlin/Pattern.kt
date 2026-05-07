@@ -35,7 +35,7 @@ enum class PatternModifier {
     ONE, ANY, AT_LEAST_ONE
 }
 
-data class ExpressionPattern(
+class ExpressionPattern(
     val value: Expression, override val meta: PatternMeta
 ) : Pattern(meta) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
@@ -44,7 +44,7 @@ data class ExpressionPattern(
 
 }
 
-data class RegexPattern(
+class RegexPattern(
     val value: String, override val meta: PatternMeta
 ) : Pattern(meta) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
@@ -53,7 +53,7 @@ data class RegexPattern(
 
 }
 
-data class ArrayPattern(
+class ArrayPattern(
     val values: List<Pattern>, override val meta: PatternMeta
 ) : Pattern(meta) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
@@ -62,7 +62,7 @@ data class ArrayPattern(
 
 }
 
-data class PropertyPattern(
+class PropertyPattern(
     val identifier: String, val inlineFields: List<Pair<String, Pattern>>, override val meta: PatternMeta
 ) : Pattern(meta) {
 
