@@ -17,33 +17,39 @@ class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITyping
         val types = program.statements.filterIsInstance<PropertyDeclarationStatement>()
         val rules = program.statements.filterIsInstance<ProductionRuleStatement>()
 
-        val declarationTypeError = types.map {
+        types.forEach {
             try {
                 it.type.check(this)
-                return@map true
             } catch (e: IllegalStateException) {
                 val message = e.message
-                if (message != null) errorList.add(message)
-                return@map false
+                throw StepError(Step.TYPE, it.type, message ?: "Unknown Error")
             }
-        }.contains(false)
+        }
 
-        if (declarationTypeError) errorList.add("FatalError : Type error found in property type declaration")
-
-        val ruleTypeError = rules.map {
+        rules.forEach {
             try {
                 val leftSynthesized = it.pattern.typeSynthesis(this)
                 val rightSynthesized = it.production.typeSynthesis(this)
 
-                return@map (leftSynthesized != null && leftSynthesized !is BottomType) && (rightSynthesized != null && rightSynthesized !is BottomType)
+                if ((leftSynthesized ?: Type.bottom) == Type.bottom) throw StepError(
+                    Step.TYPE,
+                    it,
+                    "Unknown error in pattern"
+                )
+                if ((rightSynthesized
+                        ?: Type.bottom) == Type.bottom
+                ) {
+                    throw StepError(
+                        Step.TYPE,
+                        it,
+                        "Unknown error in production"
+                    )
+                }
             } catch (e: IllegalStateException) {
                 val message = e.message
-                if (message != null) errorList.add(message)
-                return@map false
+                throw StepError(Step.TYPE, it, message ?: "Unknown Error")
             }
-        }.contains(false)
-        if (ruleTypeError) errorList.add("FatalError : Type error found in annotation rules.")
-
+        }
 
         return errorList
     }

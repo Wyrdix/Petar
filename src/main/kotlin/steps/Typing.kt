@@ -27,7 +27,7 @@ interface ITypingContext : INameContext {
 
                 if (!alreadyChecked.isAssignableFrom(this, type)) expressionChecked[exp] = type
                 else if (!type.isAssignableFrom(this, alreadyChecked)) {
-                    throw StepError(Step.NAME, exp, "Expression needs to be of type $type and $alreadyChecked")
+                    throw StepError(Step.TYPE, exp, "Expression needs to be of type $type and $alreadyChecked")
                 }
             } else expressionChecked[exp] = type
         }
@@ -42,7 +42,7 @@ interface ITypingContext : INameContext {
                 if (!alreadyChecked.isAssignableFrom(this, type)) patternChecked[pattern] =
                     if (pattern.modifier == PatternModifier.ONE) type else Type.array(type)
                 else if (!type.isAssignableFrom(this, alreadyChecked)) {
-                    throw StepError(Step.NAME, pattern, "Pattern needs to be of type $type and $alreadyChecked")
+                    throw StepError(Step.TYPE, pattern, "Pattern needs to be of type $type and $alreadyChecked")
                 }
             } else patternChecked[pattern] = if (pattern.modifier == PatternModifier.ONE) type else Type.array(type)
         }
@@ -66,7 +66,7 @@ interface ITypingContext : INameContext {
     }
 
     fun getType(name: String): Type {
-        return typeNameMap[name] ?: throw IllegalStateException("Could not find type by name: $name.")
+        return typeNameMap[name] ?: throw IllegalStateException("Could not find type by name: $name $.")
     }
 
 
@@ -94,25 +94,25 @@ fun PropertyType.check(context: ITypingContext) {
     val parent = this.parent?.first
     if (parent != null) {
         val type = context.getType(parent)
-        if (type !is PropertyType) throw StepError(Step.NAME, this, "Parent type is not a property type.")
+        if (type !is PropertyType) throw StepError(Step.TYPE, this, "Parent type is not a property type.")
         type.check(context)
         map.putAll(type.getAllFields(context))
     }
 
     val fields = this.inlineFields.associate { it }
-    if (fields.size != this.inlineFields.size) throw StepError(Step.NAME, this, "One field is present twice.")
+    if (fields.size != this.inlineFields.size) throw StepError(Step.TYPE, this, "One field is present twice.")
 
     if (fields.keys.intersect(map.keys)
             .isNotEmpty()
     ) throw StepError(
-        Step.NAME,
+        Step.TYPE,
         this,
         "Parent and children contains same keys, parent type specialisation should occur in the parent call."
     )
 
     fields.values.find { it is ReferenceType && !context.typeNameMap.containsKey(it.value) }?.let {
         throw StepError(
-            Step.NAME,
+            Step.TYPE,
             this, "Type $it is used but not defined."
         )
     }
@@ -121,12 +121,12 @@ fun PropertyType.check(context: ITypingContext) {
     if (specialisations.size != (this.parent?.second?.size
             ?: 0)
     ) throw StepError(
-        Step.NAME,
+        Step.TYPE,
         this, "Specialisation field contains twice the same key."
     )
 
     if (!map.keys.containsAll(specialisations.keys)) throw StepError(
-        Step.NAME,
+        Step.TYPE,
         this, "Some specialisation do not exist in the parent type."
     )
 
@@ -136,7 +136,7 @@ fun PropertyType.check(context: ITypingContext) {
                 context, spe
             )
         ) throw StepError(
-            Step.NAME,
+            Step.TYPE,
             this,
             "Type specialization for key '$key' is not assignable from parent type ($parentKeyType is not assignable from $spe)"
         )
@@ -171,7 +171,7 @@ fun Type.isAssignableFrom(context: ITypingContext, other: Type): Boolean {
 
 fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean = false): Boolean {
     if (this.modifier != PatternModifier.ONE && !listPattern) {
-        throw StepError(Step.NAME, this, "Cannot use a list pattern (* or +) outside of a list pattern context.")
+        throw StepError(Step.TYPE, this, "Cannot use a list pattern (* or +) outside of a list pattern context.")
     }
 
     val checkedType = context.getCheckedPatternType(this)
@@ -185,30 +185,37 @@ fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean 
             this, true, type
         )
         else
-            throw StepError(Step.NAME, this, "$type is not assignable from $synthesizedType")
+            throw StepError(Step.TYPE, this, "$type is not assignable from $synthesizedType")
 
-    when {
-        type is AnyPatternType -> {
-            return context.typePatternChecked(this, true, Type.anyPattern)
+    return when {
+        type is AnyPatternType -> context.typePatternChecked(this, true, Type.anyPattern)
+
+        this is ArrayPattern ->
+            if (type !is ArrayType) false
+            else context.typePatternChecked(
+                this,
+                this.values.all { it.typeCheck(context, type.type, true) },
+                type
+            )
+
+
+        type is AnyType -> context.typePatternChecked(this, true, Type.any)
+
+        else -> false
+    }.let {
+        val name = this.name
+        if (!it || name == null) return@let it
+        else {
+            context.getNameNode(this).nameMap[name] = context.getCheckedPatternType(this)!!
+            return@let true
         }
-
-        this is ArrayPattern -> {
-            if (type !is ArrayType) return false
-            return context.typePatternChecked(this, this.values.all { it.typeCheck(context, type.type, true) }, type)
-        }
-
-        type is AnyType -> {
-            return context.typePatternChecked(this, true, Type.any)
-        }
-
-        else -> return false
     }
 }
 
 fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false): Type? {
     if (this.modifier != PatternModifier.ONE && !listPattern) {
         throw StepError(
-            Step.NAME,
+            Step.TYPE,
             this,
             "Pattern use a list modifier (+ or *) but is not used in a list context."
         )
@@ -225,22 +232,39 @@ fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false)
 
         is PropertyPattern -> {
             val type = context.getType(this.identifier)
-            if (type !is PropertyType) null
-            else if (!type.getAllFields(context).keys.containsAll(this.fields.keys)) null
+            if (type !is PropertyType) throw StepError(
+                Step.TYPE,
+                this,
+                "Property pattern isn't compatible with required pattern type"
+            )
+            else if (!type.getAllFields(context).keys.containsAll(this.fields.keys)) throw StepError(
+                Step.TYPE,
+                this,
+                "Extraneous fields (${
+                    this.fields.keys.subtract(type.getAllFields(context).keys).joinToString(separator = ", ") { it }
+                }, available ones : ${type.getAllFields(context).keys.joinToString(separator = ", ") { it }})"
+            )
             else
                 type.getAllFields(context).forEach {
                     val fieldValue = this.fields[it.key]
                     if (!(fieldValue?.typeCheck(context, it.value) ?: true)) {
                         throw StepError(
-                            Step.NAME,
+                            Step.TYPE,
                             fieldValue,
-                            "Pattern is not of type ${it.value} (it is of type ${context.patternChecked[fieldValue]})"
+                            "Pattern is not of type ${it.value} (it is of type ${context.patternChecked[fieldValue] ?: context.patternSynthesized[fieldValue]})"
                         )
                     }
                 }.let { type }
         }
 
         else -> null
+    }.let {
+        val name = this.name
+        if (it == null || name == null) return@let it
+        else {
+            context.getNameNode(this).nameMap[name] = it
+            return@let it
+        }
     }
 }
 
@@ -313,7 +337,16 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
             ) else parent.typeSynthesis(context).let {
                 context.typeSynthesis(
                     this,
-                    if (it is PropertyType) it.getAllFields(context)[this.identifier] ?: Type.bottom else Type.bottom
+                    if (it is PropertyType) it.getAllFields(context)[this.identifier]
+                        ?: throw StepError(
+                            Step.TYPE,
+                            it,
+                            "Unknown ${it.identifier} field : ${this.identifier}"
+                        ) else throw StepError(
+                        Step.TYPE,
+                        it ?: this,
+                        "Expected identifier to be an instance of a property type."
+                    )
                 )
             }
         }
@@ -340,7 +373,11 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
             }
 
             if (argTypeCheck) context.typeSynthesis(this, prototype.returnType)
-            else context.typeSynthesis(this, Type.bottom)
+            else throw StepError(
+                Step.TYPE,
+                this,
+                "Function arguments do not type check."
+            )
         }
 
         is PropertyExpression -> {
@@ -357,10 +394,15 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
                 val parent = parent
                 if (inferredFields.keys == typeFields.keys) {
                     val expressionTypeMap = inferredFields.mapValues { Pair(it.value, typeFields[it.key]!!) }
-                    if (!expressionTypeMap.values.all {
-                            it.first.typeCheck(context, it.second)
-                        }) context.typeSynthesis(
-                        this, Type.bottom
+                    var errorPair: Pair<Expression, Type>? = null
+                    if (expressionTypeMap.values.any {
+                            val typeCheck = it.first.typeCheck(context, it.second)
+                            if (!typeCheck) errorPair = it
+                            !typeCheck
+                        }) throw StepError(
+                        Step.TYPE,
+                        errorPair!!.first,
+                        "Expression is supposed to be of type ${errorPair.second}."
                     )
                     else {
                         val uselessParent =
@@ -368,10 +410,29 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
                         val usefulParent = parent != null && parentType != null && parent.typeCheck(
                             context, parentType
                         )
-                        if (!uselessParent && !usefulParent) context.typeSynthesis(this, Type.bottom)
-                        else context.typeSynthesis(this, type)
+                        if (!uselessParent && !usefulParent) {
+                            if (parent != null && parentType == null) {
+                                throw StepError(
+                                    Step.TYPE,
+                                    this,
+                                    "Extraneous parent expression."
+                                )
+                            }
+                            throw StepError(
+                                Step.TYPE,
+                                this,
+                                "Missing parent expression."
+                            )
+
+                        } else context.typeSynthesis(this, type)
                     }
-                } else context.typeSynthesis(this, Type.bottom)
+                } else throw StepError(
+                    Step.TYPE,
+                    this,
+                    "Missing some property fields : ${
+                        typeFields.keys.subtract(inferredFields.keys).joinToString(separator = ", ") { it }
+                    }"
+                )
             }
         }
 

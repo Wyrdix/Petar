@@ -167,10 +167,6 @@ fun fillNodes(context: INameContext, root: Pattern): Pattern {
                 fillNodes(context, pattern.value)
             }
 
-            is RegexPattern -> {
-
-            }
-
             is PropertyPattern -> {
                 type = context.typeNameMap[pattern.identifier]
 
@@ -179,31 +175,13 @@ fun fillNodes(context: INameContext, root: Pattern): Pattern {
                     pattern,
                     "Cannot use property pattern '${pattern.identifier}' as no property with that name exist."
                 )
-
-                pattern.inlineFields.forEach { (key, pattern) ->
-                    val name = pattern.name
-                    val modifier = pattern.modifier
-                    if (name != null && type is PropertyType) if (modifier == PatternModifier.ONE) context.patternNodeMap[pattern]?.nameMap[name] =
-                        type.fields[key] ?: throw StepError(Step.NAME, pattern, "$key is not defined for type $type")
-                    else context.patternNodeMap[pattern]?.nameMap[name] = Type.array(
-                        type.fields[key] ?: throw StepError(
-                            Step.NAME,
-                            pattern,
-                            "$key is not defined for type $type"
-                        )
-                    )
-                    fillNodes(context, pattern)
-                }
             }
 
-            is ArrayPattern -> {
-                pattern.values.forEach { fillNodes(context, it) }
-            }
+            else -> {}
         }
 
-        if (name != null && type != null) if (modifier == PatternModifier.ONE) context.patternNodeMap[pattern]?.nameMap[name] =
-            type
-        else context.patternNodeMap[pattern]?.nameMap[name] = Type.array(type)
+        if (name != null)
+            context.patternNodeMap[pattern]?.nameMap[name] = Type.any
 
         if (condition != null) fillNodes(context, condition)
 
