@@ -190,15 +190,16 @@ fun Pattern.match(
 
         is PropertyPattern -> {
             (context.getAnnotations(element).map { it } + element).filterIsInstance<MemoryObject>()
-                .filter { it.type.identifier == this.identifier }.toIIterator().flatMapI {
+                .filter { it.type.ascendants(context).contains(this.identifier) }.toIIterator().flatMapI {
                     fields.entries.toIIterator().foldI(
                         IIterator.singleton(this.applyEffects(context, it, environment))
                     ) { acc, (key, value) ->
                         val keyedElement = it.value[key] ?: MemoryUndefined()
                         acc.flatMapI { env ->
-                            value.match(
+                            val match = value.match(
                                 context, keyedElement, env
                             )
+                            match
                         }
 
                     }
