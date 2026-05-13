@@ -135,9 +135,9 @@ data class MemoryObject(override val type: PropertyType, val value: Map<String, 
 
         return typecheck && (other.value.keys.union(value.keys)).map {
             Pair(
-                other.value[it], value[it]
+                other.value[it] ?: MemoryUndefined(), value[it] ?: MemoryUndefined()
             )
-        }.all { (it1, it2) -> it2 != null && it1?.isSimilarTo(it2, context) ?: false }
+        }.all { (it1, it2) -> it1.isSimilarTo(it2, context) }
     }
 }
 
