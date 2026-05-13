@@ -158,7 +158,6 @@ class ArrayPatternMatchingTest {
         }
 
         val elements1 = listOf("aaa", "bbb").map { MemoryString(it) }
-        val elements2 = listOf("aaa", "bbb", "ccc").map { MemoryString(it) }
 
         val arrayPattern = ArrayPattern(
             listOf(

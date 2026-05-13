@@ -33,7 +33,6 @@ class JsonSerializer : Serializer<JsonElement> {
             }
 
             is MemoryUndefined -> JsonNull.INSTANCE
-            else -> throw IllegalStateException("Could not deserialize data.")
         }
     }
 

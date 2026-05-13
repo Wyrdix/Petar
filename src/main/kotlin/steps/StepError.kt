@@ -8,5 +8,4 @@ enum class Step {
     EVALUATION
 }
 
-class StepError(val step: Step, val range: TextualRangeLocated, override val message: String) : Error(message) {
-}
+class StepError(val step: Step, val range: TextualRangeLocated, override val message: String) : Error(message)

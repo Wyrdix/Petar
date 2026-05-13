@@ -149,7 +149,7 @@ fun fillNodes(context: INameContext, root: Expression): Expression {
             is FunctionCallExpression if !FunctionPrototype.entries.map { proto -> proto.name }.contains(it.name) ->
                 throw StepError(Step.NAME, it, "$it function is used but does not exist")
 
-            else -> null
+            else -> {}
         }
         return@visit null
     }
@@ -158,9 +158,8 @@ fun fillNodes(context: INameContext, root: Expression): Expression {
 fun fillNodes(context: INameContext, root: Pattern): Pattern {
     return root.visit { pattern ->
         val name = pattern.name
-        val modifier = pattern.modifier
         val condition = pattern.condition
-        var type: Type? = null
+        var type: Type?
 
         when (pattern) {
             is ExpressionPattern -> {

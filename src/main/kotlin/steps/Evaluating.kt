@@ -53,7 +53,7 @@ fun EvaluationEnvironment.choice(parent: MemoryObject, choice: MemoryObject): Ev
 fun Pattern.applyEffects(
     context: IEvaluatingContext, element: MemoryElement?, environment: EvaluationEnvironment
 ): EvaluationEnvironment {
-    val name = name;
+    val name = name
     return (if (name != null) {
         if (this.modifier == ONE) if (element != null) environment.add(name, element) else environment
         else {

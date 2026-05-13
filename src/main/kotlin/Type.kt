@@ -185,7 +185,7 @@ data class ReferenceType(val value: String) : Type() {
 
 data class ArrayType(val type: Type) : Type() {
     init {
-        assertThrow(type !is ArrayType, {})
+        assertThrow(type !is ArrayType) {}
     }
 
     override fun toString(): String {

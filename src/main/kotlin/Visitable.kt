@@ -67,10 +67,6 @@ fun <T : Visitable<T>, U> T.map(func: Function<T, U>): List<U> {
     return this.mapFilter { node -> Pair(func.apply(node), true) }
 }
 
-fun <T : Visitable<T>, U : Any> T.mapNotNull(func: Function<T, U?>): List<U> {
-    return this.map(func).filterNotNull()
-}
-
 fun <T : Visitable<T>> T.children(): List<T> {
     return ArrayList<T>().apply {
         var first = false

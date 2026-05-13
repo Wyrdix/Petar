@@ -113,7 +113,7 @@ interface IIterator<T> : Iterator<T>, Iterable<T> {
     }
 
     private class ListIterator<T>(val list: List<T>) : IIterator<T> {
-        var index = 0;
+        var index = 0
 
         override fun reset() {
             index = 0
