@@ -18,7 +18,7 @@ import kotlin.math.log10
 fun main(args: Array<String>) {
     val command = Command()
     val commander: JCommander = JCommander.newBuilder().addObject(command).build()
-    commander.programName = "alfr"
+    commander.programName = "petar"
     try {
         commander.parse(*args)
     } catch (_: ParameterException) {

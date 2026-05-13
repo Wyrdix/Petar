@@ -16,8 +16,6 @@ interface IEvaluatingContext : ITypingContext {
     val memoryAnnotationRoot: MutableMap<MemoryElement, MemoryElement>
     val memoryAnnotationMap: MutableMap<MemoryElement, List<MemoryObject>>
 
-    fun getParent(element: MemoryElement) = memoryParentMap[element]
-    fun getAnnotationRoot(element: MemoryElement) = memoryAnnotationRoot[element]
     fun getAnnotations(element: MemoryElement) = memoryAnnotationMap[element] ?: emptyList()
     var output: MemoryObject?
 
@@ -95,7 +93,7 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
                     Step.EVALUATION, this,
                     "Division by 0"
                 )
-                else MemoryNumber((left as MemoryNumber).value.toDouble() / (right as MemoryNumber).value.toDouble())
+                else MemoryNumber((left as MemoryNumber).value.toDouble() / right.value.toDouble())
 
                 is BinaryExpression.Minus -> MemoryNumber((left as MemoryNumber).value.toDouble() - (right as MemoryNumber).value.toDouble())
 

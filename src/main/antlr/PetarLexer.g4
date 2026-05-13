@@ -1,4 +1,4 @@
-lexer grammar AlfrLexer;
+lexer grammar PetarLexer;
 
 channels {
 	COMMENTS

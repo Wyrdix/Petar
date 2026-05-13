@@ -3,7 +3,6 @@ import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import java.io.File
 import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import java.util.stream.Stream
 import kotlin.streams.asStream
 import kotlin.test.assertEquals
@@ -16,7 +15,7 @@ class TestFiles {
         return file.walk().filter { parent -> parent.isDirectory() && parent.listFiles().none { it.isDirectory } }
             .flatMap { directory ->
 
-                val specifications = directory.listFiles().filter { it.extension == "alfr" }
+                val specifications = directory.listFiles().filter { it.extension == "petar" }
 
                 val subTests = directory.listFiles()
                     .filter { it.nameWithoutExtension.startsWith("input") && it.extension == "json" }

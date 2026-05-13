@@ -1,15 +1,15 @@
 package fr.univ_lille.iut_info.parsing
 
 import fr.univ_lille.iut_info.*
-import fr.univ_lille.iut_info.alfr_parser.AlfrLexer
-import fr.univ_lille.iut_info.alfr_parser.AlfrParser
-import fr.univ_lille.iut_info.alfr_parser.AlfrParser.*
+import fr.univ_lille.iut_info.petar_parser.PetarLexer
+import fr.univ_lille.iut_info.petar_parser.PetarParser
+import fr.univ_lille.iut_info.petar_parser.PetarParser.*
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.Interval
 
 class SpecificationParser {
     companion object {
-        class CollectingAlfrLexer(val errors: MutableList<String>, input: CharStream) : AlfrLexer(input) {
+        class CollectingPetarLexer(val errors: MutableList<String>, input: CharStream) : PetarLexer(input) {
             override fun notifyListeners(e: LexerNoViableAltException) {
                 val text = _input.getText(Interval.of(_tokenStartCharIndex, _input.index()))
                 val msg = "Token recognition error at: '" + getErrorDisplay(text) + "'"
@@ -49,10 +49,10 @@ class SpecificationParser {
             content = input
             val stream: CharStream = ANTLRInputStream(input)
             val listener = CustomErrorListener()
-            val lexer = CollectingAlfrLexer(listener.errors, stream)
+            val lexer = CollectingPetarLexer(listener.errors, stream)
             lexer.removeErrorListeners()
             val tokens = CommonTokenStream(lexer)
-            val parser = AlfrParser(tokens)
+            val parser = PetarParser(tokens)
             parser.errorHandler = BailErrorStrategy()
             parser.removeErrorListeners()
             parser.addErrorListener(listener)

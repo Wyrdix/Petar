@@ -34,9 +34,9 @@ tasks.test {
 }
 
 tasks.generateGrammarSource {
-    outputDirectory = file("${project.projectDir}/src/main/java/fr/univ_lille/iut_info/alfr_parser")
+    outputDirectory = file("${project.projectDir}/src/main/java/fr/univ_lille/iut_info/petar_parser")
 
-    arguments = listOf("-Dlanguage=Java", "-package", "fr.univ_lille.iut_info.alfr_parser")
+    arguments = listOf("-Dlanguage=Java", "-package", "fr.univ_lille.iut_info.petar_parser")
 }
 
 

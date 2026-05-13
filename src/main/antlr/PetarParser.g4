@@ -1,7 +1,7 @@
-parser grammar AlfrParser;
+parser grammar PetarParser;
 
 options {
-	tokenVocab = AlfrLexer;
+	tokenVocab = PetarLexer;
 }
 
 program: statement* EOF;

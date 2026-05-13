@@ -43,7 +43,7 @@ bin/
 /.idea/
 
 ## Generated Source ##
-/src/main/java/fr/univ_lille/iut_info/alfr_parser/
+/src/main/java/fr/univ_lille/iut_info/petar_parser/
 
 ## Playground ##
 /playground/
