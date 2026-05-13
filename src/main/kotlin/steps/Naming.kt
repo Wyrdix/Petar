@@ -66,8 +66,8 @@ interface INameContext {
         return expressionNodeMap[expression] ?: throw IllegalStateException("Could not find name node for expression.")
     }
 
-    fun getNameNode(expression: Pattern): NameNode {
-        return patternNodeMap[expression] ?: throw IllegalStateException("Could not find name node for pattern.")
+    fun getNameNode(pattern: Pattern): NameNode {
+        return patternNodeMap[pattern] ?: throw IllegalStateException("Could not find name node for pattern.")
     }
 }
 
