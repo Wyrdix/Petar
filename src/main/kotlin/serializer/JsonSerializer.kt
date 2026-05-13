@@ -22,12 +22,10 @@ class JsonSerializer : Serializer<JsonElement> {
                 val annotations = context?.getAnnotations(data)
                 if (context != null && !annotations.isNullOrEmpty()) {
                     obj.add(
-                        "_annotations",
-                        JsonArray().also {
+                        "_annotations", JsonArray().also {
                             annotations.map { data ->
                                 this.serialize(
-                                    data,
-                                    context
+                                    data, context
                                 )
                             }.forEach(it::add)
                         })
@@ -40,7 +38,15 @@ class JsonSerializer : Serializer<JsonElement> {
     }
 
     override fun deserialize(root: JsonElement, context: ITypingContext, typecheck: Type?): MemoryElement {
-        val findAssignableFrom = typecheck?.resolveReference(context).findAssignableFrom(context)
+
+        val findAssignableFrom = if (root.isJsonObject && root.asJsonObject.has("_type")) {
+            val rawType = (root as JsonObject).get("_type").asString
+            val type = ReferenceType(rawType).resolveReference(context)
+            if (typecheck?.isAssignableFrom(context, type) ?: true) listOf(type)
+            else emptyList()
+        } else typecheck?.resolveReference(context).findAssignableFrom(context)
+
+//        val findAssignableFrom = typecheck?.resolveReference(context).findAssignableFrom(context)
         return findAssignableFrom.map { type ->
             try {
                 return@map when (root) {
@@ -59,16 +65,23 @@ class JsonSerializer : Serializer<JsonElement> {
                     is JsonArray if root.isJsonArray && type is ArrayType -> MemoryElement.array(
                         type, root.asJsonArray.asList().map { this.deserialize(it, context, type.type) })
 
-                    is JsonObject if root.isJsonObject && type is PropertyType -> MemoryElement.property(
-                        type,
-                        root.asJsonObject.asMap()
-                            .mapValues { it ->
-                                this.deserialize(
-                                    it.value,
-                                    context,
-                                    type.getAllFields(context)[it.key] ?: Type.bottom
-                                )
+                    is JsonObject if root.isJsonObject && type is PropertyType -> {
+                        val obj = root.asJsonObject
+                        return@map MemoryElement.property(
+                            type,
+                            type.getAllFields(context).mapValues { (key, type) ->
+
+                                val field = obj.get(key)
+                                if ((field == null || field.isJsonNull) && !type.isAssignableFrom(
+                                        context, Type.undefined
+                                    )
+                                ) throw IllegalStateException("Missing field $key.")
+
+                                if (field == null || field.isJsonNull) MemoryUndefined()
+                                else this.deserialize(field, context, type)
+
                             })
+                    }
 
                     is JsonNull if root.isJsonNull && type is PrimitiveType.UndefinedType -> MemoryElement.undefined()
                     else -> null
@@ -76,7 +89,10 @@ class JsonSerializer : Serializer<JsonElement> {
             } catch (_: Exception) {
                 return@map null
             }
-        }.filterNotNull().sortedByDescending { it.type.ascendants(context).size }.firstOrNull { it.type != Type.bottom }
+        }.filterNotNull().sortedByDescending {
+            val size = it.type.ascendants(context).size
+            size
+        }.firstOrNull { it.type != Type.bottom }
             ?: throw IllegalStateException("Could not deserialize data (type: ${typecheck}, value: ${root})")
     }
 

@@ -6,9 +6,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import fr.univ_lille.iut_info.*
 import fr.univ_lille.iut_info.serializer.JsonSerializer
-import fr.univ_lille.iut_info.steps.NameStep
-import fr.univ_lille.iut_info.steps.TypecheckStep
-import fr.univ_lille.iut_info.steps.check
+import fr.univ_lille.iut_info.steps.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -17,59 +15,67 @@ import kotlin.test.assertNotEquals
 
 class JsonSerializerTest {
 
-    val emptyContext = TypecheckStep(NameStep(Program(ProgramData(emptyList()))))
+    val emptyContext = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
 
     fun parse(value: String): JsonElement {
         return Gson().fromJson("{\"value\":${value}}", JsonObject::class.java).get("value")
     }
 
-    fun serializeEmpty(value: MemoryElement): String {
-        return Gson().toJson(JsonSerializer.serialize(value))
+    fun serialize(value: MemoryElement, context: IEvaluatingContext): String {
+        return Gson().toJson(JsonSerializer.serialize(value, context))
     }
 
-    fun deserializeEmpty(value: String, type: Type): MemoryElement {
+    fun deserialize(value: String, type: Type, context: ITypingContext): MemoryElement {
         return JsonSerializer.deserialize(
-            parse(value), emptyContext, type
+            parse(value), context, type
         )
     }
 
     @Test
     fun deserializePrimitive() {
         assert(
-            MemoryElement.string("Value").isSimilarTo(deserializeEmpty("\"Value\"", Type.string), emptyContext)
+            MemoryElement.string("Value").isSimilarTo(deserialize("\"Value\"", Type.string, emptyContext), emptyContext)
         )
         assert(
-            MemoryElement.number(10).isSimilarTo(deserializeEmpty("10", Type.number), emptyContext)
+            MemoryElement.number(10).isSimilarTo(deserialize("10", Type.number, emptyContext), emptyContext)
         )
         assert(
-            MemoryElement.boolean(true).isSimilarTo(deserializeEmpty("true", Type.boolean), emptyContext)
+            MemoryElement.boolean(true).isSimilarTo(deserialize("true", Type.boolean, emptyContext), emptyContext)
         )
         assert(
-            !MemoryElement.boolean(true).isSimilarTo(deserializeEmpty("\"Value\"", Type.string), emptyContext)
+            !MemoryElement.boolean(true).isSimilarTo(deserialize("\"Value\"", Type.string, emptyContext), emptyContext)
         )
         assert(
-            !MemoryElement.string("Value").isSimilarTo(deserializeEmpty("10", Type.number), emptyContext)
+            !MemoryElement.string("Value").isSimilarTo(deserialize("10", Type.number, emptyContext), emptyContext)
         )
         assert(
-            !MemoryElement.number(10).isSimilarTo(deserializeEmpty("true", Type.boolean), emptyContext)
+            !MemoryElement.number(10).isSimilarTo(deserialize("true", Type.boolean, emptyContext), emptyContext)
         )
     }
 
     @Test
     fun deserializeArray() {
 
+        val context = TypecheckStep(NameStep(Program(ProgramData(emptyList()))))
+
         val type1 = PropertyType(
-            "_", listOf(Pair("value", Type.number))
+            "1", listOf(Pair("value", Type.number))
         )
 
         val type2 = PropertyType(
-            "_", listOf(Pair("value1", Type.number), Pair("value2", Type.number))
+            "2", listOf(Pair("value1", Type.number), Pair("value2", Type.number))
         )
+
+        context.typeNameMap[type1.identifier] = type1
+        context.typeNameMap[type2.identifier] = type2
+
+        type1.check(context)
+        type2.check(context)
 
         assert(
             MemoryElement.array(
                 Type.array(type1), listOf(MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))))
-            ).isSimilarTo(deserializeEmpty("[{\"value\": 10}]", Type.array(type1)), emptyContext)
+            ).isSimilarTo(deserialize("[{\"value\": 10}]", Type.array(type1), context), context)
         )
 
         assert(
@@ -79,75 +85,83 @@ class JsonSerializerTest {
                         type2, mapOf(Pair("value1", MemoryElement.number(10)), Pair("value2", MemoryElement.number(12)))
                     )
                 )
-            ).isSimilarTo(deserializeEmpty("[{\"value1\": 10, \"value2\": 12}]", Type.array(type2)), emptyContext)
+            ).isSimilarTo(deserialize("[{\"value1\": 10, \"value2\": 12}]", Type.array(type2), context), context)
         )
 
-        assertDoesNotThrow { deserializeEmpty("[]", Type.array(type1)) }
-        assertDoesNotThrow { deserializeEmpty("[]", Type.array(type2)) }
+        assertDoesNotThrow { deserialize("[]", Type.array(type1), emptyContext) }
+        assertDoesNotThrow { deserialize("[]", Type.array(type2), emptyContext) }
     }
 
     @Test
     fun deserializeProperty() {
+        val context = TypecheckStep(NameStep(Program(ProgramData(emptyList()))))
 
         val type1 = PropertyType(
-            "_", listOf(Pair("value", Type.number))
+            "1", listOf(Pair("value", Type.number))
         )
 
         val type2 = PropertyType(
-            "_", listOf(Pair("value1", Type.number), Pair("value2", Type.number))
+            "2", listOf(Pair("value1", Type.number), Pair("value2", Type.number))
         )
+
+
+        context.typeNameMap[type1.identifier] = type1
+        context.typeNameMap[type2.identifier] = type2
+
+        type1.check(context)
+        type2.check(context)
 
         assert(
             MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))).isSimilarTo(
-                deserializeEmpty("{\"value\": 10}", type1), emptyContext
+                deserialize("{\"value\": 10}", type1, context), context
             )
         )
 
         assert(
             MemoryElement.property(
                 type2, mapOf(Pair("value1", MemoryElement.number(11)), Pair("value2", MemoryElement.number(12)))
-            ).isSimilarTo(deserializeEmpty("{\"value1\": 11, \"value2\":12}", type2), emptyContext)
+            ).isSimilarTo(deserialize("{\"value1\": 11, \"value2\":12}", type2, context), context)
         )
 
         assertThrows<IllegalStateException> {
-            deserializeEmpty("{\"value\": 10}", type2)
+            deserialize("{\"value\": 10}", type2, context)
         }
 
         assertThrows<IllegalStateException> {
-            deserializeEmpty("{\"value1\": 11, \"value2\":12}", type1)
+            deserialize("{\"value1\": 11, \"value2\":12}", type1, context)
         }
     }
 
     @Test
     fun serializePrimitive() {
         assertEquals(
-            serializeEmpty(MemoryElement.string("Value")), serializeEmpty(
-                deserializeEmpty("\"Value\"", Type.string)
+            serialize(MemoryElement.string("Value"), emptyContext), serialize(
+                deserialize("\"Value\"", Type.string, emptyContext), emptyContext
             )
         )
         assertEquals(
-            serializeEmpty(MemoryElement.number(10)), serializeEmpty(
-                deserializeEmpty("10", Type.number)
+            serialize(MemoryElement.number(10), emptyContext), serialize(
+                deserialize("10", Type.number, emptyContext), emptyContext
             )
         )
         assertEquals(
-            serializeEmpty(MemoryElement.boolean(true)), serializeEmpty(
-                deserializeEmpty("true", Type.boolean)
+            serialize(MemoryElement.boolean(true), emptyContext), serialize(
+                deserialize("true", Type.boolean, emptyContext), emptyContext
             )
         )
         assertNotEquals(
-            serializeEmpty(MemoryElement.boolean(true)), serializeEmpty(
-                deserializeEmpty("\"Value\"", Type.string)
+            serialize(MemoryElement.boolean(true), emptyContext), serialize(
+                deserialize("\"Value\"", Type.string, emptyContext), emptyContext
             )
         )
         assertNotEquals(
-            serializeEmpty(MemoryElement.string("Value")), serializeEmpty(
-                deserializeEmpty("10", Type.number)
+            serialize(MemoryElement.string("Value"), emptyContext), serialize(
+                deserialize("10", Type.number, emptyContext), emptyContext
             )
         )
         assertNotEquals(
-            serializeEmpty(MemoryElement.number(10)), serializeEmpty(
-                deserializeEmpty("true", Type.boolean)
+            serialize(MemoryElement.number(10), emptyContext), serialize(
+                deserialize("true", Type.boolean, emptyContext), emptyContext
             )
         )
     }
@@ -195,25 +209,34 @@ class JsonSerializerTest {
     @Test
     fun serializeArray() {
 
+        val context = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
+
         val type1 = PropertyType(
-            "_", listOf(Pair("value", Type.number))
+            "1", listOf(Pair("value", Type.number))
         )
 
         val type2 = PropertyType(
-            "_", listOf(Pair("value1", Type.number), Pair("value2", Type.number))
+            "2", listOf(Pair("value1", Type.number), Pair("value2", Type.number))
         )
 
+        context.typeNameMap[type1.identifier] = type1
+        context.typeNameMap[type2.identifier] = type2
+
+        type1.check(context)
+        type2.check(context)
+
+
         assertEquals(
-            serializeEmpty(
+            serialize(
                 MemoryElement.array(
                     Type.array(type1),
                     listOf(MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))))
-                )
-            ), serializeEmpty(deserializeEmpty("[{\"value\": 10}]", Type.array(type1)))
+                ), context
+            ), serialize(deserialize("[{\"value\": 10}]", Type.array(type1), context), context)
         )
 
         assertEquals(
-            serializeEmpty(
+            serialize(
                 MemoryElement.array(
                     Type.array(type2), listOf(
                         MemoryElement.property(
@@ -221,33 +244,41 @@ class JsonSerializerTest {
                             mapOf(Pair("value1", MemoryElement.number(10)), Pair("value2", MemoryElement.number(12)))
                         )
                     )
-                )
-            ), serializeEmpty(deserializeEmpty("[{\"value1\": 10, \"value2\": 12}]", Type.array(type2)))
+                ), context
+            ), serialize(deserialize("[{\"value1\": 10, \"value2\": 12}]", Type.array(type2), context), context)
         )
     }
 
     @Test
     fun serializeProperty() {
 
+        val context = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
+
+
         val type1 = PropertyType(
-            "_", listOf(Pair("value", Type.number))
+            "1", listOf(Pair("value", Type.number))
         )
 
         val type2 = PropertyType(
-            "_", listOf(Pair("value1", Type.number), Pair("value2", Type.number))
+            "2", listOf(Pair("value1", Type.number), Pair("value2", Type.number))
+        )
+        context.typeNameMap[type1.identifier] = type1
+        context.typeNameMap[type2.identifier] = type2
+
+        type1.check(context)
+        type2.check(context)
+
+        assertEquals(
+            serialize(MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))), context),
+            serialize(deserialize("{\"value\": 10}", type1, context), context)
         )
 
         assertEquals(
-            serializeEmpty(MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10))))),
-            serializeEmpty(deserializeEmpty("{\"value\": 10}", type1))
-        )
-
-        assertEquals(
-            serializeEmpty(
+            serialize(
                 MemoryElement.property(
                     type2, mapOf(Pair("value1", MemoryElement.number(11)), Pair("value2", MemoryElement.number(12)))
-                )
-            ), serializeEmpty(deserializeEmpty("{\"value1\": 11, \"value2\":12}", type2))
+                ), context
+            ), serialize(deserialize("{\"value1\": 11, \"value2\":12}", type2, context), context)
         )
     }
 }
