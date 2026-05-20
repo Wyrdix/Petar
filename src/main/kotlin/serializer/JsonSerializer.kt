@@ -45,7 +45,8 @@ class JsonSerializer : Serializer<JsonElement> {
             else emptyList()
         } else typecheck?.resolveReference(context).findAssignableFrom(context)
 
-//        val findAssignableFrom = typecheck?.resolveReference(context).findAssignableFrom(context)
+        var cachedException: Exception? = null
+
         return findAssignableFrom.map { type ->
             try {
                 return@map when (root) {
@@ -85,13 +86,15 @@ class JsonSerializer : Serializer<JsonElement> {
                     is JsonNull if root.isJsonNull && type is PrimitiveType.UndefinedType -> MemoryElement.undefined()
                     else -> null
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                cachedException = e
                 return@map null
             }
         }.filterNotNull().sortedByDescending {
             val size = it.type.ascendants(context).size
             size
         }.firstOrNull { it.type != Type.bottom }
+            ?: throw cachedException
             ?: throw IllegalStateException("Could not deserialize data (type: ${typecheck}, value: ${root})")
     }
 
