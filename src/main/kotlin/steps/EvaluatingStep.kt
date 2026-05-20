@@ -1,9 +1,6 @@
 package fr.univ_lille.iut_info.steps
 
-import fr.univ_lille.iut_info.MemoryElement
-import fr.univ_lille.iut_info.MemoryObject
-import fr.univ_lille.iut_info.ProductionRuleStatement
-import fr.univ_lille.iut_info.visit
+import fr.univ_lille.iut_info.*
 
 class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingContext, ITypingContext by typecheckStep,
     ExecutionStep {
@@ -24,8 +21,8 @@ class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingCon
                 rootInput.visit { input ->
                     val pattern = statement.pattern
                     val production = statement.production
-                    val restriction = if (input is MemoryObject) listOf(input.type.identifier) else emptyList()
-                    if ((restriction + getAnnotations(input).map { it.type.identifier }).find { it == production.identifier } != null) return@visit null
+                    val restriction = calculateRestriction(input)
+                    if (restriction.map { it.identifier }.contains(production.identifier)) return@visit null
                     val environments = pattern.match(this, input)
                     if (!environments.hasNext()) return@visit null
                     val env = environments.next()
@@ -43,5 +40,11 @@ class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingCon
 
 
         return emptyList()
+    }
+
+    fun calculateRestriction(element: MemoryElement): List<PropertyType> {
+        if (element !is MemoryObject) return emptyList()
+        val annotations = getAnnotations(element)
+        return listOf(element.type) + annotations.flatMap { calculateRestriction(it) }
     }
 }

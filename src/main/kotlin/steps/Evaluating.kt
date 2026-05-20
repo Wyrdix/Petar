@@ -5,8 +5,7 @@ import fr.univ_lille.iut_info.IIterator.Companion.toIIterator
 import fr.univ_lille.iut_info.PatternModifier.*
 
 data class EvaluationEnvironment(
-    val definitions: Map<String, MemoryElement> = emptyMap(),
-    val choices: Map<MemoryObject, MemoryObject> = emptyMap()
+    val definitions: Map<String, MemoryElement> = emptyMap(), val choices: Map<MemoryObject, MemoryObject> = emptyMap()
 )
 
 interface IEvaluatingContext : ITypingContext {
@@ -20,8 +19,12 @@ interface IEvaluatingContext : ITypingContext {
     var output: MemoryObject?
 
     fun addAnnotation(element: MemoryElement, annotation: MemoryObject) {
-        memoryAnnotationRoot[annotation] = element
-        memoryAnnotationMap[element] = getAnnotations(element) + annotation
+        val root = memoryAnnotationRoot[element]
+        if (root != null) addAnnotation(root, annotation)
+        else {
+            memoryAnnotationRoot[annotation] = element
+            memoryAnnotationMap[element] = getAnnotations(element) + annotation
+        }
     }
 
     fun cacheParents(parent: MemoryElement) {
@@ -56,14 +59,13 @@ fun Pattern.applyEffects(
         if (this.modifier == ONE) if (element != null) environment.add(name, element) else environment
         else {
             val arrayType = context.getCheckedPatternType(context.patternParentMap[this]!!)!! as ArrayType
-            val existing =
-                environment.definitions[name].let {
-                    when (it) {
-                        null -> MemoryArray(arrayType, emptyList())
-                        is MemoryArray -> it
-                        else -> MemoryArray(arrayType, listOf(it))
-                    }
+            val existing = environment.definitions[name].let {
+                when (it) {
+                    null -> MemoryArray(arrayType, emptyList())
+                    is MemoryArray -> it
+                    else -> MemoryArray(arrayType, listOf(it))
                 }
+            }
 
             val array = MemoryArray(arrayType, existing.value + (if (element == null) emptyList() else listOf(element)))
             environment.add(name, array)
@@ -73,8 +75,7 @@ fun Pattern.applyEffects(
             val parent = context.memoryAnnotationRoot[element]
             if (parent != null && parent is MemoryObject) environment.choice(parent, element)
             else environment
-        } else
-            environment
+        } else environment
     }
 }
 
@@ -90,8 +91,7 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
                 is BinaryExpression.And -> MemoryNumber((left as MemoryNumber).value.toDouble() + (right as MemoryNumber).value.toDouble())
 
                 is BinaryExpression.Divide -> if ((right as MemoryNumber).value.toInt() == 0) throw StepError(
-                    Step.EVALUATION, this,
-                    "Division by 0"
+                    Step.EVALUATION, this, "Division by 0"
                 )
                 else MemoryNumber((left as MemoryNumber).value.toDouble() / right.value.toDouble())
 
@@ -137,9 +137,13 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
         )
 
         is PropertyExpression -> {
+            val fieldMap = this.fields.mapValues { (_, value) -> value.evaluate(context, environment) }
+            val parentMap = (parent?.evaluate(
+                context, environment
+            ) as MemoryObject?)?.value ?: emptyMap()
             MemoryObject(
-                context.getCheckedType(this) as PropertyType,
-                this.fields.mapValues { (_, value) -> value.evaluate(context, environment) })
+                context.getCheckedType(this) as PropertyType, fieldMap + parentMap
+            )
         }
 
         is FunctionCallExpression -> {
@@ -162,9 +166,7 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
 }
 
 fun Pattern.match(
-    context: IEvaluatingContext,
-    element: MemoryElement,
-    environment: EvaluationEnvironment = EvaluationEnvironment()
+    context: IEvaluatingContext, element: MemoryElement, environment: EvaluationEnvironment = EvaluationEnvironment()
 ): IIterator<EvaluationEnvironment> {
     return when (this) {
         is ExpressionPattern -> {
@@ -180,10 +182,7 @@ fun Pattern.match(
         ) else IIterator.empty()
 
         is ArrayPattern if element is MemoryArray -> arrayMatching(
-            context,
-            values,
-            element.value,
-            environment
+            context, values, element.value, environment
         )
 
         is PropertyPattern -> {
@@ -272,16 +271,11 @@ fun arrayMatching(
             )
         }
 
-        AT_LEAST_ONE if elementsHead != null ->
-            patternHead.safeMatch(context, elementsHead, environment).flatMapI {
-                arrayMatching(
-                    context,
-                    patterns,
-                    elementsTails,
-                    patternHead.applyEffects(context, elementsHead, environment),
-                    ANY
-                )
-            }
+        AT_LEAST_ONE if elementsHead != null -> patternHead.safeMatch(context, elementsHead, environment).flatMapI {
+            arrayMatching(
+                context, patterns, elementsTails, patternHead.applyEffects(context, elementsHead, environment), ANY
+            )
+        }
 
         else -> IIterator.empty()
     }
