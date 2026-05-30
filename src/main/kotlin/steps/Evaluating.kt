@@ -165,6 +165,14 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
     }
 }
 
+fun Pattern.condition(
+    context: IEvaluatingContext, environment: EvaluationEnvironment
+): Boolean {
+    return children().all {
+        it.condition(context, environment)
+    } && condition?.evaluate(context, environment)?.let { (it as MemoryBoolean).value } ?: true
+}
+
 fun Pattern.match(
     context: IEvaluatingContext, element: MemoryElement, environment: EvaluationEnvironment = EvaluationEnvironment()
 ): IIterator<EvaluationEnvironment> {

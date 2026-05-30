@@ -23,7 +23,7 @@ class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingCon
                     val production = statement.production
                     val restriction = calculateRestriction(input)
                     if (restriction.map { it.identifier }.contains(production.identifier)) return@visit null
-                    val environments = pattern.match(this, input)
+                    val environments = pattern.match(this, input).filter { pattern.condition(this, it) }.iterator()
                     if (!environments.hasNext()) return@visit null
                     val env = environments.next()
                     val annotation = production.evaluate(this, env)

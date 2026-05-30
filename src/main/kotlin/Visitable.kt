@@ -63,6 +63,10 @@ fun <T : Visitable<T>> T.any(
     visitor: ((node: T) -> Boolean)
 ): Boolean = find(visitor) != null
 
+fun <T : Visitable<T>> T.all(
+    visitor: ((node: T) -> Boolean)
+): Boolean = find { node -> !visitor(node) } == null
+
 fun <T : Visitable<T>, U> T.map(func: Function<T, U>): List<U> {
     return this.mapFilter { node -> Pair(func.apply(node), true) }
 }
