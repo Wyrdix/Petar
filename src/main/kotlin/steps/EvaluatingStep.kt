@@ -1,18 +1,20 @@
 package fr.univ_lille.iut_info.steps
 
 import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.memory.MemoryElement
+import fr.univ_lille.iut_info.memory.MemoryPath
 
 class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingContext, ITypingContext by typecheckStep,
     ExecutionStep {
-    override val memoryParentMap: MutableMap<MemoryElement, Pair<String, MemoryElement>> = HashMap()
-    override val memoryAnnotationRoot: MutableMap<MemoryElement, MemoryElement> = HashMap()
-    override val memoryAnnotationMap: MutableMap<MemoryElement, List<MemoryObject>> = HashMap()
-    override var output: MemoryObject? = null
+    override val pathMemory: MutableBiMap<MemoryPath, MemoryElement> = MutableBiMap()
+    override var output: fr.univ_lille.iut_info.memory.MemoryObject? = null
 
     override fun run(): List<String> {
         val rootInput = program.data.input?.let { it(this) } ?: return emptyList()
 
         val rules = program.statements.filterIsInstance<ProductionRuleStatement>()
+
+        initial(rootInput, MemoryPath.root(this));
 
         var changed = true
         while (changed) {
@@ -27,7 +29,7 @@ class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingCon
                     if (!environments.hasNext()) return@visit null
                     val env = environments.next()
                     val annotation = production.evaluate(this, env)
-                    if (annotation is MemoryObject) {
+                    if (annotation is fr.univ_lille.iut_info.memory.MemoryObject) {
                         changed = true
                         addAnnotation(env.choices[input] ?: input, annotation)
                     }
@@ -43,7 +45,7 @@ class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingCon
     }
 
     fun calculateRestriction(element: MemoryElement): List<PropertyType> {
-        if (element !is MemoryObject) return emptyList()
+        if (element !is fr.univ_lille.iut_info.memory.MemoryObject) return emptyList()
         val annotations = getAnnotations(element)
         return listOf(element.type) + annotations.flatMap { calculateRestriction(it) }
     }

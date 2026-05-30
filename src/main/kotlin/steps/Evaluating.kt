@@ -3,43 +3,43 @@ package fr.univ_lille.iut_info.steps
 import fr.univ_lille.iut_info.*
 import fr.univ_lille.iut_info.IIterator.Companion.toIIterator
 import fr.univ_lille.iut_info.PatternModifier.*
+import fr.univ_lille.iut_info.memory.MemoryArray
+import fr.univ_lille.iut_info.memory.MemoryBoolean
+import fr.univ_lille.iut_info.memory.MemoryElement
+import fr.univ_lille.iut_info.memory.MemoryNumber
+import fr.univ_lille.iut_info.memory.MemoryObject
+import fr.univ_lille.iut_info.memory.MemoryPath
+import fr.univ_lille.iut_info.memory.MemoryReference
+import fr.univ_lille.iut_info.memory.MemoryString
+import fr.univ_lille.iut_info.memory.MemoryUndefined
 
 data class EvaluationEnvironment(
-    val definitions: Map<String, MemoryElement> = emptyMap(), val choices: Map<MemoryObject, MemoryObject> = emptyMap()
+    val definitions: Map<String, MemoryElement> = emptyMap(), val choices: Map<MemoryElement, MemoryElement> = emptyMap()
 )
 
 interface IEvaluatingContext : ITypingContext {
     val typecheckStep: ITypingContext
+    val pathMemory: MutableBiMap<MemoryPath, MemoryElement>
 
-    val memoryParentMap: MutableMap<MemoryElement, Pair<String, MemoryElement>>
-    val memoryAnnotationRoot: MutableMap<MemoryElement, MemoryElement>
-    val memoryAnnotationMap: MutableMap<MemoryElement, List<MemoryObject>>
-
-    fun getAnnotations(element: MemoryElement) = memoryAnnotationMap[element] ?: emptyList()
     var output: MemoryObject?
 
+    fun getAnnotations(element: MemoryElement) = pathMemory.getReversed(element)!!.children().filter { it.nodes.last() is MemoryPath.TypeNode }.map { it.resolve() }
+
     fun addAnnotation(element: MemoryElement, annotation: MemoryObject) {
-        val root = memoryAnnotationRoot[element]
-        if (root != null) addAnnotation(root, annotation)
-        else {
-            memoryAnnotationRoot[annotation] = element
-            memoryAnnotationMap[element] = getAnnotations(element) + annotation
-        }
+        initial( annotation, pathMemory.getReversed(element)!!.goto(annotation.type),)
     }
 
-    fun cacheParents(parent: MemoryElement) {
-        when (parent) {
-            is MemoryNumber, is MemoryString, is MemoryBoolean, is MemoryUndefined -> {}
-            is MemoryArray -> parent.value.forEachIndexed { index, element ->
-                memoryParentMap[element] = Pair(index.toString(), parent)
-                cacheParents(element)
-            }
+    fun isAnnotation(element: MemoryElement) = pathMemory.getReversed(element)?.nodes?.lastOrNull() is MemoryPath.TypeNode
+}
 
-            is MemoryObject -> parent.value.forEach { (key, value) ->
-                memoryParentMap[value] = Pair(key, parent)
-                cacheParents(value)
-            }
-        }
+fun IEvaluatingContext.initial(element: MemoryElement, path: MemoryPath) {
+
+    pathMemory[path] = element
+
+    when(element) {
+        is MemoryBoolean, is MemoryNumber, is MemoryString, is MemoryUndefined, is MemoryReference -> {}
+        is MemoryObject -> element.value.entries.forEach { (key, value) -> initial(value, path.goto(key)) }
+        is MemoryArray -> element.value.forEachIndexed { index, value -> initial(value, path.goto(index)) }
     }
 }
 
@@ -47,7 +47,7 @@ fun EvaluationEnvironment.add(key: String, element: MemoryElement): EvaluationEn
     return EvaluationEnvironment(definitions + Pair(key, element))
 }
 
-fun EvaluationEnvironment.choice(parent: MemoryObject, choice: MemoryObject): EvaluationEnvironment {
+fun EvaluationEnvironment.choice(parent: MemoryElement, choice: MemoryElement): EvaluationEnvironment {
     return EvaluationEnvironment(definitions, choices + (parent to choice))
 }
 
@@ -67,13 +67,16 @@ fun Pattern.applyEffects(
                 }
             }
 
-            val array = MemoryArray(arrayType, existing.value + (if (element == null) emptyList() else listOf(element)))
+            val array = MemoryArray(
+                arrayType,
+                existing.value + (if (element == null) emptyList() else listOf(element))
+            )
             environment.add(name, array)
         }
     } else environment).let { environment ->
         if (element != null && element is MemoryObject) {
-            val parent = context.memoryAnnotationRoot[element]
-            if (parent != null && parent is MemoryObject) environment.choice(parent, element)
+            if (context.isAnnotation(element))
+                environment.choice(context.pathMemory.getReversed(element)!!.parent().resolve() , element)
             else environment
         } else environment
     }

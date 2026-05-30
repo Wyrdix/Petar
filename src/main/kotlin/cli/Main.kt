@@ -5,7 +5,7 @@ import com.beust.jcommander.ParameterException
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
-import fr.univ_lille.iut_info.MemoryObject
+import fr.univ_lille.iut_info.memory.MemoryObject
 import fr.univ_lille.iut_info.Program
 import fr.univ_lille.iut_info.ProgramData
 import fr.univ_lille.iut_info.parsing.SpecificationParser

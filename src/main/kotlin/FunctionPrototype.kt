@@ -1,5 +1,9 @@
 package fr.univ_lille.iut_info
 
+import fr.univ_lille.iut_info.memory.MemoryBoolean
+import fr.univ_lille.iut_info.memory.MemoryElement
+import fr.univ_lille.iut_info.memory.MemoryNumber
+import fr.univ_lille.iut_info.memory.MemoryString
 import fr.univ_lille.iut_info.steps.EvaluationEnvironment
 import fr.univ_lille.iut_info.steps.IEvaluatingContext
 import fr.univ_lille.iut_info.steps.evaluate

@@ -1,4 +1,4 @@
-import fr.univ_lille.iut_info.MemoryElement
+import fr.univ_lille.iut_info.memory.MemoryElement
 import fr.univ_lille.iut_info.steps.ITypingContext
 import kotlin.test.Asserter
 import kotlin.test.asserter

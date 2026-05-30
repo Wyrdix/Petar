@@ -2,6 +2,7 @@ package fr.univ_lille.iut_info.serializer
 
 import com.google.gson.*
 import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.memory.*
 import fr.univ_lille.iut_info.steps.*
 
 class JsonSerializer : Serializer<JsonElement> {
@@ -10,6 +11,7 @@ class JsonSerializer : Serializer<JsonElement> {
             is MemoryString -> JsonPrimitive(data.value)
             is MemoryNumber -> JsonPrimitive(data.value)
             is MemoryBoolean -> JsonPrimitive(data.value)
+            is MemoryReference -> TODO()
             is MemoryArray -> JsonArray().also { array ->
                 data.value.map { this.serialize(it, context) }.forEach(array::add)
             }

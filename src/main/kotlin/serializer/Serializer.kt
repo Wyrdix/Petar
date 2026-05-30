@@ -1,6 +1,6 @@
 package fr.univ_lille.iut_info.serializer
 
-import fr.univ_lille.iut_info.MemoryElement
+import fr.univ_lille.iut_info.memory.MemoryElement
 import fr.univ_lille.iut_info.Type
 import fr.univ_lille.iut_info.steps.IEvaluatingContext
 import fr.univ_lille.iut_info.steps.ITypingContext

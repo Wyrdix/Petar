@@ -1,5 +1,6 @@
 package fr.univ_lille.iut_info
 
+import fr.univ_lille.iut_info.memory.MemoryObject
 import fr.univ_lille.iut_info.steps.*
 
 

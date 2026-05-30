@@ -17,7 +17,7 @@ class ArrayPatternMatchingTest {
             pattern
         }
 
-        val elements = listOf("aaa").map { MemoryString(it) }
+        val elements = listOf("aaa").map { _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryString(it) }
 
         val arrayPattern = ArrayPattern(
             listOf(generator(PatternMeta(modifier = PatternModifier.AT_LEAST_ONE, name = "group1"))),
@@ -32,7 +32,7 @@ class ArrayPatternMatchingTest {
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             listOf(elements[0])
                         )
@@ -58,7 +58,7 @@ class ArrayPatternMatchingTest {
             pattern
         }
 
-        val elements = listOf("aaa", "bbb").map { MemoryString(it) }
+        val elements = listOf("aaa", "bbb").map { _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryString(it) }
 
         val arrayPattern = ArrayPattern(
             listOf(generator(PatternMeta(modifier = PatternModifier.AT_LEAST_ONE, name = "group1"))),
@@ -73,7 +73,7 @@ class ArrayPatternMatchingTest {
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements
                         )
@@ -98,8 +98,16 @@ class ArrayPatternMatchingTest {
             pattern
         }
 
-        val elements1 = listOf("aaa", "bbb", "ccc").map { MemoryString(it) }
-        val elements2 = listOf("aaa", "bbb", "ccc", "ddd", "eee").map { MemoryString(it) }
+        val elements1 = listOf("aaa", "bbb", "ccc").map {
+            _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryString(
+                it
+            )
+        }
+        val elements2 = listOf("aaa", "bbb", "ccc", "ddd", "eee").map {
+            _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryString(
+                it
+            )
+        }
 
         val arrayPattern = ArrayPattern(
             listOf(generator(PatternMeta(modifier = PatternModifier.AT_LEAST_ONE, name = "group1"))),
@@ -114,7 +122,7 @@ class ArrayPatternMatchingTest {
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements1
                         )
@@ -131,7 +139,7 @@ class ArrayPatternMatchingTest {
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements2
                         )
@@ -157,7 +165,7 @@ class ArrayPatternMatchingTest {
             pattern
         }
 
-        val elements1 = listOf("aaa", "bbb").map { MemoryString(it) }
+        val elements1 = listOf("aaa", "bbb").map { _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryString(it) }
 
         val arrayPattern = ArrayPattern(
             listOf(
@@ -175,11 +183,11 @@ class ArrayPatternMatchingTest {
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements1
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             emptyList()
                         )
@@ -187,11 +195,11 @@ class ArrayPatternMatchingTest {
                 ),
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements1.subList(0, 1)
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements1.subList(1, 2)
                         )
@@ -199,11 +207,11 @@ class ArrayPatternMatchingTest {
                 ),
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             emptyList()
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements1
                         )
@@ -230,7 +238,11 @@ class ArrayPatternMatchingTest {
             pattern
         }
         
-        val elements = listOf("aaa", "bbb", "ccc").map { MemoryString(it) }
+        val elements = listOf("aaa", "bbb", "ccc").map {
+            _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryString(
+                it
+            )
+        }
 
         val arrayPattern = ArrayPattern(
             listOf(
@@ -248,11 +260,11 @@ class ArrayPatternMatchingTest {
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             emptyList()
                         )
@@ -260,11 +272,11 @@ class ArrayPatternMatchingTest {
                 ),
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements.subList(0, 2)
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements.subList(2, 3)
                         )
@@ -272,11 +284,11 @@ class ArrayPatternMatchingTest {
                 ),
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements.subList(0, 1)
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements.subList(1, 3)
                         )
@@ -284,11 +296,11 @@ class ArrayPatternMatchingTest {
                 ),
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             emptyList()
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements
                         )
@@ -314,7 +326,11 @@ class ArrayPatternMatchingTest {
             pattern
         }
 
-        val elements = listOf("aaa", "bbb", "ccc", "bbb", "ccc").map { MemoryString(it) }
+        val elements = listOf("aaa", "bbb", "ccc", "bbb", "ccc").map {
+            _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryString(
+                it
+            )
+        }
 
         val arrayPattern = ArrayPattern(
             listOf(
@@ -333,15 +349,15 @@ class ArrayPatternMatchingTest {
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements.subList(0, 1)
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements.subList(1, elements.size)
                         ),
-                        "group3" to MemoryArray(
+                        "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             emptyList()
                         )
@@ -349,31 +365,31 @@ class ArrayPatternMatchingTest {
                 ),
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements.subList(0, 1)
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
-                            elements.subList(1, elements.size-1)
+                            elements.subList(1, elements.size - 1)
                         ),
-                        "group3" to MemoryArray(
+                        "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
-                            elements.subList(elements.size-1, elements.size)
+                            elements.subList(elements.size - 1, elements.size)
                         )
                     )
                 ),
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             emptyList()
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             elements
                         ),
-                        "group3" to MemoryArray(
+                        "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             emptyList()
                         )
@@ -381,17 +397,17 @@ class ArrayPatternMatchingTest {
                 ),
                 EvaluationEnvironment(
                     definitions = mapOf(
-                        "group1" to MemoryArray(
+                        "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
                             emptyList()
                         ),
-                        "group2" to MemoryArray(
+                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
-                            elements.subList(0, elements.size-1)
+                            elements.subList(0, elements.size - 1)
                         ),
-                        "group3" to MemoryArray(
+                        "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
                             Type.array(Type.string),
-                            elements.subList(elements.size-1, elements.size)
+                            elements.subList(elements.size - 1, elements.size)
                         )
                     )
                 )

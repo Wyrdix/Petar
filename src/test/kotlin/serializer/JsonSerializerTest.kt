@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.memory.*
 import fr.univ_lille.iut_info.serializer.JsonSerializer
 import fr.univ_lille.iut_info.steps.*
 import org.junit.jupiter.api.Test
@@ -22,6 +23,7 @@ class JsonSerializerTest {
     }
 
     fun serialize(value: MemoryElement, context: IEvaluatingContext): String {
+        context.initial(value, MemoryPath.root(context))
         return Gson().toJson(JsonSerializer.serialize(value, context))
     }
 
@@ -182,7 +184,13 @@ class JsonSerializerTest {
         type3.check(context)
 
         assertIsSimilarTo(
-            MemoryObject(type2, mapOf("value" to MemoryNumber(10), "value1" to MemoryString("A"))),
+            MemoryObject(
+                type2,
+                mapOf(
+                    "value" to MemoryNumber(10),
+                    "value1" to MemoryString("A")
+                )
+            ),
             JsonSerializer.deserialize(
                 parse("{value: 10, value1: \"A\"}"), context, type1
             ),
@@ -190,7 +198,13 @@ class JsonSerializerTest {
         )
 
         assertIsSimilarTo(
-            MemoryObject(type3, mapOf("value" to MemoryNumber(10), "value1" to MemoryString("A"))),
+            MemoryObject(
+                type3,
+                mapOf(
+                    "value" to MemoryNumber(10),
+                    "value1" to MemoryString("A")
+                )
+            ),
             JsonSerializer.deserialize(
                 parse("{value: 10, value1: \"A\"}"), context, type1
             ),
@@ -198,7 +212,10 @@ class JsonSerializerTest {
         )
 
         assertIsSimilarTo(
-            MemoryObject(type2, mapOf("value" to MemoryNumber(10))),
+            MemoryObject(
+                type2,
+                mapOf("value" to MemoryNumber(10))
+            ),
             JsonSerializer.deserialize(
                 parse("{value: 10}"), context, type1
             ),

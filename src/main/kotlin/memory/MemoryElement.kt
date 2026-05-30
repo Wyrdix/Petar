@@ -1,12 +1,12 @@
-package fr.univ_lille.iut_info
+package fr.univ_lille.iut_info.memory
 
 import fr.univ_lille.iut_info.steps.ITypingContext
 import fr.univ_lille.iut_info.steps.isAssignableFrom
 import java.util.*
 
-sealed class MemoryElement : Visitable<MemoryElement> {
+sealed class MemoryElement : fr.univ_lille.iut_info.Visitable<MemoryElement> {
     val id = UUID.randomUUID().toString()
-    abstract val type: Type
+    abstract val type: fr.univ_lille.iut_info.Type
 
     override fun hashCode(): Int {
         return id.hashCode()
@@ -40,24 +40,24 @@ sealed class MemoryElement : Visitable<MemoryElement> {
             return MemoryUndefined()
         }
 
-        fun property(type: PropertyType, value: Map<String, MemoryElement>): MemoryObject {
+        fun property(type: fr.univ_lille.iut_info.PropertyType, value: Map<String, MemoryElement>): MemoryObject {
             return MemoryObject(type, value)
         }
 
-        fun array(type: ArrayType, value: List<MemoryElement>): MemoryArray {
+        fun array(type: fr.univ_lille.iut_info.ArrayType, value: List<MemoryElement>): MemoryArray {
             return MemoryArray(type, value)
         }
     }
 }
 
 class MemoryUndefined : MemoryElement() {
-    override val type = Type.undefined
+    override val type = fr.univ_lille.iut_info.Type.undefined
 
     override fun toString(): String {
         return "MemoryUndefined()"
     }
 
-    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+    override fun accept(visitor: fr.univ_lille.iut_info.Visitor<MemoryElement>): MemoryElement {
         return this
     }
 
@@ -67,13 +67,13 @@ class MemoryUndefined : MemoryElement() {
 }
 
 data class MemoryString(val value: String) : MemoryElement() {
-    override val type = Type.string
+    override val type = fr.univ_lille.iut_info.Type.string
 
     override fun toString(): String {
         return "MemoryString(value=$value)"
     }
 
-    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+    override fun accept(visitor: fr.univ_lille.iut_info.Visitor<MemoryElement>): MemoryElement {
         return this
     }
 
@@ -83,13 +83,13 @@ data class MemoryString(val value: String) : MemoryElement() {
 }
 
 data class MemoryNumber(val value: Number) : MemoryElement() {
-    override val type = Type.number
+    override val type = fr.univ_lille.iut_info.Type.number
 
     override fun toString(): String {
         return "MemoryNumber(value=$value)"
     }
 
-    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+    override fun accept(visitor: fr.univ_lille.iut_info.Visitor<MemoryElement>): MemoryElement {
         return this
     }
 
@@ -99,13 +99,13 @@ data class MemoryNumber(val value: Number) : MemoryElement() {
 }
 
 data class MemoryBoolean(val value: Boolean) : MemoryElement() {
-    override val type = Type.boolean
+    override val type = fr.univ_lille.iut_info.Type.boolean
 
     override fun toString(): String {
         return "MemoryBoolean(value=$value)"
     }
 
-    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+    override fun accept(visitor: fr.univ_lille.iut_info.Visitor<MemoryElement>): MemoryElement {
         return this
     }
 
@@ -114,13 +114,13 @@ data class MemoryBoolean(val value: Boolean) : MemoryElement() {
     }
 }
 
-data class MemoryObject(override val type: PropertyType, val value: Map<String, MemoryElement>) : MemoryElement() {
+data class MemoryObject(override val type: fr.univ_lille.iut_info.PropertyType, val value: Map<String, MemoryElement>) : MemoryElement() {
 
     override fun toString(): String {
         return "MemoryObject(type=$type, value=${value.toSortedMap()})"
     }
 
-    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+    override fun accept(visitor: fr.univ_lille.iut_info.Visitor<MemoryElement>): MemoryElement {
         return MemoryObject(type, value.mapValues { (_, value) -> visitor.visit(value) })
     }
 
@@ -141,13 +141,13 @@ data class MemoryObject(override val type: PropertyType, val value: Map<String, 
     }
 }
 
-data class MemoryArray(override val type: ArrayType, val value: List<MemoryElement>) : MemoryElement() {
+data class MemoryArray(override val type: fr.univ_lille.iut_info.ArrayType, val value: List<MemoryElement>) : MemoryElement() {
 
     override fun toString(): String {
         return "MemoryArray(type=$type, value=$value)"
     }
 
-    override fun accept(visitor: Visitor<MemoryElement>): MemoryElement {
+    override fun accept(visitor: fr.univ_lille.iut_info.Visitor<MemoryElement>): MemoryElement {
         return MemoryArray(type, value.map { visitor.visit(it) })
     }
 

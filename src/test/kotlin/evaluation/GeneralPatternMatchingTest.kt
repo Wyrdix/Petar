@@ -1,6 +1,8 @@
 package evaluation
 
 import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.memory.*
+import fr.univ_lille.iut_info.memory.MemoryPath
 import fr.univ_lille.iut_info.steps.*
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -11,7 +13,14 @@ class GeneralPatternMatchingTest {
         val context = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
 
         val type = Type.property("test", mapOf("a" to Type.number))
-        val value = MemoryObject(type, mapOf("a" to MemoryNumber(1)))
+        val value = MemoryObject(
+            type,
+            mapOf("a" to MemoryNumber(1))
+        )
+
+        context.initial(value, MemoryPath.root(context))
+
+        println(context.pathMemory.keys)
 
         context.typeNameMap["test"] = type
 
@@ -87,16 +96,20 @@ class GeneralPatternMatchingTest {
         val annotationType = Type.property("name_annotation", mapOf("name" to Type.string))
         val valueField = MemoryNumber(1)
         val value = MemoryObject(type, mapOf("a" to valueField))
-        val annotationValue = MemoryObject(annotationType, mapOf("name" to MemoryNumber(1)))
+        val annotationValue = MemoryObject(
+            annotationType,
+            mapOf("name" to MemoryNumber(2))
+        )
 
-        context.memoryAnnotationRoot[annotationValue] = valueField
-        context.memoryAnnotationMap[valueField] = listOf(annotationValue)
+        context.initial(value, MemoryPath.root(context))
+
+        context.addAnnotation(valueField, annotationValue)
 
         context.typeNameMap["test"] = type
         context.typeNameMap["name_annotation"] = annotationType
 
         assertEquals(
-            IIterator.singleton(EvaluationEnvironment()).toList(), PropertyPattern(
+            IIterator.singleton(EvaluationEnvironment(choices = mapOf(valueField to annotationValue))).toList(), PropertyPattern(
                 "test",
                 listOf("a" to PropertyPattern("name_annotation", emptyList(), meta = PatternMeta())),
                 meta = PatternMeta()
@@ -115,22 +128,27 @@ class GeneralPatternMatchingTest {
         val annotation2Type = Type.property("value_annotation", mapOf("b" to Type.string))
         val valueField = MemoryNumber(1)
         val value = MemoryObject(type, mapOf("a" to valueField))
-        val annotationValue = MemoryObject(annotationType, mapOf("name" to MemoryNumber(2)))
-        val annotation2Value = MemoryObject(annotation2Type, mapOf("b" to MemoryNumber(3)))
+        val annotationValue = MemoryObject(
+            annotationType,
+            mapOf("name" to MemoryNumber(2))
+        )
+        val annotation2Value = MemoryObject(
+            annotation2Type,
+            mapOf("b" to MemoryNumber(3))
+        )
 
-        context.memoryAnnotationRoot[annotationValue] = valueField
-        context.memoryAnnotationMap[valueField] = listOf(annotationValue)
+        context.initial(value, MemoryPath.root(context))
 
+        context.addAnnotation(valueField, annotationValue)
+        context.addAnnotation(annotationValue.value["name"]!!, annotation2Value)
 
-        context.memoryAnnotationRoot[annotation2Value] = annotationValue.value["name"]!!
-        context.memoryAnnotationMap[annotationValue.value["name"]!!] = listOf(annotation2Value)
 
         context.typeNameMap["test"] = type
         context.typeNameMap["name_annotation"] = annotationType
         context.typeNameMap["value_annotation"] = annotation2Type
 
         assertEquals(
-            listOf(EvaluationEnvironment()),  PropertyPattern(
+            listOf(EvaluationEnvironment(choices = mapOf(valueField to annotationValue, annotationValue.value["name"]!! to annotation2Value))),  PropertyPattern(
                 "test", listOf(
                     "a" to PropertyPattern(
                         "name_annotation",
