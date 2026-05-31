@@ -61,6 +61,27 @@ class MemoryPath private constructor(val context: IEvaluatingContext, val nodes:
         fun root(context: IEvaluatingContext): MemoryPath {
             return MemoryPath(context, emptyList())
         }
+
+        fun parse(context: IEvaluatingContext, raw: String, prefix: MemoryPath = root(context)): MemoryPath? {
+            if(raw.isEmpty()) return root(context)
+            if(raw.startsWith("[")) {
+                val end = raw.indexOf(']')
+                val index = raw.substring(1, end).toInt()
+                return parse(context, raw.substring(end+1), prefix.goto(index))
+            }
+            if(raw.startsWith('(')) {
+                val end = raw.indexOf(')')
+                val type = raw.substring(1, end).let { context.typeNameMap[it] as? PropertyType }
+                if(type == null) return null
+                return parse(context, raw.substring(end+1),prefix.goto(type))
+            }
+            if(raw.contains('.')) {
+                val end = raw.indexOf('.');
+                val key = raw.substring(1, end)
+                return parse(context, raw.substring(end+1), prefix.goto(key))
+            }
+            return prefix.goto(raw)
+        }
     }
 
     sealed interface MemoryNode

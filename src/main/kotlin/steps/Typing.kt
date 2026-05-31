@@ -69,7 +69,14 @@ interface ITypingContext : INameContext {
         return typeNameMap[name] ?: throw IllegalStateException("Could not find type by name: $name $.")
     }
 
+}
 
+fun parseType(context: ITypingContext, type: String) : Type? {
+    context.typeNameMap[type]?.let { return it }
+    if(type.endsWith("[]")) {
+        return parseType(context, type.substring(0, type.length-2))?.let { Type.array(it) }
+    }
+    return null
 }
 
 fun Type.resolveReference(context: ITypingContext): Type {
