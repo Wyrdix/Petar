@@ -1,11 +1,12 @@
 package fr.univ_lille.iut_info.memory
 
+import fr.univ_lille.iut_info.steps.IEvaluatingContext
 import fr.univ_lille.iut_info.steps.ITypingContext
 import fr.univ_lille.iut_info.steps.isAssignableFrom
 import java.util.*
 
 sealed class MemoryElement : fr.univ_lille.iut_info.Visitable<MemoryElement> {
-    val id = UUID.randomUUID().toString()
+    var id = UUID.randomUUID().toString()
     abstract val type: fr.univ_lille.iut_info.Type
 
     override fun hashCode(): Int {
@@ -62,11 +63,13 @@ class MemoryUndefined : MemoryElement() {
     }
 
     override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
+        if(other is MemoryReference && context is IEvaluatingContext)
+            return isSimilarTo(context.pathMemory[other.reference]!!, context)
         return other is MemoryUndefined
     }
 }
 
-data class MemoryString(val value: String) : MemoryElement() {
+class MemoryString(val value: String) : MemoryElement() {
     override val type = fr.univ_lille.iut_info.Type.string
 
     override fun toString(): String {
@@ -78,11 +81,13 @@ data class MemoryString(val value: String) : MemoryElement() {
     }
 
     override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
+        if(other is MemoryReference && context is IEvaluatingContext)
+            return isSimilarTo(context.pathMemory[other.reference]!!, context)
         return other is MemoryString && other.value == value
     }
 }
 
-data class MemoryNumber(val value: Number) : MemoryElement() {
+class MemoryNumber(val value: Number) : MemoryElement() {
     override val type = fr.univ_lille.iut_info.Type.number
 
     override fun toString(): String {
@@ -94,11 +99,13 @@ data class MemoryNumber(val value: Number) : MemoryElement() {
     }
 
     override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
+        if(other is MemoryReference && context is IEvaluatingContext)
+            return isSimilarTo(context.pathMemory[other.reference]!!, context)
         return other is MemoryNumber && other.value.toDouble() == value.toDouble()
     }
 }
 
-data class MemoryBoolean(val value: Boolean) : MemoryElement() {
+class MemoryBoolean(val value: Boolean) : MemoryElement() {
     override val type = fr.univ_lille.iut_info.Type.boolean
 
     override fun toString(): String {
@@ -110,11 +117,13 @@ data class MemoryBoolean(val value: Boolean) : MemoryElement() {
     }
 
     override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
+        if(other is MemoryReference && context is IEvaluatingContext)
+            return isSimilarTo(context.pathMemory[other.reference]!!, context)
         return other is MemoryBoolean && other.value == value
     }
 }
 
-data class MemoryObject(override val type: fr.univ_lille.iut_info.PropertyType, val value: Map<String, MemoryElement>) : MemoryElement() {
+class MemoryObject(override val type: fr.univ_lille.iut_info.PropertyType, val value: Map<String, MemoryElement>) : MemoryElement() {
 
     override fun toString(): String {
         return "MemoryObject(type=$type, value=${value.toSortedMap()})"
@@ -125,6 +134,8 @@ data class MemoryObject(override val type: fr.univ_lille.iut_info.PropertyType, 
     }
 
     override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
+        if(other is MemoryReference && context is IEvaluatingContext)
+            return isSimilarTo(context.pathMemory[other.reference]!!, context)
         if (other !is MemoryObject) return false
 
         val typecheck = context?.let {
@@ -141,7 +152,7 @@ data class MemoryObject(override val type: fr.univ_lille.iut_info.PropertyType, 
     }
 }
 
-data class MemoryArray(override val type: fr.univ_lille.iut_info.ArrayType, val value: List<MemoryElement>) : MemoryElement() {
+class MemoryArray(override val type: fr.univ_lille.iut_info.ArrayType, val value: List<MemoryElement>) : MemoryElement() {
 
     override fun toString(): String {
         return "MemoryArray(type=$type, value=$value)"
@@ -152,8 +163,28 @@ data class MemoryArray(override val type: fr.univ_lille.iut_info.ArrayType, val 
     }
 
     override fun isSimilarTo(other: MemoryElement, context: ITypingContext?): Boolean {
+        if(other is MemoryReference && context is IEvaluatingContext)
+            return isSimilarTo(context.pathMemory[other.reference]!!, context)
         val bool = other is MemoryArray
         val bool1 = type == other.type
         return bool && bool1 && other.value.zip(value).all { (it1, it2) -> it1.isSimilarTo(it2, context) }
     }
+}
+
+class MemoryReference(override val type: fr.univ_lille.iut_info.Type, val reference: MemoryPath): MemoryElement() {
+    override fun isSimilarTo(
+        other: MemoryElement,
+        context: ITypingContext?
+    ): Boolean {
+        if(other is MemoryReference && context is IEvaluatingContext)
+            return isSimilarTo(context.pathMemory[other.reference]!!, context)
+
+        if(other !is MemoryReference) return false
+        return other.toString() == reference.toString()
+    }
+
+    override fun accept(visitor: fr.univ_lille.iut_info.Visitor<MemoryElement>): MemoryElement {
+        return MemoryReference(type, reference)
+    }
+
 }

@@ -20,8 +20,6 @@ class GeneralPatternMatchingTest {
 
         context.initial(value, MemoryPath.root(context))
 
-        println(context.pathMemory.keys)
-
         context.typeNameMap["test"] = type
 
         assertEquals(

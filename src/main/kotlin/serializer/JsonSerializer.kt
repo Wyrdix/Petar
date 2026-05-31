@@ -11,7 +11,12 @@ class JsonSerializer : Serializer<JsonElement> {
             is MemoryString -> JsonPrimitive(data.value)
             is MemoryNumber -> JsonPrimitive(data.value)
             is MemoryBoolean -> JsonPrimitive(data.value)
-            is MemoryReference -> TODO()
+            is MemoryReference -> {
+                JsonObject().also { obj ->
+                    obj.add("_type", JsonPrimitive(data.type.toString()))
+                    obj.addProperty("_reference", data.reference.toString())
+                }
+            }
             is MemoryArray -> JsonArray().also { array ->
                 data.value.map { this.serialize(it, context) }.forEach(array::add)
             }
@@ -31,6 +36,10 @@ class JsonSerializer : Serializer<JsonElement> {
                                 )
                             }.forEach(it::add)
                         })
+                }
+
+                if(context != null) {
+                    obj.addProperty("_path", context.pathMemory.getReversed(data)!!.toString())
                 }
             }
 

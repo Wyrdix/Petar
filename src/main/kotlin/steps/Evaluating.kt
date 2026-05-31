@@ -32,15 +32,24 @@ interface IEvaluatingContext : ITypingContext {
     fun isAnnotation(element: MemoryElement) = pathMemory.getReversed(element)?.nodes?.lastOrNull() is MemoryPath.TypeNode
 }
 
-fun IEvaluatingContext.initial(element: MemoryElement, path: MemoryPath) {
+fun IEvaluatingContext.initial(element: MemoryElement, path: MemoryPath): MemoryElement {
 
-    pathMemory[path] = element
+    val existing = pathMemory.getReversed(element)
 
-    when(element) {
-        is MemoryBoolean, is MemoryNumber, is MemoryString, is MemoryUndefined, is MemoryReference -> {}
-        is MemoryObject -> element.value.entries.forEach { (key, value) -> initial(value, path.goto(key)) }
-        is MemoryArray -> element.value.forEachIndexed { index, value -> initial(value, path.goto(index)) }
+    if(existing != null) {
+        val reference = MemoryReference(element.type, existing)
+        pathMemory[path] = reference
+        return reference
     }
+
+    val newValue = when(element) {
+        is MemoryBoolean, is MemoryNumber, is MemoryString, is MemoryUndefined, is MemoryReference -> element
+        is MemoryObject -> MemoryObject(element.type, element.value.mapValues { (key, value) -> initial(value, path.goto(key)) }).apply { id = element.id }
+        is MemoryArray -> MemoryArray(element.type, element.value.mapIndexed { index, value -> initial(value, path.goto(index)) }).apply { id = element.id }
+    }
+
+    pathMemory[path] = newValue
+    return element
 }
 
 fun EvaluationEnvironment.add(key: String, element: MemoryElement): EvaluationEnvironment {

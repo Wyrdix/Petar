@@ -170,6 +170,10 @@ data class PropertyType(
     override fun accept(visitor: Visitor<Type>): Type {
         return PropertyType(identifier, inlineFields.map { Pair(it.first, visitor.visit(it.second)) }, parent)
     }
+
+    override fun toString(): String {
+        return identifier
+    }
 }
 
 data class ReferenceType(val value: String) : Type() {

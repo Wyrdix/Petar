@@ -1,9 +1,9 @@
 package evaluation
 
+import assertIsSimilarTo
 import fr.univ_lille.iut_info.*
 import fr.univ_lille.iut_info.steps.*
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
 
 class ArrayPatternMatchingTest {
     @Test
@@ -28,22 +28,18 @@ class ArrayPatternMatchingTest {
         fillNodes(context, arrayPattern)
         arrayPattern.typeCheck(context, Type.array(Type.string))
 
-        assertEquals(
+        assertIsSimilarTo(
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            listOf(elements[0])
+                            Type.array(Type.string), listOf(elements[0])
                         )
                     )
                 )
-            ),
-            arrayMatching(
-                context,
-                arrayPattern.values,
-                elements
-            ).toList()
+            ), arrayMatching(
+                context, arrayPattern.values, elements
+            ).toList(), context
         )
     }
 
@@ -69,21 +65,18 @@ class ArrayPatternMatchingTest {
         fillNodes(context, arrayPattern)
         arrayPattern.typeCheck(context, Type.array(Type.string))
 
-        assertEquals(
+        assertIsSimilarTo(
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements
+                            Type.array(Type.string), elements
                         )
                     )
                 )
             ), arrayMatching(
-                context,
-                arrayPattern.values,
-                elements
-            ).toList()
+                context, arrayPattern.values, elements
+            ).toList(), context
         )
     }
 
@@ -118,38 +111,32 @@ class ArrayPatternMatchingTest {
         fillNodes(context, arrayPattern)
         arrayPattern.typeCheck(context, Type.array(Type.string))
 
-        assertEquals(
+        assertIsSimilarTo(
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements1
+                            Type.array(Type.string), elements1
                         )
                     )
                 )
             ), arrayMatching(
-                context,
-                arrayPattern.values,
-                elements1
-            ).toList()
+                context, arrayPattern.values, elements1
+            ).toList(), context
         )
 
-        assertEquals(
+        assertIsSimilarTo(
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements2
+                            Type.array(Type.string), elements2
                         )
                     )
                 )
             ), arrayMatching(
-                context,
-                arrayPattern.values,
-                elements2
-            ).toList()
+                context, arrayPattern.values, elements2
+            ).toList(), context
         )
     }
 
@@ -171,57 +158,43 @@ class ArrayPatternMatchingTest {
             listOf(
                 generator(PatternMeta(modifier = PatternModifier.ANY, name = "group1")),
                 generator(PatternMeta(modifier = PatternModifier.ANY, name = "group2"))
-            ),
-            meta = PatternMeta()
+            ), meta = PatternMeta()
         )
 
         initial(context, arrayPattern)
         fillNodes(context, arrayPattern)
         arrayPattern.typeCheck(context, Type.array(Type.string))
 
-        assertEquals(
+        assertIsSimilarTo(
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements1
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            emptyList()
+                            Type.array(Type.string), elements1
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), emptyList()
                         )
                     )
-                ),
-                EvaluationEnvironment(
+                ), EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements1.subList(0, 1)
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements1.subList(1, 2)
+                            Type.array(Type.string), elements1.subList(0, 1)
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements1.subList(1, 2)
                         )
                     )
-                ),
-                EvaluationEnvironment(
+                ), EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            emptyList()
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements1
+                            Type.array(Type.string), emptyList()
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements1
                         )
                     )
                 )
             ), arrayMatching(
-                context,
-                arrayPattern.values,
-                elements1
-            ).toList()
+                context, arrayPattern.values, elements1
+            ).toList(), context
         )
     }
 
@@ -237,7 +210,7 @@ class ArrayPatternMatchingTest {
             if (!typeCheck) println("Generator failed : $meta")
             pattern
         }
-        
+
         val elements = listOf("aaa", "bbb", "ccc").map {
             _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryString(
                 it
@@ -248,69 +221,51 @@ class ArrayPatternMatchingTest {
             listOf(
                 generator(PatternMeta(modifier = PatternModifier.ANY, name = "group1")),
                 generator(PatternMeta(modifier = PatternModifier.ANY, name = "group2"))
-            ),
-            meta = PatternMeta()
+            ), meta = PatternMeta()
         )
 
         initial(context, arrayPattern)
         fillNodes(context, arrayPattern)
         arrayPattern.typeCheck(context, Type.array(Type.string))
 
-        assertEquals(
+        assertIsSimilarTo(
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            emptyList()
+                            Type.array(Type.string), elements
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), emptyList()
                         )
                     )
-                ),
-                EvaluationEnvironment(
+                ), EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(0, 2)
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(2, 3)
+                            Type.array(Type.string), elements.subList(0, 2)
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements.subList(2, 3)
                         )
                     )
-                ),
-                EvaluationEnvironment(
+                ), EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(0, 1)
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(1, 3)
+                            Type.array(Type.string), elements.subList(0, 1)
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements.subList(1, 3)
                         )
                     )
-                ),
-                EvaluationEnvironment(
+                ), EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            emptyList()
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements
+                            Type.array(Type.string), emptyList()
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements
                         )
                     )
                 )
             ), arrayMatching(
-                context,
-                arrayPattern.values,
-                elements
-            ).toList()
+                context, arrayPattern.values, elements
+            ).toList(), context
         )
     }
 
@@ -334,88 +289,62 @@ class ArrayPatternMatchingTest {
 
         val arrayPattern = ArrayPattern(
             listOf(
-                generator(PatternMeta(modifier = PatternModifier.ANY, name = "group1"),  "(a*|c*)"),
-                generator(PatternMeta(modifier = PatternModifier.ANY, name = "group2"),  "(a*|b*|c*)"),
-                generator(PatternMeta(modifier = PatternModifier.ANY, name = "group3"),  "(a*|c*)")
-            ),
-            meta = PatternMeta()
+                generator(PatternMeta(modifier = PatternModifier.ANY, name = "group1"), "(a*|c*)"),
+                generator(PatternMeta(modifier = PatternModifier.ANY, name = "group2"), "(a*|b*|c*)"),
+                generator(PatternMeta(modifier = PatternModifier.ANY, name = "group3"), "(a*|c*)")
+            ), meta = PatternMeta()
         )
 
         initial(context, arrayPattern)
         fillNodes(context, arrayPattern)
         arrayPattern.typeCheck(context, Type.array(Type.string))
 
-        assertEquals(
+        assertIsSimilarTo(
             listOf(
                 EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(0, 1)
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(1, elements.size)
-                        ),
-                        "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            emptyList()
+                            Type.array(Type.string), elements.subList(0, 1)
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements.subList(1, elements.size)
+                        ), "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), emptyList()
                         )
                     )
-                ),
-                EvaluationEnvironment(
+                ), EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(0, 1)
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(1, elements.size - 1)
-                        ),
-                        "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(elements.size - 1, elements.size)
+                            Type.array(Type.string), elements.subList(0, 1)
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements.subList(1, elements.size - 1)
+                        ), "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements.subList(elements.size - 1, elements.size)
                         )
                     )
-                ),
-                EvaluationEnvironment(
+                ), EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            emptyList()
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements
-                        ),
-                        "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            emptyList()
+                            Type.array(Type.string), emptyList()
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements
+                        ), "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), emptyList()
                         )
                     )
-                ),
-                EvaluationEnvironment(
+                ), EvaluationEnvironment(
                     definitions = mapOf(
                         "group1" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            emptyList()
-                        ),
-                        "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(0, elements.size - 1)
-                        ),
-                        "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
-                            Type.array(Type.string),
-                            elements.subList(elements.size - 1, elements.size)
+                            Type.array(Type.string), emptyList()
+                        ), "group2" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements.subList(0, elements.size - 1)
+                        ), "group3" to _root_ide_package_.fr.univ_lille.iut_info.memory.MemoryArray(
+                            Type.array(Type.string), elements.subList(elements.size - 1, elements.size)
                         )
                     )
                 )
             ), arrayMatching(
-                context,
-                arrayPattern.values,
-                elements
-            ).toList()
+                context, arrayPattern.values, elements
+            ).toList(), context
         )
     }
 }
