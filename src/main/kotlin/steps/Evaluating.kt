@@ -49,7 +49,7 @@ fun IEvaluatingContext.initial(element: MemoryElement, path: MemoryPath): Memory
     }
 
     pathMemory[path] = newValue
-    return element
+    return newValue
 }
 
 fun EvaluationEnvironment.add(key: String, element: MemoryElement): EvaluationEnvironment {
