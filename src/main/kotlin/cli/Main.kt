@@ -48,9 +48,8 @@ fun main(args: Array<String>) {
         println("The input file do not exist.")
     }
 
-    val commonAncestor = command.specifications.map { it.parentFile.toPath().toAbsolutePath() }
-        .reduce { acc, file -> acc.zip(file).findLast { (it1, it2) -> it1 == it2 }!!.first.toAbsolutePath() }
-        .toAbsolutePath().toString() + "/"
+    val commonAncestor = command.specifications.map { it.parentFile.toPath().toAbsolutePath().toString() }
+        .reduce { acc, file -> acc.substring(0, (0..acc.length).last {acc.substring(0, it) == file.substring(0, it)})} + "/"
 
     val fileMap = command.specifications.associateBy { file ->
         file.toPath().toAbsolutePath().toString().substring(commonAncestor.length)
