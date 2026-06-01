@@ -295,6 +295,10 @@ fun Expression.typeCheck(context: ITypingContext, type: Type): Boolean {
     val synthesizedType = this.typeSynthesis(context)
     if (synthesizedType != null) return type.isAssignableFrom(context, synthesizedType)
 
+    if(type is UnionType) {
+        return type.types.any { typeCheck(context, it) }
+    }
+
     return when (this) {
         is BinaryExpression.And, is BinaryExpression.Or -> context.typeChecked(
             this, this.left.typeCheck(
