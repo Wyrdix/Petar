@@ -127,7 +127,20 @@ sealed class BinaryExpression : Expression() {
         override fun accept(visitor: Visitor<Expression>): Expression {
             return Minus(visitor.visit(left), visitor.visit(right))
         }
+    }
 
+    class Lower(val lower: Expression, val greater: Expression, val equal : Boolean = false): BinaryExpression() {
+        override val resultType: Type = Type.boolean
+        override val operandType: Type = Type.number
+
+        override val left: Expression
+            get() = lower
+        override val right: Expression
+            get() = greater
+
+        override fun accept(visitor: Visitor<Expression>): Expression {
+            return Lower(visitor.visit(lower), visitor.visit(greater))
+        }
     }
 }
 

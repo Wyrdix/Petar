@@ -312,6 +312,15 @@ fun Expression.typeCheck(context: ITypingContext, type: Type): Boolean {
             ), Type.number
         )
 
+        is BinaryExpression.Lower -> context.typeChecked(
+            this, this.left.typeCheck(
+                context, Type.number
+            ) && this.right.typeCheck(
+                context, Type.number
+            ), Type.boolean
+        )
+
+
         is UnaryExpression.Negate -> context.typeChecked(
             this, this.operand.typeCheck(context, Type.boolean), Type.boolean
         )

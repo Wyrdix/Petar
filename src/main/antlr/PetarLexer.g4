@@ -30,6 +30,10 @@ PLUS: '+';
 MINUS: '-';
 MULT: '*';
 DIVIDE: '/';
+LOWER: '<';
+GREATER: '>';
+LOWER_EQ: '<=';
+GREATER_EQ: '>=';
 
 KEYWORD_SPECIFY_PROP: 'property';
 KEYWORD_SPECIFY_REWRITE: '=>';

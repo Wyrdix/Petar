@@ -114,6 +114,8 @@ fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvi
                 is BinaryExpression.Or -> MemoryBoolean((left as MemoryBoolean).value || (right as MemoryBoolean).value)
 
                 is BinaryExpression.Plus -> MemoryBoolean((left as MemoryBoolean).value && (right as MemoryBoolean).value)
+
+                is BinaryExpression.Lower -> MemoryBoolean((left as MemoryNumber).value.toDouble() < (right as MemoryNumber).value.toDouble())
             }
         }
 

@@ -234,6 +234,10 @@ class SpecificationParser {
             if (ctx.PLUS() != null) return BinaryExpression.Plus(left, right).setupRange(ctx)
             if (ctx.MINUS() != null) return BinaryExpression.Minus(left, right).setupRange(ctx)
             if (ctx.DIVIDE() != null) return BinaryExpression.Divide(left, right).setupRange(ctx)
+            if(ctx.LOWER() != null) return BinaryExpression.Lower(left, right).setupRange(ctx)
+            if(ctx.LOWER_EQ() != null) return BinaryExpression.Lower(left, right, true).setupRange(ctx)
+            if(ctx.GREATER() != null) return BinaryExpression.Lower(right, left).setupRange(ctx)
+            if(ctx.GREATER_EQ() != null) return BinaryExpression.Lower(right, left).setupRange(ctx)
             if (ctx.EQUAL() != null) return PatternMatchExpression(
                 left,
                 visitPattern(ctx.right_pattern)

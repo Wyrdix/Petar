@@ -92,6 +92,10 @@ expression_access:
 binary_expression:
 	left = enclosed_expression op = AND right = expression
 	| left = enclosed_expression op = OR right = expression
+	| left = enclosed_expression op = LOWER right = expression
+	| left = enclosed_expression op = GREATER right = expression
+	| left = enclosed_expression op = LOWER_EQ right = expression
+	| left = enclosed_expression op = GREATER_EQ right = expression
 	| left = enclosed_expression op = MULT right = expression
 	| left = enclosed_expression op = DIVIDE right = expression
 	| left = enclosed_expression op = PLUS right = expression
