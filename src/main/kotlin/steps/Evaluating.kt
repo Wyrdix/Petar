@@ -94,7 +94,7 @@ fun Pattern.applyEffects(
 fun Expression.evaluate(context: IEvaluatingContext, environment: EvaluationEnvironment): MemoryElement {
     return when (this) {
         is ArrayExpression -> MemoryArray(
-            context.getCheckedType(this) as ArrayType, values.map { evaluate(context, environment) })
+            context.getCheckedType(this) as ArrayType, values.map { it.evaluate(context, environment) })
 
         is BinaryExpression -> {
             val left = left.evaluate(context, environment)

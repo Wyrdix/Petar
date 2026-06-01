@@ -99,7 +99,7 @@ class JsonSerializer : Serializer<JsonElement> {
                                         if ((field == null || field.isJsonNull) && !type.isAssignableFrom(
                                                 context, Type.undefined
                                             )
-                                        ) throw IllegalStateException("Missing field $key.")
+                                        ) throw IllegalStateException("Missing field $key for type $type.")
 
                                         if (field == null || field.isJsonNull) MemoryUndefined()
                                         else deserializer.deserialize(field, context, type)

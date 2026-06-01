@@ -339,7 +339,7 @@ fun Expression.typeCheck(context: ITypingContext, type: Type): Boolean {
         )
 
         is ArrayExpression -> if (type !is ArrayType) false
-        else context.typeChecked(this, this.values.all { this.typeCheck(context, type.type) }, type)
+        else context.typeChecked(this, this.values.all { it.typeCheck(context, type.type) }, type)
 
         is ExpressionAccess.Index, is ExpressionAccess.Member, is LiteralExpression.EBoolean, is LiteralExpression.ENumber, is LiteralExpression.EString, is LiteralExpression.EUndefined, is PropertyExpression, is FunctionCallExpression -> false
     }

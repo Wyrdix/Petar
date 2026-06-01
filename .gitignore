@@ -50,3 +50,4 @@ bin/
 /src/main/gen/AlfrLexer.interp
 /src/main/gen/AlfrLexer.java
 /src/main/gen/AlfrLexer.tokens
+**/gen/
