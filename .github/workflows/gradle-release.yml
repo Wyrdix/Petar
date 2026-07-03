@@ -38,4 +38,4 @@ jobs:
     - name: Attach package
       run: gh release upload ${{github.event.release.tag_name}} build/libs/Petar-*.jar
       env:
-        GITHUB_TOKEN: ${{ github.TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
