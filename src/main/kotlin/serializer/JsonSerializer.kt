@@ -61,7 +61,7 @@ class JsonSerializer : Serializer<JsonElement> {
 
         return root.asJsonObject.run {
             val type = parseType(context, get("_type").asString)
-            val assignableFrom = type.findAssignableFrom(context)
+            val assignableFrom = listOf(type)
 
             return@run if(has("reference")) {
                 MemoryReference(type!!, MemoryPath.parse(eContext!!, get("reference").asString)!!)

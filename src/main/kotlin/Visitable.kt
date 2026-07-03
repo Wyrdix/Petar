@@ -79,7 +79,7 @@ fun <T : Visitable<T>> T.children(): List<T> {
                 first = true
                 null
             } else {
-                addLast(it)
+                add(it)
                 it
             }
         }

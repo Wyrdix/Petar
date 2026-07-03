@@ -46,7 +46,9 @@ class MemoryPath private constructor(val context: IEvaluatingContext, val nodes:
     }
 
     fun goto(type: PropertyType): MemoryPath {
-        if(nodes.lastOrNull() is TypeNode) throw IllegalStateException("Cannot have two type node path consecutively.")
+        if(nodes.lastOrNull() is TypeNode) {
+            return MemoryPath(context, nodes.subList(0, nodes.size-1) + TypeNode(type))
+        }
         return goto(TypeNode(type ));
     }
 
@@ -75,8 +77,11 @@ class MemoryPath private constructor(val context: IEvaluatingContext, val nodes:
                 if(type == null) return null
                 return parse(context, raw.substring(end+1),prefix.goto(type))
             }
-            if(raw.contains('.')) {
-                val end = raw.indexOf('.');
+
+            if(raw.startsWith('.')) {
+                val end = listOf(raw.indexOf('.', 1), raw.indexOf('(', 1), raw.indexOf('[', 1))
+                    .filter { n ->  n != -1 }
+                    .min() + 1
                 val key = raw.substring(1, end)
                 return parse(context, raw.substring(end+1), prefix.goto(key))
             }

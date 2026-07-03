@@ -190,6 +190,11 @@ fun Pattern.condition(
 fun Pattern.match(
     context: IEvaluatingContext, element: MemoryElement, environment: EvaluationEnvironment = EvaluationEnvironment()
 ): IIterator<EvaluationEnvironment> {
+
+    if(element is MemoryReference) {
+        return match(context, element.reference.resolve(), environment)
+    }
+
     return when (this) {
         is ExpressionPattern -> {
             val stored = this.value.evaluate(context, environment)
