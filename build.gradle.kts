@@ -51,3 +51,11 @@ tasks.compileTestKotlin {
 application {
     mainClass = "fr.univ_lille.iut_info.cli.MainKt"
 }
+
+tasks.jar {
+    archiveClassifier = "no-deps"
+}
+
+tasks.shadowJar {
+    archiveClassifier = ""
+}
