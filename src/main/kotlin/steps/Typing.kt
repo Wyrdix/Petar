@@ -393,22 +393,7 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
 
         is FunctionCallExpression -> {
             val prototype = FunctionPrototype.valueOf(this.name)
-
-            val argsType =
-                if (prototype.arbitraryLast) prototype.args.toList() + List(0.coerceAtLeast(this.arguments.size - prototype.args.size)) { prototype.args.last() }
-                else prototype.args.toList()
-
-            val argTypeCheck = argsType.zip(this.arguments).all { (type, pattern) ->
-                val typeCheck = pattern.typeCheck(context, type)
-                typeCheck
-            }
-
-            if (argTypeCheck) context.typeSynthesis(this, prototype.returnType)
-            else throw StepError(
-                Step.TYPE,
-                this,
-                "Function arguments do not type check."
-            )
+            prototype.typing(this, context)
         }
 
         is PropertyExpression -> {
