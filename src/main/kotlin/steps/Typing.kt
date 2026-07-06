@@ -71,10 +71,10 @@ interface ITypingContext : INameContext {
 
 }
 
-fun parseType(context: ITypingContext, type: String) : Type? {
+fun parseType(context: ITypingContext, type: String): Type? {
     context.typeNameMap[type]?.let { return it }
-    if(type.endsWith("[]")) {
-        return parseType(context, type.substring(0, type.length-2))?.let { Type.array(it) }
+    if (type.endsWith("[]")) {
+        return parseType(context, type.substring(0, type.length - 2))?.let { Type.array(it) }
     }
     return null
 }
@@ -120,9 +120,7 @@ fun PropertyType.check(context: ITypingContext) {
     val fields = this.inlineFields.associate { it }
     if (fields.size != this.inlineFields.size) throw StepError(Step.TYPE, this, "One field is present twice.")
 
-    if (fields.keys.intersect(map.keys)
-            .isNotEmpty()
-    ) throw StepError(
+    if (fields.keys.intersect(map.keys).isNotEmpty()) throw StepError(
         Step.TYPE,
         this,
         "Parent and children contains same keys, parent type specialisation should occur in the parent call."
@@ -130,22 +128,17 @@ fun PropertyType.check(context: ITypingContext) {
 
     fields.values.find { it is ReferenceType && !context.typeNameMap.containsKey(it.value) }?.let {
         throw StepError(
-            Step.TYPE,
-            this, "Type $it is used but not defined."
+            Step.TYPE, this, "Type $it is used but not defined."
         )
     }
 
     val specialisations = this.parent?.second?.associate { it } ?: emptyMap()
-    if (specialisations.size != (this.parent?.second?.size
-            ?: 0)
-    ) throw StepError(
-        Step.TYPE,
-        this, "Specialisation field contains twice the same key."
+    if (specialisations.size != (this.parent?.second?.size ?: 0)) throw StepError(
+        Step.TYPE, this, "Specialisation field contains twice the same key."
     )
 
     if (!map.keys.containsAll(specialisations.keys)) throw StepError(
-        Step.TYPE,
-        this, "Some specialisation do not exist in the parent type."
+        Step.TYPE, this, "Some specialisation do not exist in the parent type."
     )
 
     for ((key, spe) in specialisations) {
@@ -198,23 +191,18 @@ fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean 
     if (type is ReferenceType) return typeCheck(context, type.resolveReference(context))
 
     val synthesizedType = this.typeSynthesis(context, listPattern)
-    if (synthesizedType != null)
-        if (type.isAssignableFrom(context, synthesizedType)) return context.typePatternChecked(
-            this, true, type
-        )
-        else
-            throw StepError(Step.TYPE, this, "$type is not assignable from $synthesizedType")
+    if (synthesizedType != null) if (type.isAssignableFrom(context, synthesizedType)) return context.typePatternChecked(
+        this, true, type
+    )
+    else throw StepError(Step.TYPE, this, "$type is not assignable from $synthesizedType")
 
     return when {
         type is AnyPatternType -> context.typePatternChecked(this, true, Type.anyPattern)
 
-        this is ArrayPattern ->
-            if (type !is ArrayType) false
-            else context.typePatternChecked(
-                this,
-                this.values.all { it.typeCheck(context, type.type, true) },
-                type
-            )
+        this is ArrayPattern -> if (type !is ArrayType) false
+        else context.typePatternChecked(
+            this, this.values.all { it.typeCheck(context, type.type, true) }, type
+        )
 
 
         type is AnyType -> context.typePatternChecked(this, true, Type.any)
@@ -233,9 +221,7 @@ fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean 
 fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false): Type? {
     if (this.modifier != PatternModifier.ONE && !listPattern) {
         throw StepError(
-            Step.TYPE,
-            this,
-            "Pattern use a list modifier (+ or *) but is not used in a list context."
+            Step.TYPE, this, "Pattern use a list modifier (+ or *) but is not used in a list context."
         )
     }
     val alreadySynthesized = context.getPatternSynthesizedType(this)
@@ -248,31 +234,34 @@ fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false)
 
         is RegexPattern -> context.typePatternSynthesis(this, Type.string)
 
+        is PrimitiveTypePattern -> {
+            val type = context.getType(this.identifier)
+
+            context.typePatternSynthesis(this, type)
+        }
+
         is PropertyPattern -> {
             val type = context.getType(this.identifier)
             if (type !is PropertyType) throw StepError(
-                Step.TYPE,
-                this,
-                "Property pattern isn't compatible with required pattern type"
+                Step.TYPE, this, "Property pattern isn't compatible with required pattern type"
             )
-            else if (!type.getAllFields(context).keys.containsAll(this.fields.keys)) throw StepError(
+            else if (!type.getAllFields(context).keys.containsAll(fields.keys)) throw StepError(
                 Step.TYPE,
                 this,
                 "Extraneous fields (${
-                    this.fields.keys.subtract(type.getAllFields(context).keys).joinToString(separator = ", ") { it }
+                    fields.keys.subtract(type.getAllFields(context).keys).joinToString(separator = ", ") { it }
                 }, available ones : ${type.getAllFields(context).keys.joinToString(separator = ", ") { it }})"
             )
-            else
-                type.getAllFields(context).forEach {
-                    val fieldValue = this.fields[it.key]
-                    if (!(fieldValue?.typeCheck(context, it.value) ?: true)) {
-                        throw StepError(
-                            Step.TYPE,
-                            fieldValue,
-                            "Pattern is not of type ${it.value} (it is of type ${context.patternChecked[fieldValue] ?: context.patternSynthesized[fieldValue]})"
-                        )
-                    }
-                }.let { type }
+            else type.getAllFields(context).forEach {
+                val fieldValue = fields[it.key]
+                if (!(fieldValue?.typeCheck(context, it.value) ?: true)) {
+                    throw StepError(
+                        Step.TYPE,
+                        fieldValue,
+                        "Pattern is not of type ${it.value} (it is of type ${context.patternChecked[fieldValue] ?: context.patternSynthesized[fieldValue]})"
+                    )
+                }
+            }.let { type }
         }
 
         else -> null
@@ -295,7 +284,7 @@ fun Expression.typeCheck(context: ITypingContext, type: Type): Boolean {
     val synthesizedType = this.typeSynthesis(context)
     if (synthesizedType != null) return type.isAssignableFrom(context, synthesizedType)
 
-    if(type is UnionType) {
+    if (type is UnionType) {
         return type.types.any { typeCheck(context, it) }
     }
 
@@ -367,16 +356,10 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
                 this, context.getNameNode(this).get(this.identifier)
             ) else parent.typeSynthesis(context).let {
                 context.typeSynthesis(
-                    this,
-                    if (it is PropertyType) it.getAllFields(context)[this.identifier]
-                        ?: throw StepError(
-                            Step.TYPE,
-                            it,
-                            "Unknown ${it.identifier} field : ${this.identifier}"
-                        ) else throw StepError(
-                        Step.TYPE,
-                        it ?: this,
-                        "Expected identifier to be an instance of a property type."
+                    this, if (it is PropertyType) it.getAllFields(context)[this.identifier] ?: throw StepError(
+                        Step.TYPE, it, "Unknown ${it.identifier} field : ${this.identifier}"
+                    ) else throw StepError(
+                        Step.TYPE, it ?: this, "Expected identifier to be an instance of a property type."
                     )
                 )
             }
@@ -416,9 +399,7 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
                             if (!typeCheck) errorPair = it
                             !typeCheck
                         }) throw StepError(
-                        Step.TYPE,
-                        errorPair!!.first,
-                        "Expression is supposed to be of type ${errorPair.second}."
+                        Step.TYPE, errorPair!!.first, "Expression is supposed to be of type ${errorPair.second}."
                     )
                     else {
                         val uselessParent =
@@ -429,26 +410,19 @@ fun Expression.typeSynthesis(context: ITypingContext): Type? {
                         if (!uselessParent && !usefulParent) {
                             if (parent != null && parentType == null) {
                                 throw StepError(
-                                    Step.TYPE,
-                                    this,
-                                    "Extraneous parent expression."
+                                    Step.TYPE, this, "Extraneous parent expression."
                                 )
                             }
                             throw StepError(
-                                Step.TYPE,
-                                this,
-                                "Missing parent expression."
+                                Step.TYPE, this, "Missing parent expression."
                             )
 
                         } else context.typeSynthesis(this, type)
                     }
                 } else throw StepError(
-                    Step.TYPE,
-                    this,
-                    "Missing some property fields : ${
+                    Step.TYPE, this, "Missing some property fields : ${
                         typeFields.keys.subtract(inferredFields.keys).joinToString(separator = ", ") { it }
-                    }"
-                )
+                    }")
             }
         }
 

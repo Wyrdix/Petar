@@ -23,6 +23,10 @@ class TypeCheckerTest {
                 Type.boolean
             )
         )
+
+        assert(PrimitiveTypePattern("Number", PatternMeta()).typeCheck(emptyContext, Type.number))
+        assert(PrimitiveTypePattern("String", PatternMeta()).typeCheck(emptyContext, Type.string))
+        assert(PrimitiveTypePattern("Boolean", PatternMeta()).typeCheck(emptyContext, Type.boolean))
     }
 
     @Test

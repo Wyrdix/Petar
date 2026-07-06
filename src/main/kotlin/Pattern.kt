@@ -62,6 +62,12 @@ class ArrayPattern(
 
 }
 
+class PrimitiveTypePattern(val identifier: String, override val meta: PatternMeta) : Pattern(meta) {
+    override fun accept(visitor: Visitor<Pattern>): Pattern {
+        return this;
+    }
+}
+
 class PropertyPattern(
     val identifier: String, val inlineFields: List<Pair<String, Pattern>>, override val meta: PatternMeta
 ) : Pattern(meta) {

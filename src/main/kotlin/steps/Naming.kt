@@ -166,6 +166,22 @@ fun fillNodes(context: INameContext, root: Pattern): Pattern {
                 fillNodes(context, pattern.value)
             }
 
+            is PrimitiveTypePattern -> {
+                type = context.typeNameMap[pattern.identifier]
+
+                if (type == null) throw StepError(
+                    Step.NAME,
+                    pattern,
+                    "Cannot use primitive pattern '${pattern.identifier}' as no property with that name exist."
+                )
+
+                if (type !is PrimitiveType) throw StepError(
+                    Step.NAME,
+                    pattern,
+                    "Cannot use primitive pattern '${pattern.identifier}' as it's not a primitive type"
+                )
+            }
+
             is PropertyPattern -> {
                 type = context.typeNameMap[pattern.identifier]
 

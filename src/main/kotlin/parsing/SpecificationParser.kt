@@ -177,10 +177,14 @@ class SpecificationParser {
 
         fun visitPattern_object(
             ctx: Pattern_propertyContext, fields: PatternMeta
-        ): PropertyPattern {
+        ): Pattern {
             val id = ctx.type_identifier().text
-            val values = ctx.fields.map { visitPattern_object_field(it) }
-            return PropertyPattern(id, values, fields).setupRange(ctx)
+            return if (ctx.LPAREN() != null) {
+                val values = ctx.fields.map { visitPattern_object_field(it) }
+                PropertyPattern(id, values, fields).setupRange(ctx)
+            } else {
+                PrimitiveTypePattern(id, fields).setupRange(ctx)
+            }
         }
 
         fun visitPattern_array(

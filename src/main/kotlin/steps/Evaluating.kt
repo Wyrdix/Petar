@@ -3,18 +3,11 @@ package fr.univ_lille.iut_info.steps
 import fr.univ_lille.iut_info.*
 import fr.univ_lille.iut_info.IIterator.Companion.toIIterator
 import fr.univ_lille.iut_info.PatternModifier.*
-import fr.univ_lille.iut_info.memory.MemoryArray
-import fr.univ_lille.iut_info.memory.MemoryBoolean
-import fr.univ_lille.iut_info.memory.MemoryElement
-import fr.univ_lille.iut_info.memory.MemoryNumber
-import fr.univ_lille.iut_info.memory.MemoryObject
-import fr.univ_lille.iut_info.memory.MemoryPath
-import fr.univ_lille.iut_info.memory.MemoryReference
-import fr.univ_lille.iut_info.memory.MemoryString
-import fr.univ_lille.iut_info.memory.MemoryUndefined
+import fr.univ_lille.iut_info.memory.*
 
 data class EvaluationEnvironment(
-    val definitions: Map<String, MemoryElement> = emptyMap(), val choices: Map<MemoryElement, MemoryElement> = emptyMap()
+    val definitions: Map<String, MemoryElement> = emptyMap(),
+    val choices: Map<MemoryElement, MemoryElement> = emptyMap()
 )
 
 interface IEvaluatingContext : ITypingContext {
@@ -23,29 +16,37 @@ interface IEvaluatingContext : ITypingContext {
 
     var output: MemoryObject?
 
-    fun getAnnotations(element: MemoryElement) = pathMemory.getReversed(element)!!.children().filter { it.nodes.last() is MemoryPath.TypeNode }.map { it.resolve() }
+    fun getAnnotations(element: MemoryElement) =
+        pathMemory.getReversed(element)!!.children().filter { it.nodes.last() is MemoryPath.TypeNode }
+            .map { it.resolve() }
 
     fun addAnnotation(element: MemoryElement, annotation: MemoryObject) {
-        initial( annotation, pathMemory.getReversed(element)!!.goto(annotation.type),)
+        initial(annotation, pathMemory.getReversed(element)!!.goto(annotation.type))
     }
 
-    fun isAnnotation(element: MemoryElement) = pathMemory.getReversed(element)?.nodes?.lastOrNull() is MemoryPath.TypeNode
+    fun isAnnotation(element: MemoryElement) =
+        pathMemory.getReversed(element)?.nodes?.lastOrNull() is MemoryPath.TypeNode
 }
 
 fun IEvaluatingContext.initial(element: MemoryElement, path: MemoryPath): MemoryElement {
 
     val existing = pathMemory.getReversed(element)
 
-    if(existing != null) {
+    if (existing != null) {
         val reference = MemoryReference(element.type, existing)
         pathMemory[path] = reference
         return reference
     }
 
-    val newValue = when(element) {
+    val newValue = when (element) {
         is MemoryBoolean, is MemoryNumber, is MemoryString, is MemoryUndefined, is MemoryReference -> element
-        is MemoryObject -> MemoryObject(element.type, element.value.mapValues { (key, value) -> initial(value, path.goto(key)) }).apply { id = element.id }
-        is MemoryArray -> MemoryArray(element.type, element.value.mapIndexed { index, value -> initial(value, path.goto(index)) }).apply { id = element.id }
+        is MemoryObject -> MemoryObject(
+            element.type,
+            element.value.mapValues { (key, value) -> initial(value, path.goto(key)) }).apply { id = element.id }
+
+        is MemoryArray -> MemoryArray(
+            element.type,
+            element.value.mapIndexed { index, value -> initial(value, path.goto(index)) }).apply { id = element.id }
     }
 
     pathMemory[path] = newValue
@@ -85,7 +86,7 @@ fun Pattern.applyEffects(
     } else environment).let { environment ->
         if (element != null && element is MemoryObject) {
             if (context.isAnnotation(element))
-                environment.choice(context.pathMemory.getReversed(element)!!.parent().resolve() , element)
+                environment.choice(context.pathMemory.getReversed(element)!!.parent().resolve(), element)
             else environment
         } else environment
     }
@@ -191,7 +192,7 @@ fun Pattern.match(
     context: IEvaluatingContext, element: MemoryElement, environment: EvaluationEnvironment = EvaluationEnvironment()
 ): IIterator<EvaluationEnvironment> {
 
-    if(element is MemoryReference) {
+    if (element is MemoryReference) {
         return match(context, element.reference.resolve(), environment)
     }
 
@@ -211,6 +212,15 @@ fun Pattern.match(
         is ArrayPattern if element is MemoryArray -> arrayMatching(
             context, values, element.value, environment
         )
+
+        is PrimitiveTypePattern -> {
+            if (element.type == context.typeNameMap[identifier]!!) IIterator.singleton(
+                this.applyEffects(
+                    context, element, environment
+                )
+            )
+            else IIterator.empty()
+        }
 
         is PropertyPattern -> {
             (context.getAnnotations(element).map { it } + element).filterIsInstance<MemoryObject>()

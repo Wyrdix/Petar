@@ -65,11 +65,11 @@ pattern_expression: expression;
 pattern_property_field: id = parameter_identifier EQUAL pattern;
 
 pattern_property:
-	type_identifier LPAREN (
+	type_identifier (LPAREN (
 		(fields += pattern_property_field COMMA)* (
 			fields += pattern_property_field
 		)
-	)? RPAREN;
+	)? RPAREN)?;
 
 pattern_array:
 	LBRACK ((values += pattern COMMA)* (values += pattern)) RBRACK;

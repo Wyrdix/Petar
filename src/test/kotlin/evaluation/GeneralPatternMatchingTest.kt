@@ -1,8 +1,10 @@
 package evaluation
 
 import fr.univ_lille.iut_info.*
-import fr.univ_lille.iut_info.memory.*
+import fr.univ_lille.iut_info.memory.MemoryNumber
+import fr.univ_lille.iut_info.memory.MemoryObject
 import fr.univ_lille.iut_info.memory.MemoryPath
+import fr.univ_lille.iut_info.memory.MemoryString
 import fr.univ_lille.iut_info.steps.*
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -21,6 +23,21 @@ class GeneralPatternMatchingTest {
         context.initial(value, MemoryPath.root(context))
 
         context.typeNameMap["test"] = type
+        context.typeNameMap[Type.undefined.toString()] = Type.undefined
+        context.typeNameMap[Type.string.toString()] = Type.string
+        context.typeNameMap[Type.number.toString()] = Type.number
+        context.typeNameMap[Type.boolean.toString()] = Type.boolean
+        context.typeNameMap[Type.any.toString()] = Type.any
+
+        assertEquals(
+            IIterator.singleton(EvaluationEnvironment()).toList(),
+            PrimitiveTypePattern("String", PatternMeta()).match(context, MemoryString("A")).toList()
+        )
+
+        assertEquals(
+            IIterator.singleton(EvaluationEnvironment()).toList(),
+            PrimitiveTypePattern("Number", PatternMeta()).match(context, MemoryNumber(1)).toList()
+        )
 
         assertEquals(
             IIterator.singleton(EvaluationEnvironment()).toList(),
