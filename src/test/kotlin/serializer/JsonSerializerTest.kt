@@ -18,8 +18,9 @@ class JsonSerializerTest {
 
     val emptyContext = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
 
-    fun parse(value: String): JsonElement {
-        return Gson().fromJson("{\"value\":${value}}", JsonObject::class.java).get("value")
+    fun parse(value: String, type: String): JsonElement {
+        val json = "{\"value\":${value}, \"_type\":\"$type\"}"
+        return Gson().fromJson(json, JsonObject::class.java)
     }
 
     fun serialize(value: MemoryElement, context: IEvaluatingContext): String {
@@ -29,7 +30,7 @@ class JsonSerializerTest {
 
     fun deserialize(value: String, type: Type, context: ITypingContext): MemoryElement {
         return JsonSerializer.deserialize(
-            parse(value), context, type
+            parse(value, type.toString()), context, type
         )
     }
 
@@ -77,7 +78,7 @@ class JsonSerializerTest {
         assert(
             MemoryElement.array(
                 Type.array(type1), listOf(MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))))
-            ).isSimilarTo(deserialize("[{\"value\": 10}]", Type.array(type1), context), context)
+            ).isSimilarTo(deserialize("[{value: {value:{value: 10, \"_type\": \"Number\"}}, \"_type\": \"$type1\"}]", Type.array(type1), context), context)
         )
 
         assert(
@@ -87,11 +88,11 @@ class JsonSerializerTest {
                         type2, mapOf(Pair("value1", MemoryElement.number(10)), Pair("value2", MemoryElement.number(12)))
                     )
                 )
-            ).isSimilarTo(deserialize("[{\"value1\": 10, \"value2\": 12}]", Type.array(type2), context), context)
+            ).isSimilarTo(deserialize("[{value:{\"value1\": {\"value\": 10, _type: \"Number\"}, \"value2\": {\"value\": 12, _type: \"Number\"}}, _type:\"$type2\"}]", Type.array(type2), context), context)
         )
 
-        assertDoesNotThrow { deserialize("[]", Type.array(type1), emptyContext) }
-        assertDoesNotThrow { deserialize("[]", Type.array(type2), emptyContext) }
+        assertDoesNotThrow { deserialize("[]", Type.array(type1), context) }
+        assertDoesNotThrow { deserialize("[]", Type.array(type2), context) }
     }
 
     @Test
@@ -115,22 +116,22 @@ class JsonSerializerTest {
 
         assert(
             MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))).isSimilarTo(
-                deserialize("{\"value\": 10}", type1, context), context
+                deserialize("{value: {\"value\": 10, \"_type\": \"Number\"}}", type1, context), context
             )
         )
 
         assert(
             MemoryElement.property(
                 type2, mapOf(Pair("value1", MemoryElement.number(11)), Pair("value2", MemoryElement.number(12)))
-            ).isSimilarTo(deserialize("{\"value1\": 11, \"value2\":12}", type2, context), context)
+            ).isSimilarTo(deserialize("{\"value1\": {\"value\": 11, \"_type\": \"Number\"}, \"value2\":{\"value\": 12, \"_type\": \"Number\"}}", type2, context), context)
         )
 
         assertThrows<IllegalStateException> {
-            deserialize("{\"value\": 10}", type2, context)
+            deserialize("{value: {\"value\": 10, \"_type\": \"Number\"}}", type2, context)
         }
 
         assertThrows<IllegalStateException> {
-            deserialize("{\"value1\": 11, \"value2\":12}", type1, context)
+            deserialize("{\"value1\": {\"value\": 11, \"_type\": \"Number\"}, \"value2\":{\"value\": 12, \"_type\": \"Number\"}}", type1, context)
         }
     }
 
@@ -192,7 +193,7 @@ class JsonSerializerTest {
                 )
             ),
             JsonSerializer.deserialize(
-                parse("{value: 10, value1: \"A\"}"), context, type1
+                parse("{value: { value:10, _type: \"Number\"  }, value1: { value:\"A\", _type: \"String\"  }}", type2.toString()), context, type1
             ),
             context
         )
@@ -206,7 +207,7 @@ class JsonSerializerTest {
                 )
             ),
             JsonSerializer.deserialize(
-                parse("{value: 10, value1: \"A\"}"), context, type1
+                parse("{value: { value:10, _type: \"Number\"  }, value1: { value:\"A\", _type: \"String\"  }}", type3.toString()), context, type1
             ),
             context
         )
@@ -217,7 +218,7 @@ class JsonSerializerTest {
                 mapOf("value" to MemoryNumber(10))
             ),
             JsonSerializer.deserialize(
-                parse("{value: 10}"), context, type1
+                parse("{value: { value:10, _type: \"Number\"  }}", type2.toString()), context, type1
             ),
             context
         )
@@ -249,7 +250,7 @@ class JsonSerializerTest {
                     Type.array(type1),
                     listOf(MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))))
                 ), context
-            ), serialize(deserialize("[{\"value\": 10}]", Type.array(type1), context), context)
+            ), serialize(deserialize("[{value: {value: { value:10, _type: \"Number\"}}, _type: \"$type1\"}]", Type.array(type1), context), context)
         )
 
         assertEquals(
@@ -262,7 +263,7 @@ class JsonSerializerTest {
                         )
                     )
                 ), context
-            ), serialize(deserialize("[{\"value1\": 10, \"value2\": 12}]", Type.array(type2), context), context)
+            ), serialize(deserialize("[{value: {value1: { value:10, _type: \"Number\"  }, value2: { value:12, _type: \"Number\"  }}, \"_type\": \"$type2\"}]", Type.array(type2), context), context)
         )
     }
 
@@ -287,7 +288,7 @@ class JsonSerializerTest {
 
         assertEquals(
             serialize(MemoryElement.property(type1, mapOf(Pair("value", MemoryElement.number(10)))), context),
-            serialize(deserialize("{\"value\": 10}", type1, context), context)
+            serialize(deserialize("{value: {\"value\": 10, \"_type\": \"Number\"}}", type1, context), context)
         )
 
         assertEquals(
@@ -295,7 +296,7 @@ class JsonSerializerTest {
                 MemoryElement.property(
                     type2, mapOf(Pair("value1", MemoryElement.number(11)), Pair("value2", MemoryElement.number(12)))
                 ), context
-            ), serialize(deserialize("{\"value1\": 11, \"value2\":12}", type2, context), context)
+            ), serialize(deserialize("{\"value1\": {\"value\": 11, \"_type\": \"Number\"}, \"value2\":{\"value\": 12, \"_type\": \"Number\"}}", type2, context), context)
         )
     }
 }

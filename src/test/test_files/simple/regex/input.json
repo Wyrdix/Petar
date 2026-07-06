@@ -1,3 +1,9 @@
 {
-  "a": "Test"
+  "value": {
+    "a": {
+      "value": "Test",
+      "_type": "String"
+    }
+  },
+  "_type": "Root"
 }
