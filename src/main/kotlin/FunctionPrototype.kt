@@ -44,7 +44,7 @@ enum class FunctionPrototype(
 
             val quantity = patterns.sumOf { pattern ->
                 var qty = 0
-                localRoot.map { original ->
+                localRoot.flatMap { original ->
                     qty += (context.getAnnotations(original) + original).count {
                         pattern.match(context, it, environment).hasNext()
                     }

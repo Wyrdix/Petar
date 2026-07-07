@@ -10,6 +10,16 @@ interface Visitor<T> {
     fun visit(obj: T): T
 }
 
+fun <T : Visitable<T>, U> T.map(
+    visitor: ((node: T, rec: ((root: T) -> U)) -> U)
+): U {
+
+    var visit: ((T) -> U)? = null
+    visit = { obj: T -> visitor(obj) { visit!!(it) } }
+
+    return visit(this)
+}
+
 fun <T : Visitable<T>> T.visit(
     visitor: ((node: T, rec: ((root: T) -> T)) -> T?)
 ): T {
@@ -67,7 +77,7 @@ fun <T : Visitable<T>> T.all(
     visitor: ((node: T) -> Boolean)
 ): Boolean = find { node -> !visitor(node) } == null
 
-fun <T : Visitable<T>, U> T.map(func: Function<T, U>): List<U> {
+fun <T : Visitable<T>, U> T.flatMap(func: Function<T, U>): List<U> {
     return this.mapFilter { node -> Pair(func.apply(node), true) }
 }
 
