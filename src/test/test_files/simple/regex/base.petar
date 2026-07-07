@@ -1,4 +1,4 @@
 property Root(a:String)
 property T(a: String)
 
-Root(a=r".*")#root => T(a="Test")
+Root(a=String#a -> $regex(a, ".*"))#root => T(a="Test")

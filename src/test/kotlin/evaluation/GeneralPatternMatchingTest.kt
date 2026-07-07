@@ -9,6 +9,37 @@ import fr.univ_lille.iut_info.steps.*
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
+var regexIncrement = 0;
+
+fun regexPattern(regex: String, meta: PatternMeta = PatternMeta()): Pattern {
+
+    val name = meta.name ?: "regex${regexIncrement++}"
+
+    return PrimitiveTypePattern(
+        "String",
+        PatternMeta(
+            name,
+            meta.modifier,
+            condition = FunctionCallExpression(
+                "regex", listOf(
+                    ExpressionPattern(
+                        ExpressionAccess.Member(null, identifier = name),
+                        PatternMeta()
+                    ),
+                    ExpressionPattern(
+                        LiteralExpression.EString(regex), PatternMeta()
+                    )
+                )
+            ).let {
+                val condition = meta.condition
+
+                if (condition != null) BinaryExpression.And(condition, it)
+                else it
+            }
+        )
+    )
+}
+
 class GeneralPatternMatchingTest {
     @Test
     fun simpleProperty() {
@@ -85,20 +116,18 @@ class GeneralPatternMatchingTest {
     fun regex() {
         val context = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
         val value = MemoryString("Hello World !")
-
         assertEquals(
-            IIterator.singleton(EvaluationEnvironment()).toList(),
-            RegexPattern("H.*", meta = PatternMeta()).match(context, value).toList()
+            IIterator.singleton(EvaluationEnvironment(definitions = mapOf("r" to value))).toList(),
+            regexPattern("H.*", PatternMeta("r")).match(context, value).toList()
         )
 
         assertEquals(
-            emptyList(), RegexPattern("z.*", meta = PatternMeta()).match(context, value).toList()
+            emptyList(), regexPattern("z.*", PatternMeta("r")).match(context, value).toList()
         )
 
-
         assertEquals(
-            IIterator.singleton(EvaluationEnvironment()).toList(),
-            RegexPattern(".*o.*o.*", meta = PatternMeta()).match(context, value).toList()
+            IIterator.singleton(EvaluationEnvironment(definitions = mapOf("r" to value))).toList(),
+            regexPattern(".*o.*o.*", PatternMeta("r")).match(context, value).toList()
         )
     }
 
@@ -124,7 +153,8 @@ class GeneralPatternMatchingTest {
         context.typeNameMap["name_annotation"] = annotationType
 
         assertEquals(
-            IIterator.singleton(EvaluationEnvironment(choices = mapOf(valueField to annotationValue))).toList(), PropertyPattern(
+            IIterator.singleton(EvaluationEnvironment(choices = mapOf(valueField to annotationValue))).toList(),
+            PropertyPattern(
                 "test",
                 listOf("a" to PropertyPattern("name_annotation", emptyList(), meta = PatternMeta())),
                 meta = PatternMeta()
@@ -163,7 +193,14 @@ class GeneralPatternMatchingTest {
         context.typeNameMap["value_annotation"] = annotation2Type
 
         assertEquals(
-            listOf(EvaluationEnvironment(choices = mapOf(valueField to annotationValue, annotationValue.value["name"]!! to annotation2Value))),  PropertyPattern(
+            listOf(
+                EvaluationEnvironment(
+                    choices = mapOf(
+                        valueField to annotationValue,
+                        annotationValue.value["name"]!! to annotation2Value
+                    )
+                )
+            ), PropertyPattern(
                 "test", listOf(
                     "a" to PropertyPattern(
                         "name_annotation",

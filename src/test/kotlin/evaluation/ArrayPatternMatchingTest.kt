@@ -10,8 +10,9 @@ class ArrayPatternMatchingTest {
     fun simple() {
         val context = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
         val generator: (meta: PatternMeta) -> Pattern = { meta ->
-            val pattern = RegexPattern("[a-zA-Z]*", meta)
+            val pattern = PatternNesting(regexPattern("[a-zA-Z]*"), meta)
             context.patternNodeMap[pattern] = NameNode(null)
+            context.patternNodeMap[pattern.pattern] = NameNode(context.patternNodeMap[pattern])
             val typeCheck = pattern.typeCheck(context, Type.string, true)
             if (!typeCheck) println("Generator failed : $meta")
             pattern
@@ -47,8 +48,9 @@ class ArrayPatternMatchingTest {
     fun multiple_2() {
         val context = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
         val generator: (meta: PatternMeta) -> Pattern = { meta ->
-            val pattern = RegexPattern("[a-zA-Z]*", meta)
+            val pattern = PatternNesting(regexPattern("[a-zA-Z]*"), meta)
             context.patternNodeMap[pattern] = NameNode(null)
+            context.patternNodeMap[pattern.pattern] = NameNode(context.patternNodeMap[pattern])
             val typeCheck = pattern.typeCheck(context, Type.string, true)
             if (!typeCheck) println("Generator failed : $meta")
             pattern
@@ -84,8 +86,9 @@ class ArrayPatternMatchingTest {
     fun multiple() {
         val context = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
         val generator: (meta: PatternMeta) -> Pattern = { meta ->
-            val pattern = RegexPattern("[a-zA-Z]*", meta)
+            val pattern = PatternNesting(regexPattern("[a-zA-Z]*"), meta)
             context.patternNodeMap[pattern] = NameNode(null)
+            context.patternNodeMap[pattern.pattern] = NameNode(context.patternNodeMap[pattern])
             val typeCheck = pattern.typeCheck(context, Type.string, true)
             if (!typeCheck) println("Generator failed : $meta")
             pattern
@@ -145,8 +148,9 @@ class ArrayPatternMatchingTest {
 
         val context = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
         val generator: (meta: PatternMeta) -> Pattern = { meta ->
-            val pattern = RegexPattern("[a-zA-Z]*", meta)
+            val pattern = PatternNesting(regexPattern("[a-zA-Z]*"), meta)
             context.patternNodeMap[pattern] = NameNode(null)
+            context.patternNodeMap[pattern.pattern] = NameNode(context.patternNodeMap[pattern])
             val typeCheck = pattern.typeCheck(context, Type.string, true)
             if (!typeCheck) println("Generator failed : $meta")
             pattern
@@ -204,8 +208,9 @@ class ArrayPatternMatchingTest {
 
         val context = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
         val generator: (meta: PatternMeta) -> Pattern = { meta ->
-            val pattern = RegexPattern("[a-zA-Z]*", meta)
+            val pattern = PatternNesting(regexPattern("[a-zA-Z]*"), meta)
             context.patternNodeMap[pattern] = NameNode(null)
+            context.patternNodeMap[pattern.pattern] = NameNode(context.patternNodeMap[pattern])
             val typeCheck = pattern.typeCheck(context, Type.string, true)
             if (!typeCheck) println("Generator failed : $meta")
             pattern
@@ -274,8 +279,9 @@ class ArrayPatternMatchingTest {
 
         val context = EvaluatingStep(TypecheckStep(NameStep(Program(ProgramData(emptyList())))))
         val generator: (meta: PatternMeta, value: String) -> Pattern = { meta, value ->
-            val pattern = RegexPattern(value, meta)
+            val pattern = PatternNesting(regexPattern(value), meta)
             context.patternNodeMap[pattern] = NameNode(null)
+            context.patternNodeMap[pattern.pattern] = NameNode(context.patternNodeMap[pattern])
             val typeCheck = pattern.typeCheck(context, Type.string, true)
             if (!typeCheck) println("Generator failed : $meta")
             pattern

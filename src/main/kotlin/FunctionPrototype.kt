@@ -68,5 +68,52 @@ enum class FunctionPrototype(
         evaluation = { expression, context, environment ->
             val localRoot = (expression.arguments.first() as ExpressionPattern).value.evaluate(context, environment)
             MemoryString(localRoot.type.toString())
-        });
+        }),
+    regex(
+        typing = { expression, context ->
+            val arguments = expression.arguments
+
+            if (arguments.size != 2) throw StepError(
+                Step.TYPE, expression,
+                $$"$regex function needs exactly two arguments: $regex(value, regex_expression)"
+            )
+
+            arguments.forEach {
+                val typeCheck = it.typeCheck(context, Type.string)
+                if (!typeCheck) {
+                    throw StepError(
+                        Step.TYPE, it,
+                        "Element is supposed to be String."
+                    )
+                }
+            }
+            Type.boolean
+        },
+        evaluation = { expression, context, environment ->
+
+            val value =
+                (expression.arguments[0] as ExpressionPattern).value.evaluate(context, environment) as? MemoryString
+            val rawRegex =
+                (expression.arguments[1] as ExpressionPattern).value.evaluate(context, environment) as? MemoryString
+
+            if (value == null) throw StepError(
+                Step.EVALUATION,
+                expression.arguments[0],
+                "This is supposed to be evaluated to a string"
+            );
+            if (rawRegex == null) throw StepError(
+                Step.EVALUATION,
+                expression.arguments[1],
+                "This is supposed to be evaluated to a string"
+            );
+
+            try {
+                val regex = Regex(rawRegex.value)
+                val b = value.value.matches(regex)
+
+                MemoryBoolean(b)
+            } catch (_: Exception) {
+                throw StepError(Step.EVALUATION, expression.arguments[1], "Element is not a valid regex expression.")
+            }
+        })
 }

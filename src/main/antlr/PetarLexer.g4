@@ -46,10 +46,6 @@ IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]*;
 
 NUMBER: ([0-9]+ '.'? | [0-9]* '.' [0-9]+);
 
-REGEX_STRING: 'r"' RegexCharacters? '"';
-fragment RegexCharacters: RegexCharacter+;
-fragment RegexCharacter: ~["\\\r\n] | ('\\' ["+*(){}|]);
-
 STRING: '"' StringCharacters? '"';
 fragment StringCharacters: StringCharacter+;
 fragment StringCharacter: ~["\\\r\n];

@@ -207,12 +207,6 @@ fun Pattern.match(
             else IIterator.empty()
         }
 
-        is RegexPattern if element is MemoryString -> if (element.value.matches(Regex(value))) IIterator.singleton(
-            this.applyEffects(
-                context, element, environment
-            )
-        ) else IIterator.empty()
-
         is ArrayPattern if element is MemoryArray -> arrayMatching(
             context, values, element.value, environment
         )

@@ -55,7 +55,6 @@ pattern: (
         | pattern_property
 		| pattern_array
 		| pattern_unordered_array
-		| pattern_regex
 		| pattern_expression
 	) (at_least_one = PLUS | any_number = MULT |) (
 		'#' name = variable_identifier
@@ -81,8 +80,6 @@ pattern_unordered_array:
 	LUNORDERED_ARRAY (
 		(values += pattern COMMA)* (values += pattern)
 	) RUNORDERED_ARRAY;
-
-pattern_regex: REGEX_STRING;
 
 // Expressions
 

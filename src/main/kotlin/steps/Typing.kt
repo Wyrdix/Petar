@@ -235,8 +235,6 @@ fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false)
             this, this.value.typeSynthesis(context)
         )
 
-        is RegexPattern -> context.typePatternSynthesis(this, Type.string)
-
         is PrimitiveTypePattern -> {
             val type = context.getType(this.identifier)
 

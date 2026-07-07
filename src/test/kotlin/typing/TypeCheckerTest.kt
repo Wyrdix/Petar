@@ -11,7 +11,6 @@ class TypeCheckerTest {
 
     @Test
     fun primitive() {
-        assert(RegexPattern("", PatternMeta()).typeCheck(emptyContext, Type.string))
         assert(LiteralExpression.EString("").typeCheck(emptyContext, Type.string))
         assert(LiteralExpression.ENumber(1f).typeCheck(emptyContext, Type.number))
         assert(LiteralExpression.EBoolean(false).typeCheck(emptyContext, Type.boolean))
