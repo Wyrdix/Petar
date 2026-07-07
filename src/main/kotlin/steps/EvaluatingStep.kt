@@ -1,8 +1,11 @@
 package fr.univ_lille.iut_info.steps
 
-import fr.univ_lille.iut_info.*
+import fr.univ_lille.iut_info.MutableBiMap
+import fr.univ_lille.iut_info.ProductionRuleStatement
+import fr.univ_lille.iut_info.PropertyType
 import fr.univ_lille.iut_info.memory.MemoryElement
 import fr.univ_lille.iut_info.memory.MemoryPath
+import fr.univ_lille.iut_info.visit
 
 class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingContext, ITypingContext by typecheckStep,
     ExecutionStep {
@@ -25,7 +28,7 @@ class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingCon
                     val production = statement.production
                     val restriction = calculateRestriction(input)
                     if (restriction.map { it.identifier }.contains(production.identifier)) return@visit null
-                    val environments = pattern.match(this, input).filter { pattern.condition(this, it) }.iterator()
+                    val environments = pattern.match(this, input).iterator()
                     if (!environments.hasNext()) return@visit null
                     val env = environments.next()
                     val annotation = production.evaluate(this, env)

@@ -11,6 +11,10 @@ interface IIterator<T> : Iterator<T>, Iterable<T> {
         return MapIterator(this.copy().apply { reset() }, transform)
     }
 
+    fun filterI(filter: (T) -> Boolean): IIterator<T> {
+        return flatMapI { if (filter(it)) singleton(it) else empty() }
+    }
+
     fun <R> foldI(initial: R, operation: (acc: R, T) -> R): R {
         var accumulator = initial
         for (element in this) accumulator = operation(accumulator, element)
