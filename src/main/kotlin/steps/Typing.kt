@@ -192,10 +192,9 @@ fun Pattern.typeCheck(context: ITypingContext, type: Type, listPattern: Boolean 
     if (type is ReferenceType) return typeCheck(context, type.resolveReference(context))
 
     val synthesizedType = this.typeSynthesis(context, listPattern)
-    if (synthesizedType != null) if (type.isAssignableFrom(context, synthesizedType)) return context.typePatternChecked(
+    if (synthesizedType != null) return context.typePatternChecked(
         this, true, type
     )
-    else throw StepError(Step.TYPE, this, "$type is not assignable from $synthesizedType")
 
     return when {
         type is AnyPatternType -> context.typePatternChecked(this, true, Type.anyPattern)
