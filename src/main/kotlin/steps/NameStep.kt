@@ -54,21 +54,19 @@ class NameStep(override val program: Program) : ExecutionStep, INameContext {
         }
 
         rules.forEach { rule ->
-            val ruleRoot = NameNode(root)
-            initial(this, rule.pattern, ruleRoot)
+            initial(this, rule.pattern, root)
+            fillNodes(this, rule.pattern)
 
             rule.acts.forEach { act ->
                 act.attaching?.let { initial(this, it, getNameNode(rule.pattern)) }
                 initial(this, act.attachment, getNameNode(rule.pattern))
             }
 
-            fillNodes(this, rule.pattern)
-
             rule.acts.forEach { act ->
                 act.attaching?.let { fillNodes(this, it) }
                 fillNodes(this, act.attachment)
             }
-            checkNode(ruleRoot)
+            checkNode(getNameNode(rule.pattern))
         }
 
         checkNode(root)
