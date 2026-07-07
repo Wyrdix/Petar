@@ -239,6 +239,15 @@ fun Pattern.match(
         }
 
         else -> IIterator.empty()
+    }.let { environments ->
+        val thisName = meta.name
+        if (this.modifier != ONE)
+            environments.map { environment ->
+                EvaluationEnvironment(environment.definitions.filterKeys {
+                    thisName == null || it == thisName
+                }, environment.choices)
+            }
+        else environments
     }
 
 }
