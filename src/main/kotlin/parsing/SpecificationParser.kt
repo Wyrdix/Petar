@@ -183,7 +183,10 @@ class SpecificationParser {
                 val values = ctx.fields.map { visitPattern_object_field(it) }
                 PropertyPattern(id, values, fields).setupRange(ctx)
             } else {
-                PrimitiveTypePattern(id, fields).setupRange(ctx)
+                val isPrimitiveType = listOf(Type.string, Type.number, Type.boolean).map { it.toString() }.contains(id)
+
+                if (isPrimitiveType) PrimitiveTypePattern(id, fields).setupRange(ctx)
+                else ExpressionPattern(ExpressionAccess.Member(null, id), fields).setupRange(ctx);
             }
         }
 
