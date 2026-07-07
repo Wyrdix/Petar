@@ -466,7 +466,7 @@ PropertyA() #root
 
 ---
 
-# Production Rules
+# Annotation Rules
 
 Once a pattern matches, Petar may generate one or more new properties.
 
@@ -508,6 +508,47 @@ PropertyA(
 ```
 
 The produced property receives the captured value.
+
+---
+
+## Localized annotation
+
+Captured variables may be used to specify which property should be annotated.
+
+```petar
+PropertyA(
+    value1=PropertyB()#propB
+)
+
+=> propB:PropertyC()
+```
+
+By default if you don't specify a property, the root that was matched to the pattern is used. (This is the behavior
+mostly used in the document)
+
+```petar
+PropertyA(
+    value1=PropertyB()#propB
+)
+
+=> PropertyC()
+```
+
+---
+
+## Multiple annotations
+
+You can specify multiple annotation separated by comma :
+
+```petar
+PropertyA(
+    value1=PropertyB()#propB
+)#root
+
+=> propB:PropertyC(), root:PropertyD(), PropertyE()
+```
+
+(PropertyD() and PropertyE() will both annotate the root that was matched by the pattern)
 
 ---
 
