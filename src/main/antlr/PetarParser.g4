@@ -51,7 +51,8 @@ rewrite_rule_statement:
 
 // Patterns
 pattern: (
-		pattern_property
+        pattern_nest
+        | pattern_property
 		| pattern_array
 		| pattern_unordered_array
 		| pattern_regex
@@ -59,6 +60,8 @@ pattern: (
 	) (at_least_one = PLUS | any_number = MULT |) (
 		'#' name = variable_identifier
 	)? (ARROW condition = expression)?;
+
+pattern_nest: LPAREN pattern RPAREN;
 
 pattern_expression: expression;
 

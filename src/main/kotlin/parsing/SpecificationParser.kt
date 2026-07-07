@@ -151,16 +151,16 @@ class SpecificationParser {
             val patternArray = ctx.pattern_array()?.let { visitPattern_array(it, patternFields) }
             val patternObject = ctx.pattern_property()?.let { visitPattern_object(it, patternFields) }
             val patternExpression = ctx.pattern_expression()?.let { visitPattern_expression(it, patternFields) }
-            val patternRegex = ctx.pattern_regex()?.let { visitPattern_regex(it, patternFields) }
-            return patternArray ?: patternObject ?: patternExpression ?: patternRegex
+            val patternNest = ctx.pattern_nest()?.let { visitPattern_nest(it, patternFields) }
+            return patternArray ?: patternObject ?: patternExpression
+            ?: patternNest
             ?: throw IllegalStateException("Unknown pattern context")
         }
 
-        fun visitPattern_regex(
-            ctx: Pattern_regexContext, fields: PatternMeta
-        ): RegexPattern {
-            val regex = ctx.REGEX_STRING().text
-            return RegexPattern(regex.substring(2, regex.length - 1), fields).setupRange(ctx)
+        fun visitPattern_nest(
+            ctx: Pattern_nestContext, fields: PatternMeta
+        ): Pattern {
+            return PatternNesting(visitPattern(ctx.pattern()), fields).setupRange(ctx)
         }
 
         fun visitPattern_expression(
@@ -241,13 +241,12 @@ class SpecificationParser {
             if (ctx.PLUS() != null) return BinaryExpression.Plus(left, right).setupRange(ctx)
             if (ctx.MINUS() != null) return BinaryExpression.Minus(left, right).setupRange(ctx)
             if (ctx.DIVIDE() != null) return BinaryExpression.Divide(left, right).setupRange(ctx)
-            if(ctx.LOWER() != null) return BinaryExpression.Lower(left, right).setupRange(ctx)
-            if(ctx.LOWER_EQ() != null) return BinaryExpression.Lower(left, right, true).setupRange(ctx)
-            if(ctx.GREATER() != null) return BinaryExpression.Lower(right, left).setupRange(ctx)
-            if(ctx.GREATER_EQ() != null) return BinaryExpression.Lower(right, left).setupRange(ctx)
+            if (ctx.LOWER() != null) return BinaryExpression.Lower(left, right).setupRange(ctx)
+            if (ctx.LOWER_EQ() != null) return BinaryExpression.Lower(left, right, true).setupRange(ctx)
+            if (ctx.GREATER() != null) return BinaryExpression.Lower(right, left).setupRange(ctx)
+            if (ctx.GREATER_EQ() != null) return BinaryExpression.Lower(right, left).setupRange(ctx)
             if (ctx.EQUAL() != null) return PatternMatchExpression(
-                left,
-                visitPattern(ctx.right_pattern)
+                left, visitPattern(ctx.right_pattern)
             ).setupRange(ctx)
             throw IllegalStateException("Unknown binary expression context")
         }
@@ -268,9 +267,8 @@ class SpecificationParser {
             val expressionLiteral = ctx.expression_literal()?.let { visitExpression_literal(it) }
             val unaryExpression = ctx.unary_expression()?.let { visitUnary_expression(it) }
             val expression = ctx.expression()?.let { visitExpression(it) }
-            return expressionAccess ?: expressionArray ?: expressionObject
-            ?: expressionLiteral ?: unaryExpression ?: expression
-            ?: expressionFunction ?: throw IllegalStateException("Unknown enclosed expression context")
+            return expressionAccess ?: expressionArray ?: expressionObject ?: expressionLiteral ?: unaryExpression
+            ?: expression ?: expressionFunction ?: throw IllegalStateException("Unknown enclosed expression context")
         }
 
         fun visitExpression_function(ctx: Expression_functionContext): FunctionCallExpression {

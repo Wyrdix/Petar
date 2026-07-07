@@ -197,6 +197,10 @@ fun Pattern.match(
     }
 
     return when (this) {
+        is PatternNesting -> {
+            pattern.match(context, element, environment).map { applyEffects(context, element, it) }
+        }
+
         is ExpressionPattern -> {
             val stored = this.value.evaluate(context, environment)
             if (stored.isSimilarTo(element, null)) IIterator.singleton(applyEffects(context, element, environment))

@@ -62,6 +62,12 @@ class ArrayPattern(
 
 }
 
+class PatternNesting(val pattern: Pattern, override val meta: PatternMeta) : Pattern(meta) {
+    override fun accept(visitor: Visitor<Pattern>): Pattern {
+        return PatternNesting(visitor.visit(pattern), meta)
+    }
+}
+
 class PrimitiveTypePattern(val identifier: String, override val meta: PatternMeta) : Pattern(meta) {
     override fun accept(visitor: Visitor<Pattern>): Pattern {
         return this;

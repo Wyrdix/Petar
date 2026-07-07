@@ -228,6 +228,9 @@ fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false)
     if (alreadySynthesized != null) return alreadySynthesized
 
     return when (this) {
+
+        is PatternNesting -> context.typePatternSynthesis(this, pattern.typeSynthesis(context, listPattern))
+
         is ExpressionPattern -> context.typePatternSynthesis(
             this, this.value.typeSynthesis(context)
         )
