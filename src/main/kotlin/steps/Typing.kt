@@ -16,7 +16,8 @@ interface ITypingContext : INameContext {
     }
 
     fun typePatternSynthesis(pattern: Pattern, type: Type?): Type? {
-        if (type != null) patternSynthesized[pattern] = type
+        if (type != null) patternSynthesized[pattern] =
+            if (pattern.modifier != PatternModifier.ONE) Type.array(type) else type
         return type
     }
 
@@ -262,7 +263,7 @@ fun Pattern.typeSynthesis(context: ITypingContext, listPattern: Boolean = false)
                         "Pattern is not of type ${it.value} (it is of type ${context.patternChecked[fieldValue] ?: context.patternSynthesized[fieldValue]})"
                     )
                 }
-            }.let { type }
+            }.let { context.typePatternSynthesis(this, type) }
         }
 
         else -> null
