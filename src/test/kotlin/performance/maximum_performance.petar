@@ -1,0 +1,9 @@
+property Node()
+property Binary(left: Node, right: Node): Node()
+property Leaf(value: Number)
+
+property Maximum(value: Number)
+
+Leaf(value=Number#value) => Maximum(value=value)
+Binary(left=Maximum(value=Number#value1), right=Maximum(value=Number#value2)) -> value2 <= value1 => Maximum(value=value1)
+Binary(left=Maximum(value=Number#value1), right=Maximum(value=Number#value2)) -> value1 <= value2 => Maximum(value=value2)
