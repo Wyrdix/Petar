@@ -15,7 +15,7 @@ class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITyping
         val errorList: MutableList<String> = ArrayList()
 
         val types = program.statements.filterIsInstance<PropertyDeclarationStatement>()
-        val rules = program.statements.filterIsInstance<ProductionRuleStatement>()
+        val rules = program.statements.filterIsInstance<AnnotationRuleStatement>()
 
         types.forEach {
             try {

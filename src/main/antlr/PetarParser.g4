@@ -8,7 +8,7 @@ program: statement* EOF;
 
 statement:
 	property_declaration_statement
-	| rewrite_rule_statement;
+	| annotation_rule_statement;
 
 property_declaration_statement:
 	KEYWORD_SPECIFY_PROP schema = property_type;
@@ -46,7 +46,7 @@ enclosed_type_2: LPAREN type RPAREN | ref = type_identifier;
 
 type: enclosed_type_1;
 
-rewrite_rule_statement:
+annotation_rule_statement:
 	pattern KEYWORD_SPECIFY_REWRITE result = expression_property;
 
 // Patterns

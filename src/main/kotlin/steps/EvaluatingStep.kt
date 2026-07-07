@@ -1,7 +1,7 @@
 package fr.univ_lille.iut_info.steps
 
+import fr.univ_lille.iut_info.AnnotationRuleStatement
 import fr.univ_lille.iut_info.MutableBiMap
-import fr.univ_lille.iut_info.ProductionRuleStatement
 import fr.univ_lille.iut_info.PropertyType
 import fr.univ_lille.iut_info.memory.MemoryElement
 import fr.univ_lille.iut_info.memory.MemoryPath
@@ -15,7 +15,7 @@ class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingCon
     override fun run(): List<String> {
         val rootInput = program.data.input?.let { it(this) } ?: return emptyList()
 
-        val rules = program.statements.filterIsInstance<ProductionRuleStatement>()
+        val rules = program.statements.filterIsInstance<AnnotationRuleStatement>()
 
         initial(rootInput, MemoryPath.root(this));
 

@@ -73,9 +73,9 @@ class SpecificationParser {
 
         fun visitStatement(ctx: StatementContext): Statement {
             val nodeDeclarationStatement = ctx.property_declaration_statement()
-            val rewriteRuleStatement = ctx.rewrite_rule_statement()
+            val annotationRuleStatement = ctx.annotation_rule_statement()
             if (nodeDeclarationStatement != null) return visitProperty_declaration_statement(nodeDeclarationStatement)
-            if (rewriteRuleStatement != null) return visitRewrite_rule_statement(rewriteRuleStatement)
+            if (annotationRuleStatement != null) return visitAnnotation_rule_statement(annotationRuleStatement)
             throw IllegalStateException("Statement type is not found.")
         }
 
@@ -84,8 +84,8 @@ class SpecificationParser {
             return PropertyDeclarationStatement(type).setupRange(ctx)
         }
 
-        fun visitRewrite_rule_statement(ctx: Rewrite_rule_statementContext): ProductionRuleStatement {
-            return ProductionRuleStatement(
+        fun visitAnnotation_rule_statement(ctx: Annotation_rule_statementContext): AnnotationRuleStatement {
+            return AnnotationRuleStatement(
                 visitPattern(ctx.pattern()), visitExpression_object(ctx.result)
             ).setupRange(ctx)
         }

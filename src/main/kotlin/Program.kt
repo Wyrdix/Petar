@@ -17,7 +17,7 @@ data class PropertyDeclarationStatement(
     val type: PropertyType
 ) : Statement()
 
-data class ProductionRuleStatement(
+data class AnnotationRuleStatement(
     val pattern: Pattern, val production: PropertyExpression
 ) : Statement()
 

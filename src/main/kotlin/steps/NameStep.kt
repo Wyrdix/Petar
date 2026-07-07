@@ -25,7 +25,7 @@ class NameStep(override val program: Program) : ExecutionStep, INameContext {
 
 
         val types = program.statements.filterIsInstance<PropertyDeclarationStatement>().map { it.type }
-        val rules = program.statements.filterIsInstance<ProductionRuleStatement>()
+        val rules = program.statements.filterIsInstance<AnnotationRuleStatement>()
 
         types.forEach { typeNameMap[it.identifier] = it }
 
