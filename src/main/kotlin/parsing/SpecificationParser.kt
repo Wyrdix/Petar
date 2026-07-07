@@ -86,8 +86,15 @@ class SpecificationParser {
 
         fun visitAnnotation_rule_statement(ctx: Annotation_rule_statementContext): AnnotationRuleStatement {
             return AnnotationRuleStatement(
-                visitPattern(ctx.pattern()), visitExpression_object(ctx.result)
+                visitPattern(ctx.pattern()), ctx.acts.map(this::visitAnnotation_act)
             ).setupRange(ctx)
+        }
+
+        fun visitAnnotation_act(ctx: Annotation_actContext): AnnotationAct {
+            return AnnotationAct(
+                ctx.attaching?.let { visitExpression_access(it) },
+                visitExpression_object(ctx.attachment)
+            );
         }
 
         fun visitProperty_type(ctx: Property_typeContext): PropertyType {

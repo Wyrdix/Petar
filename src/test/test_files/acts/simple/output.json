@@ -1,0 +1,35 @@
+{
+  "value": {
+    "value1": {
+      "value": {
+        "a": {
+          "value": true,
+          "_path": "value1.a",
+          "_type": "Boolean"
+        }
+      },
+      "_annotations": [
+        {
+          "value": {},
+          "_path": "value1(Found)",
+          "_type": "Found"
+        }
+      ],
+      "_path": "value1",
+      "_type": "A"
+    },
+    "value2": {
+      "value": {
+        "a": {
+          "value": true,
+          "_path": "value2.a",
+          "_type": "Boolean"
+        }
+      },
+      "_path": "value2",
+      "_type": "A"
+    }
+  },
+  "_path": "",
+  "_type": "Root"
+}

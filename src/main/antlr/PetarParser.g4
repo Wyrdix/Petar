@@ -47,7 +47,9 @@ enclosed_type_2: LPAREN type RPAREN | ref = type_identifier;
 type: enclosed_type_1;
 
 annotation_rule_statement:
-	pattern KEYWORD_SPECIFY_REWRITE result = expression_property;
+	pattern KEYWORD_SPECIFY_REWRITE (acts+=annotation_act COMMA)* acts+=annotation_act;
+
+annotation_act: (attaching=expression_access COLON)? attachment=expression_property;
 
 // Patterns
 pattern: (

@@ -29,22 +29,28 @@ class TypecheckStep(override val nameContext: NameStep) : ExecutionStep, ITyping
         rules.forEach {
             try {
                 val leftSynthesized = it.pattern.typeSynthesis(this)
-                val rightSynthesized = it.production.typeSynthesis(this)
 
                 if ((leftSynthesized ?: Type.bottom) == Type.bottom) throw StepError(
-                    Step.TYPE,
-                    it,
-                    "Unknown error in pattern"
+                    Step.TYPE, it, "Unknown error in pattern"
                 )
-                if ((rightSynthesized
-                        ?: Type.bottom) == Type.bottom
-                ) {
-                    throw StepError(
-                        Step.TYPE,
-                        it,
-                        "Unknown error in production"
-                    )
+
+                it.acts.forEach { act ->
+
+                    val attachingSynthesized = act.attaching?.typeSynthesis(this)
+                    if ((attachingSynthesized ?: Type.any) == Type.bottom) {
+                        throw StepError(
+                            Step.TYPE, act.attaching!!, "Unknown error in production"
+                        )
+                    }
+
+                    val attachmentSynthesized = act.attachment.typeSynthesis(this)
+                    if ((attachmentSynthesized ?: Type.bottom) == Type.bottom) {
+                        throw StepError(
+                            Step.TYPE, act.attachment, "Unknown error in production"
+                        )
+                    }
                 }
+
             } catch (e: IllegalStateException) {
                 val message = e.message
                 throw StepError(Step.TYPE, it, message ?: "Unknown Error")

@@ -18,8 +18,10 @@ data class PropertyDeclarationStatement(
 ) : Statement()
 
 data class AnnotationRuleStatement(
-    val pattern: Pattern, val production: PropertyExpression
+    val pattern: Pattern, val acts: List<AnnotationAct>
 ) : Statement()
+
+data class AnnotationAct(val attaching: ExpressionAccess?, val attachment: PropertyExpression)
 
 class Program(val data: ProgramData) {
 

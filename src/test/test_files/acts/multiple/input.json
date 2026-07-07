@@ -1,0 +1,23 @@
+{
+  "value": {
+    "value1": {
+      "value": {
+        "a": {
+          "value": true,
+          "_type": "Boolean"
+        }
+      },
+      "_type": "A"
+    },
+    "value2": {
+      "value": {
+        "a": {
+          "value": true,
+          "_type": "Boolean"
+        }
+      },
+      "_type": "A"
+    }
+  },
+  "_type": "Root"
+}

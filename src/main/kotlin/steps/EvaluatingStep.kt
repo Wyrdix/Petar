@@ -25,16 +25,21 @@ class EvaluatingStep(override val typecheckStep: TypecheckStep) : IEvaluatingCon
             for (statement in rules) {
                 rootInput.visit { input ->
                     val pattern = statement.pattern
-                    val production = statement.production
-                    val restriction = calculateRestriction(input)
-                    if (restriction.map { it.identifier }.contains(production.identifier)) return@visit null
                     val environments = pattern.match(this, input).iterator()
                     if (!environments.hasNext()) return@visit null
-                    val env = environments.next()
-                    val annotation = production.evaluate(this, env)
-                    if (annotation is fr.univ_lille.iut_info.memory.MemoryObject) {
-                        changed = true
-                        addAnnotation(env.choices[input] ?: input, annotation)
+                    for (env in environments) {
+                        for (act in statement.acts) {
+                            val attaching = act.attaching?.evaluate(this, env) ?: input
+                            val attachment = act.attachment
+                            val restriction = calculateRestriction(attaching)
+                            if (restriction.map { it.identifier }.contains(attachment.identifier)) continue
+
+                            val annotation = attachment.evaluate(this, env)
+                            if (annotation is fr.univ_lille.iut_info.memory.MemoryObject) {
+                                changed = true
+                                addAnnotation(env.choices[attaching] ?: attaching, annotation)
+                            }
+                        }
                     }
                     return@visit null
                 }

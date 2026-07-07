@@ -1,0 +1,6 @@
+property Root(value1: A, value2: A)
+property A(a: Boolean)
+
+property Found()
+
+Root(value1=A(a=True)#target) => target:Found()
